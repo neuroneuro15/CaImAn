@@ -312,7 +312,7 @@ params_display = {
 }
 # TODO: do find&replace on those parameters and delete this paragrph
 
-# @params fname name of the movie
+# @params fname name of the Movie
 fname_new = params_movie['fname'][0]
 # %% RUN ANALYSIS
 c, dview, n_processes = cm.cluster.setup_cluster(
@@ -323,7 +323,7 @@ Yr, dims, T = cm.load_memmap(fname_new)
 d1, d2 = dims
 images = np.reshape(Yr.T, [T] + list(dims), order='F')
 Y = np.reshape(Yr, dims + (T,), order='F')
-m_images = cm.movie(images)
+m_images = cm.Movie(images)
 # %% correlation image
 if m_images.shape[0]<10000:
     Cn = m_images.local_correlations(swap_dim = params_movie['swap_dim'], frames_per_chunk = 1500)

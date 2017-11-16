@@ -56,7 +56,7 @@ params_movie = {'fname': ['Sue_2x_3000_40_-46.tif'],
                 'niter_rig': 1,
                 'max_shifts': (3, 3),  # maximum allow rigid shift
                 'splits_rig': 20,  # for parallelization split the movies in  num_splits chuncks across time
-                # if none all the splits are processed and the movie is saved
+                # if none all the splits are processed and the Movie is saved
                 'num_splits_to_process_rig': None,
                 # intervals at which patches are laid out for motion correction
                 'p': 1,  # order of the autoregressive system
@@ -93,7 +93,7 @@ params_display = {
 #                 'max_shifts': (2, 2),  # maximum allow rigid shift (2,2)
 #                 'niter_rig': 1,
 #                 'splits_rig': 14,  # for parallelization split the movies in  num_splits chuncks across time
-#                 'num_splits_to_process_rig': None,  # if none all the splits are processed and the movie is saved
+#                 'num_splits_to_process_rig': None,  # if none all the splits are processed and the Movie is saved
 #                 'p': 1,  # order of the autoregressive system
 #                 'merge_thresh': 0.8,  # merging threshold, max correlation allow
 #                 'rf': 20,  # half-size of the patches in pixels. rf=25, patches are 50x50    20
@@ -191,7 +191,7 @@ def test_general():
         m_els = m_rig
 
     idx_xy = None
-    add_to_movie = -np.nanmin(m_els) + 1  # movie must be positive
+    add_to_movie = -np.nanmin(m_els) + 1  # Movie must be positive
     remove_init = 0
     downsample_factor = 1
     base_name = fname[0].split('/')[-1][:-4]
@@ -300,7 +300,7 @@ def test_general():
 ############ assertions ##################
     pb = False
     if (comp.information['differences']['params_movie']):
-        print("you ned to set the same movie paramters than the ground truth to have a real comparison (use the comp.see() function to explore it)")
+        print("you ned to set the same Movie paramters than the ground truth to have a real comparison (use the comp.see() function to explore it)")
         pb = True
     if (comp.information['differences']['params_cnm']):
         print("you need to set the same cnmf paramters than the ground truth to have a real comparison (use the comp.see() function to explore it)")

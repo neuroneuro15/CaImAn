@@ -65,7 +65,7 @@ n_processes = 56#np.maximum(psutil.cpu_count() - 2,1) # roughly number of cores 
 #    
 #    mn1,shifts,xcorrs, template=mn1.motion_correct()
 #    mn2=mn1.apply_shifts(shifts)     
-#    #mn1=cb.movie(np.transpose(np.array(Y_n),[2,0,1]),fr=30)
+#    #mn1=cb.Movie(np.transpose(np.array(Y_n),[2,0,1]),fr=30)
 #    mn=cb.concatenate([mn1,mn2],axis=1)
 #    mn.play(gain=5.,magnification=4,backend='opencv',fr=30)
 #%%

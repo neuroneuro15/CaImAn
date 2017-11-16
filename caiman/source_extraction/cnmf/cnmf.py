@@ -616,7 +616,7 @@ class CNMF(object):
 
         if Yr.shape[-1] != self.initbatch:
             raise Exception(
-                'The movie size used for initialization does not match with the minibatch size')
+                'The Movie size used for initialization does not match with the minibatch size')
 
         if new_dims is not None:
 
@@ -1004,7 +1004,7 @@ class CNMF(object):
          Parameters:
          -----------
          Yr :    np.ndarray
-                 movie in format pixels (d) x frames (T)
+                 Movie in format pixels (d) x frames (T)
 
         """
 
@@ -1067,7 +1067,7 @@ class CNMF(object):
          Parameters:
          -----------
          Yr :    np.ndarray
-                 movie in format pixels (d) x frames (T)
+                 Movie in format pixels (d) x frames (T)
 
          dims :  tuple
                  dimensions of the FOV

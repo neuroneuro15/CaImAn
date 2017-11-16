@@ -66,7 +66,7 @@ epochs = 1                                          # number of passes over the 
 len_file = 1000                                     # upper bound for number of frames in each file (used right below)
 T1 = len(fls)*len_file*epochs                       # total length of all files (if not known use a large number, then truncate at the end)
 gSig = tuple(np.ceil(np.array(gSig)/ds_factor).astype('int'))
-#%%    Initialize movie
+#%%    Initialize Movie
 
 if ds_factor > 1:                                   # load only the first initbatch frames and possibly downsample them
     Y = cm.load(fls[0], subindices = slice(0,initbatch,None)).astype(np.float32).resize(1. / ds_factor, 1. / ds_factor)
@@ -80,7 +80,7 @@ if mot_corr:                                        # perform motion correction 
 else:
     Y = Y.astype(np.float32)
       
-img_min = Y.min()                                   # minimum value of movie. Subtract it to make the data non-negative
+img_min = Y.min()                                   # minimum value of Movie. Subtract it to make the data non-negative
 Y -= img_min
 img_norm = np.std(Y, axis=0)                        
 img_norm += np.median(img_norm)                     # normalizing factor to equalize the FOV
@@ -134,8 +134,8 @@ Cn = Cn_init.copy()
 
 plot_contours_flag = False               # flag for plotting contours of detected components at the end of each file
 play_reconstr = True                     # flag for showing video with results online (turn off flags for improving speed)
-save_movie = False                       # flag for saving movie (file could be quite large..)
-movie_name = folder_name + '/output.avi' # name of movie to be saved
+save_movie = False                       # flag for saving Movie (file could be quite large..)
+movie_name = folder_name + '/output.avi' # name of Movie to be saved
 resize_fact = 1.2                        # image resizing factor
 
 if online_files == 0:                    # check whether there are any additional files
@@ -207,7 +207,7 @@ for iter in range(epochs):
                 crd = cm.utils.visualization.plot_contours(A, Cn, thr=0.9)  # update the contour plot every 1000 frames
                 pl.pause(1)
                 
-            if play_reconstr:                                               # generate movie with the results
+            if play_reconstr:                                               # generate Movie with the results
                 A, b = cnm2.Ab[:, cnm2.gnb:], cnm2.Ab[:, :cnm2.gnb].toarray()
                 C, f = cnm2.C_on[cnm2.gnb:cnm2.M, :], cnm2.C_on[:cnm2.gnb, :]
                 comps_frame = A.dot(C[:,t-1]).reshape(cnm2.dims, order = 'F')*img_norm/np.max(img_norm)   # inferred activity due to components (no background)

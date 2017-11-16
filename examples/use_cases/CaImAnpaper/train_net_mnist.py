@@ -186,9 +186,9 @@ model.save(model_path)
 print('Saved trained model at %s ' % model_path)
 #%% visualize_results 
 predictions = model.predict(all_masks_gt, batch_size=32, verbose=1)
-cm.movie(np.squeeze(all_masks_gt[np.where(predictions[:,0]>=0.5)[0]])).play(gain=3., magnification = 5, fr = 10)
+cm.Movie(np.squeeze(all_masks_gt[np.where(predictions[:, 0] >= 0.5)[0]])).play(gain=3., magnification = 5, fr = 10)
 #%%
-cm.movie(np.squeeze(all_masks_gt[np.where(predictions[:,1]>=0.5)[0]])).play(gain=3., magnification = 5)
+cm.Movie(np.squeeze(all_masks_gt[np.where(predictions[:, 1] >= 0.5)[0]])).play(gain=3., magnification = 5)
 
 #%% retrieve and test
 json_file = open(json_path, 'r')
@@ -199,4 +199,4 @@ loaded_model.load_weights(model_path)
 print("Loaded model from disk")
 #%%
 predictions = loaded_model.predict(all_masks_gt, batch_size=32, verbose=1)
-cm.movie(np.squeeze(all_masks_gt[np.where(predictions[:,1]<0.5)[0]])).play(gain=3., magnification = 5, fr = 10)
+cm.Movie(np.squeeze(all_masks_gt[np.where(predictions[:, 1] < 0.5)[0]])).play(gain=3., magnification = 5, fr = 10)

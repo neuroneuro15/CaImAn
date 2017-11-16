@@ -365,7 +365,7 @@ def compute_metrics_motion_correction(fname,final_size_x,final_size_y, swap_dim,
             pl.subplot(1,3,1)    
             pl.cla()    
             pl.imshow(fr,vmin = 0, vmax = 300, cmap = 'gray' )       
-            pl.title('movie')
+            pl.title('Movie')
 
             
             pl.subplot(1,3,3)    
@@ -434,7 +434,7 @@ for mv in m_res:
 #%% run comparisons SUITE2P
 for mvs in glob.glob('Sue*2000*16*.mat'):
     print (mvs)
-    cm.movie(scipy.io.loadmat(mvs)['data'].transpose([2,0,1])).save(mvs[:-3]+'.hdf5')
+    cm.Movie(scipy.io.loadmat(mvs)['data'].transpose([2, 0, 1])).save(mvs[:-3] + '.hdf5')
 #%%
 m_fluos = glob.glob('M_FLUO*.hdf5')
 final_size = (64-20,128-20)
@@ -521,7 +521,7 @@ import h5py
 with  h5py.File('sueann_pw_rigid_movie.mat') as f:
     mef = np.array(f['M2'])
 
-mef = cm.movie(mef.transpose([0,2,1]))    
+mef = cm.Movie(mef.transpose([0, 2, 1]))
 
 #%%
 cm.concatenate([mef.resize(1,1,.15),mc.resize(1,1,.15)],axis=1).play(gain=30,fr = 40, offset = 300,magnification=1.)
@@ -534,7 +534,7 @@ T,d1,d2 = np.shape(m)
 shape_mov = (d1*d2,m.shape[0])
 
 Y = np.memmap('M_FLUO_4_d1_64_d2_128_d3_1_order_F_frames_4620_.mmap',mode = 'r',dtype=np.float32, shape=shape_mov, order='F')
-mc = cm.movie(np.reshape(Y,(d2,d1,T),order = 'F').transpose([2,1,0]))
+mc = cm.Movie(np.reshape(Y, (d2, d1, T), order ='F').transpose([2, 1, 0]))
 mc.resize(1,1,.25).play(gain=10.,fr=50)
 #%%
 total_shifts = [r[0][0][0] for r in res]
@@ -658,9 +658,9 @@ if 0:
 #%%
 pl.plot(r_ef)
 #%%
-mc = cm.movie(mc)
+mc = cm.Movie(mc)
 mc[np.isnan(mc)] = 0
-#%% play movie
+#%% play Movie
 (mc+add_to_movie).resize(1,1,.25).play(gain=10.,fr=50)
 #%% compute correlation images
 ccimage = m.local_correlations(eight_neighbours=True,swap_dim=False)
@@ -702,7 +702,7 @@ for chunk in res:
 #        pl.imshow(mag_norm,vmin=0,vmax =1,interpolation = 'none')
 #        pl.pause(.1)
 #%%
-mam = cm.movie(np.dstack(all_mags)).transpose([2,0,1])
+mam = cm.Movie(np.dstack(all_mags)).transpose([2, 0, 1])
 #mam.play(magnification=10,gain = 5.)
 #%%
 pl.imshow(np.max(mam,0),interpolation = 'none')
@@ -758,13 +758,13 @@ for fr,fr1,fr0 in zip(m.resize(1,1,.2),m1.resize(1,1,.2),m0.resize(1,1,.2)):
     flows.append([flow1,flow,flow0])
     norms.append([n1,n,n0 ])
 #%%
-flm1_x = cm.movie(np.dstack( [fl[0][:,:,0] for fl  in flows])).transpose([2,0,1])
-flm_x = cm.movie(np.dstack( [fl[1][:,:,0] for fl  in flows])).transpose([2,0,1])
-flm0_x = cm.movie(np.dstack( [fl[2][:,:,0] for fl  in flows])).transpose([2,0,1])
+flm1_x = cm.Movie(np.dstack([fl[0][:, :, 0] for fl in flows])).transpose([2, 0, 1])
+flm_x = cm.Movie(np.dstack([fl[1][:, :, 0] for fl in flows])).transpose([2, 0, 1])
+flm0_x = cm.Movie(np.dstack([fl[2][:, :, 0] for fl in flows])).transpose([2, 0, 1])
 
-flm1_y = cm.movie(np.dstack( [fl[0][:,:,1] for fl  in flows])).transpose([2,0,1])
-flm_y = cm.movie(np.dstack( [fl[1][:,:,1] for fl  in flows])).transpose([2,0,1])
-flm0_y = cm.movie(np.dstack( [fl[2][:,:,1] for fl  in flows])).transpose([2,0,1])
+flm1_y = cm.Movie(np.dstack([fl[0][:, :, 1] for fl in flows])).transpose([2, 0, 1])
+flm_y = cm.Movie(np.dstack([fl[1][:, :, 1] for fl in flows])).transpose([2, 0, 1])
+flm0_y = cm.Movie(np.dstack([fl[2][:, :, 1] for fl in flows])).transpose([2, 0, 1])
 
 #%%
 pl.figure()
@@ -988,9 +988,9 @@ def compute_jacobians(res):
 #tmpl, correlations, flows_rig, norms = compute_metrics_motion_correction('M_FLUO_t_1000_rig__d1_64_d2_128_d3_1_order_F_frames_1000_.mmap',10,10,winsize=32, play_flow=False, resize_fact_flow=1)
 #tmpl, correlations, flows_els, norms = compute_metrics_motion_correction('M_FLUO_t_1000_els__d1_64_d2_128_d3_1_order_F_frames_1000_.mmap',10,10,winsize=32, play_flow=False, resize_fact_flow=1)
 #tmpl, correlations, flows_orig, norms = compute_metrics_motion_correction('M_FLUO_t_1000.tif',10,10,winsize=32, play_flow=False, resize_fact_flow=1)
-#mfl_orig = cm.movie(np.concatenate([np.sqrt(np.sum(ff**2,-1))[np.newaxis,:,:] for ff in flows_orig],axis=0))
-#mfl_rig = cm.movie(np.concatenate([np.sqrt(np.sum(ff**2,-1))[np.newaxis,:,:] for ff in flows_rig],axis=0))
-#mfl_els = cm.movie(np.concatenate([np.sqrt(np.sum(ff**2,-1))[np.newaxis,:,:] for ff in flows_els],axis=0))
+#mfl_orig = cm.Movie(np.concatenate([np.sqrt(np.sum(ff**2,-1))[np.newaxis,:,:] for ff in flows_orig],axis=0))
+#mfl_rig = cm.Movie(np.concatenate([np.sqrt(np.sum(ff**2,-1))[np.newaxis,:,:] for ff in flows_rig],axis=0))
+#mfl_els = cm.Movie(np.concatenate([np.sqrt(np.sum(ff**2,-1))[np.newaxis,:,:] for ff in flows_els],axis=0))
 ##%%
 #cm.concatenate([mfl_orig/5.,mfl_rig,mfl_els],axis = 1).zproject(vmax = .5)          
 ##%%

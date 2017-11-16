@@ -106,7 +106,7 @@ N, T = C.shape
 dims_in = (253, 316)
 Y = Yr.T.reshape((-1,) + dims_in, order='F')
 
-# cm.movie(Y).play(fr=30, magnification=2)
+# cm.Movie(Y).play(fr=30, magnification=2)
 
 
 gSig = 3   # gaussian width of a 2D gaussian kernel, which approximates a neuron

@@ -60,7 +60,7 @@ def update_spatial_components(Y, C=None, f=None, A_in=None, sn=None, dims=None, 
     Parameters:
     ----------
     Y: np.ndarray (2D or 3D)
-        movie, raw data in 2D or 3D (pixels x time).
+        Movie, raw data in 2D or 3D (pixels x time).
 
     C: np.ndarray
         calcium activity of each neuron.
@@ -76,7 +76,7 @@ def update_spatial_components(Y, C=None, f=None, A_in=None, sn=None, dims=None, 
         you can pass background as input, especially in the case of one background per patch, since it will update using hals    
     
     dims: [optional] tuple
-        x, y[, z] movie dimensions
+        x, y[, z] Movie dimensions
 
     min_size: [optional] int
 
@@ -429,7 +429,7 @@ def determine_search_location(A, dims, method='ellipse', min_size=3, max_size=8,
         computed distance matrix
 
      dims: [optional] tuple
-                x, y[, z] movie dimensions
+                x, y[, z] Movie dimensions
 
     method: [optional] string
             method used to expand the search for pixels 'ellipse' or 'dilate'
@@ -444,7 +444,7 @@ def determine_search_location(A, dims, method='ellipse', min_size=3, max_size=8,
     dist: [optional] int
 
     dims: [optional] tuple
-             x, y[, z] movie dimensions
+             x, y[, z] Movie dimensions
 
     Returns:
     --------
@@ -1011,7 +1011,7 @@ def calcAvec(new, dQ, W, lambda_, active_set, M,positive):
                Parameters:
                ----------
                Y: np.ndarray (2D or 3D)
-                   movie, raw data in 2D or 3D (pixels x time).
+                   Movie, raw data in 2D or 3D (pixels x time).
 
                Cf: np.ndarray
                    calcium activity of each neuron + background components
@@ -1076,7 +1076,7 @@ def test(Y, A_in, C, f, n_pixels_per_process,nb):
         Parameters:
         ----------
         Y: np.ndarray (2D or 3D)
-            movie, raw data in 2D or 3D (pixels x time).
+            Movie, raw data in 2D or 3D (pixels x time).
 
         C: np.ndarray
             calcium activity of each neuron.
@@ -1161,7 +1161,7 @@ def computing_indicator(Y, A_in, b, C, f, nb, method, dims, min_size, max_size, 
            Parameters:
            ----------
            Y: np.ndarray (2D or 3D)
-               movie, raw data in 2D or 3D (pixels x time).
+               Movie, raw data in 2D or 3D (pixels x time).
 
            C: np.ndarray
                calcium activity of each neuron.
@@ -1183,7 +1183,7 @@ def computing_indicator(Y, A_in, b, C, f, nb, method, dims, min_size, max_size, 
            dist: [optional] int
 
            dims: [optional] tuple
-                x, y[, z] movie dimensions
+                x, y[, z] Movie dimensions
 
            method: [optional] string
                 method used to expand the search for pixels 'ellipse' or 'dilate'
@@ -1276,7 +1276,7 @@ def creatememmap(Y, Cf, dview):
            Parameters:
            ----------
            Y: np.ndarray (2D or 3D)
-               movie, raw data in 2D or 3D (pixels x time).
+               Movie, raw data in 2D or 3D (pixels x time).
 
            Cf: np.ndarray
                calcium activity of each neuron + background components

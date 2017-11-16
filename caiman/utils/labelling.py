@@ -42,7 +42,7 @@ def pre_preprocess_movie_labeling(dview, file_names, median_filter_size=(2,1,1),
         mov=mov.bilateral_blur_2D(diameter=diameter_bilateral_blur)
         logger.info('Bilateral')
 
-        mov1=cm.movie(ft.median_filter(mov,median_filter_size),fr=30)
+        mov1=cm.Movie(ft.median_filter(mov, median_filter_size), fr=30)
         logger.info('Median filter')
 
         mov1=mov1.resize(1,1,resize_factors[1])

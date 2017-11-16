@@ -85,7 +85,7 @@ m = cm.load(fname[0],is_behavior=True)
 #%% load, rotate and eliminate useless pixels
 m = m.transpose([0,2,1])
 m = m[:,150:,:]
-#%% visualize movie
+#%% visualize Movie
 m.play()
 #%% select interesting portion of the FOV (draw a polygon on the figure that pops up, when done press enter)
 mask = np.array(behavior.select_roi(np.median(m[::100],0),1)[0],np.float32)
@@ -111,7 +111,7 @@ for mag, dirct, spatial_filter in zip(mags,dircts_thresh,spatial_filter_):
 #            max_x,max_y = np.max(np.where(mask),1)
     
     spfl = spatial_filter
-    spfl = cm.movie(spfl[None,:,:]).resize(1/resize_fact,1/resize_fact,1).squeeze()
+    spfl = cm.Movie(spfl[None, :, :]).resize(1 / resize_fact, 1 / resize_fact, 1).squeeze()
     max_x,max_y = np.add( (min_x,min_y), np.shape(spfl) )
        
     mask[min_x:max_x,min_y:max_y] =  spfl

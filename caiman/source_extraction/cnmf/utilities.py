@@ -354,7 +354,7 @@ def extract_DF_F(Yr, A, C,  bl, quantileMin=8, frames_window=200, block_size=400
     Parameters:
     -----------
     Yr: ndarray (2D)
-        movie pixels X time
+        Movie pixels X time
 
     A: scipy.sparse.coo_matrix
         spatial components (from cnmf cnm.A)
@@ -431,7 +431,7 @@ def manually_refine_components(Y, xxx_todo_changeme, A, C, Cn, thr=0.9, display_
      Parameters
      -----------
      Y: ndarray
-               movie in 2D
+               Movie in 2D
 
      (dx,dy): tuple
                dimensions of the square used to identify neurons (should be set to the galue of gsiz)

@@ -179,7 +179,7 @@ def get_behavior_traces(fname,t0,t1,freq,ISI,draw_rois=False,plot_traces=False,m
         whether to plot the traces during extraction        
 
     mov_filt_1d: bool 
-        whether to filter the movie after extracting the average or ROIs. The alternative is a 3D filter that can be very computationally expensive
+        whether to filter the Movie after extracting the average or ROIs. The alternative is a 3D filter that can be very computationally expensive
 
     window_lp, window_hp: ints
         number of frames to be used to median filter the data. It is needed because of the light IR artifact coming out of the eye
@@ -352,8 +352,8 @@ def get_behavior_traces(fname,t0,t1,freq,ISI,draw_rois=False,plot_traces=False,m
 
 
 
-                    mov_e=cb.movie(mov*rois[0][::-1].T,fr=old_div(1,np.mean(np.diff(new_ts))))
-                    mov_w=cb.movie(mov*rois[1][::-1].T,fr=old_div(1,np.mean(np.diff(new_ts))))
+                    mov_e=cb.Movie(mov * rois[0][::-1].T, fr=old_div(1, np.mean(np.diff(new_ts))))
+                    mov_w=cb.Movie(mov * rois[1][::-1].T, fr=old_div(1, np.mean(np.diff(new_ts))))
 
                     x_max_w,y_max_w=np.max(np.nonzero(np.max(mov_w,0)),1)
                     x_min_w,y_min_w=np.min(np.nonzero(np.max(mov_w,0)),1)
@@ -821,7 +821,7 @@ def generate_linked_traces(mov_names,chunk_sizes,A,b,f):
     -----------
     mov_names: list of path to movies associated with the same A,b,and f
 
-    chunk_sizes:list containing the number of frames in each movie    
+    chunk_sizes:list containing the number of frames in each Movie
 
     A,b and f: from CNMF
 
@@ -836,7 +836,7 @@ def generate_linked_traces(mov_names,chunk_sizes,A,b,f):
     num_chunks=np.sum(chunk_sizes)
 #    A = A_s[idx][:,neurons[idx]] 
     nA = (A.power(2)).sum(0)
-#    bckg=cb.movie(cb.to_3D(b.dot(f).T,(-1,shape[0],shape[1])),fr=1)
+#    bckg=cb.Movie(cb.to_3D(b.dot(f).T,(-1,shape[0],shape[1])),fr=1)
     f=np.array(f).squeeze()
 #    bckg=bckg.resize(1,1,1.*num_chunks/b_size)
     b_size=f.shape[0]

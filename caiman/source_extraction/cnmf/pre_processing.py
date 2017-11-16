@@ -40,12 +40,12 @@ def interpolate_missing_data(Y):
     Parameters:
     ----------
     Y   np.ndarray (3D)
-        movie, raw data in 3D format (d1 x d2 x T)
+        Movie, raw data in 3D format (d1 x d2 x T)
 
     Returns:
     ------
     Y   np.ndarray (3D)
-        movie, data with interpolated entries (d1 x d2 x T)
+        Movie, data with interpolated entries (d1 x d2 x T)
     coor list
         list of interpolated coordinates
 
@@ -77,7 +77,7 @@ def find_unsaturated_pixels(Y, saturationValue = None, saturationThreshold = 0.9
     Inputs:
     ------
     Y: np.ndarray
-        input movie data, either 2D or 3D with time in the last axis
+        input Movie data, either 2D or 3D with time in the last axis
 
     saturationValue: scalar (optional)
         Saturation level, default value the lowest power of 2 larger than max(Y)
@@ -113,7 +113,7 @@ def get_noise_fft(Y, noise_range = [0.25,0.5], noise_method = 'logmexp', max_num
 
     Y: np.ndarray
 
-    Input movie data with time in the last axis
+    Input Movie data with time in the last axis
 
     noise_range: np.ndarray [2 x 1] between 0 and 0.5
         Range of frequencies compared to Nyquist rate over which the power spectrum is averaged
@@ -170,7 +170,7 @@ def get_noise_fft_parallel(Y,n_pixels_per_process=100, dview=None, **kwargs):
     Parameters:
     -------
     Y: ndarray
-        input movie (n_pixels x Time). Can be also memory mapped file.
+        input Movie (n_pixels x Time). Can be also memory mapped file.
 
     n_processes: [optional] int
         number of processes/threads to use concurrently
@@ -255,7 +255,7 @@ def fft_psd_parallel(Y,sn_s,i,num_pixels,**kwargs):
     Parameters:
     -----------
 	Y: ndarray
-		input movie (n_pixels x Time), can be also memory mapped file
+		input Movie (n_pixels x Time), can be also memory mapped file
 
     sn_s: ndarray (memory mapped)
         file where to store the results of computation.
@@ -292,7 +292,7 @@ def fft_psd_multithreading(args):
     -----------
 
     Y: ndarray
-        input movie (n_pixels x Time), can be also memory mapped file
+        input Movie (n_pixels x Time), can be also memory mapped file
 
     sn_s: ndarray (memory mapped)
         file where to store the results of computation.
@@ -376,7 +376,7 @@ def estimate_time_constant(Y, sn, p = None, lags = 5, include_noise = False, pix
     Inputs:
     -------
     Y: np.ndarray (2D)
-        input movie data with time in the last axis
+        input Movie data with time in the last axis
 
     p: positive integer
         order of AR process, default: 2
@@ -485,7 +485,7 @@ def preprocess_data(Y, sn = None ,  dview=None, n_pixels_per_process=100,  noise
     Parameters:
     ----------
     Y: ndarray
-        input movie (n_pixels x Time). Can be also memory mapped file.
+        input Movie (n_pixels x Time). Can be also memory mapped file.
 
     n_processes: [optional] int
         number of processes/threads to use concurrently
@@ -516,7 +516,7 @@ def preprocess_data(Y, sn = None ,  dview=None, n_pixels_per_process=100,  noise
     Returns:
     -------
         Y: ndarray
-             movie preprocessed (n_pixels x Time). Can be also memory mapped file.
+             Movie preprocessed (n_pixels x Time). Can be also memory mapped file.
 
         g:  np.ndarray (p x 1)
             Discrete time constants

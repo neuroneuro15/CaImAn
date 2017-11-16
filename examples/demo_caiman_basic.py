@@ -28,8 +28,8 @@ import os
 #%% start cluster
 c,dview,n_processes = cm.cluster.setup_cluster(backend = 'local',n_processes = None,single_thread = False)
 #%% FOR LOADING ALL TIFF FILES IN A FILE AND SAVING THEM ON A SINGLE MEMORY MAPPABLE FILE
-fnames = ['example_movies/demoMovie.tif'] # can actually be a lost of movie to concatenate
-add_to_movie=540 # the movie must be positive!!!
+fnames = ['example_movies/demoMovie.tif'] # can actually be a lost of Movie to concatenate
+add_to_movie=540 # the Movie must be positive!!!
 downsample_factor=1 # use .2 or .1 if file is large and you want a quick answer
 base_name='Yr'
 name_new=cm.save_memmap_each(fnames, dview=dview,base_name=base_name, resize_fact=(1, 1, downsample_factor),add_to_movie=add_to_movie)
@@ -40,15 +40,15 @@ Yr, dims, T = cm.load_memmap(fname_new)
 d1, d2 = dims
 images = np.reshape(Yr.T, [T] + list(dims), order='F')
 Y = np.reshape(Yr, dims + (T,), order='F')
-#%% play movie, press q to quit
+#%% play Movie, press q to quit
 play_movie = False
 if play_movie:     
-    cm.movie(images).play(fr=50,magnification=3,gain=2.)
-#%% movie cannot be negative!
+    cm.Movie(images).play(fr=50, magnification=3, gain=2.)
+#%% Movie cannot be negative!
 if np.min(images)<0:
     raise Exception('Movie too negative, add_to_movie should be larger')
 #%% correlation image. From here infer neuron size and density
-Cn = cm.movie(images)[:3000].local_correlations(swap_dim=False)
+Cn = cm.Movie(images)[:3000].local_correlations(swap_dim=False)
 pl.imshow(Cn,cmap='gray')  
 #%%
 K = 35  # number of neurons expected per patch

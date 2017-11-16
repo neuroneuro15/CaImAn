@@ -320,7 +320,7 @@ if False:
 
         f_perc=np.array([np.percentile(f,90,1) for f in fl])
         too_active_neurons=np.where(np.mean(f_perc,0)>=4)[0]
-    #        cb.movie(img,fr=1).save(os.path.join(os.path.dirname(nm),'template_large_neurons.tif'))
+    #        cb.Movie(img,fr=1).save(os.path.join(os.path.dirname(nm),'template_large_neurons.tif'))
     #    lq,hq=np.percentile(img,[1, 99])
     #    pl.imshow(img,cmap='gray',vmin=lq,vmax=hq)
     #    pl.imshow(np.sum(masks,0),cmap='hot',alpha=.3,vmax=3)

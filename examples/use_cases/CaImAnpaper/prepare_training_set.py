@@ -231,7 +231,7 @@ for fl in training_files:
         
 all_masks_gt = np.vstack(all_masks_gt)
 #%%
-cm.movie(np.squeeze(all_masks_gt[labels_gt==0])).play(gain=3., magnification = 10)
+cm.Movie(np.squeeze(all_masks_gt[labels_gt == 0])).play(gain=3., magnification = 10)
 #%%
 np.savez('ground_truth_components_minions.npz',all_masks_gt = all_masks_gt,labels_gt = labels_gt, traces_gt = traces_gt)
 #%%

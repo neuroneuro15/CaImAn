@@ -79,7 +79,7 @@ def compute_event_exceptionality(traces,robust_std=False,N=5,use_mode_fast=False
     Parameters:    
     -----------
     Y: ndarray 
-        movie x,y,t
+        Movie x,y,t
 
     A: scipy sparse array
         spatial components    
@@ -269,7 +269,7 @@ def evaluate_components(Y, traces, A, C, b, f, final_frate, remove_baseline = Tr
     Parameters:
     ----------
     Y: ndarray 
-        movie x,y,t
+        Movie x,y,t
 
     A,C,b,f: various types 
         outputs of cnmf    
@@ -362,7 +362,7 @@ def evaluate_components(Y, traces, A, C, b, f, final_frate, remove_baseline = Tr
     fitness_raw, erfc_raw,std_rr, _ = compute_event_exceptionality(traces,robust_std=robust_std,N=N, sigma_factor = sigma_factor)
 
     print('Evaluating spatial footprint')
-    # compute the overlap between spatial and movie average across samples with significant events
+    # compute the overlap between spatial and Movie average across samples with significant events
     r_values, significant_samples = classify_components_ep(Yr, A, C, b, f, Athresh = Athresh, Npeaks = Npeaks, tB=tB,
                                                            tA = tA, thres = thresh_C)
 
@@ -417,7 +417,7 @@ def estimate_components_quality(traces, Y, A, C, b, f, final_frate = 30, Npeaks=
     Parameters:
     ----------
     Y: ndarray
-        movie x,y,t
+        Movie x,y,t
 
     A,C,b,f: various types
         outputs of cnmf

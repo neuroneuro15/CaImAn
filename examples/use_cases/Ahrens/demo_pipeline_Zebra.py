@@ -56,14 +56,14 @@ from caiman.utils.utils import download_demo
 #                'niter_rig': 1,
 #                'max_shifts': (6, 6),  # maximum allow rigid shift
 #                'splits_rig': 56,  # for parallelization split the movies in  num_splits chuncks across time
-#                # if none all the splits are processed and the movie is saved
+#                # if none all the splits are processed and the Movie is saved
 #                'num_splits_to_process_rig': None,
 #                # intervals at which patches are laid out for motion correction
 #                'strides': (48, 48),
 #                # overlap between pathes (size of patch strides+overlaps)
 #                'overlaps': (24, 24),
 #                'splits_els': 56,  # for parallelization split the movies in  num_splits chuncks across time
-#                # if none all the splits are processed and the movie is saved
+#                # if none all the splits are processed and the Movie is saved
 #                'num_splits_to_process_els': [28, None],
 #                'upsample_factor_grid': 4,  # upsample factor to avoid smearing when merging patches
 #                # maximum deviation allowed for patch with respect to rigid
@@ -87,14 +87,14 @@ params_movie = {'fname': '/opt/local/Data/Johannes/Ahrens/TM_layer20_crop_3000_5
                 'niter_rig': 1,
                 'max_shifts': (10, 10),  # maximum allow rigid shift
                 'splits_rig': 56,  # for parallelization split the movies in  num_splits chuncks across time
-                # if none all the splits are processed and the movie is saved
+                # if none all the splits are processed and the Movie is saved
                 'num_splits_to_process_rig': None,
                 # intervals at which patches are laid out for motion correction
 #                'strides': (48, 48),
                 # overlap between pathes (size of patch strides+overlaps)
 #                'overlaps': (24, 24),
 #                'splits_els': 56,  # for parallelization split the movies in  num_splits chuncks across time
-                # if none all the splits are processed and the movie is saved
+                # if none all the splits are processed and the Movie is saved
 #                'num_splits_to_process_els': [28, None],
 #                'upsample_factor_grid': 4,  # upsample factor to avoid smearing when merging patches
                 # maximum deviation allowed for patch with respect to rigid
@@ -119,11 +119,11 @@ params_movie = {'fname': '/opt/local/Data/Johannes/Ahrens/TM_layer20_crop_3000_5
 #                'max_shifts':(12,12), # maximum allow rigid shift
 #                'niter_rig':0,
 #                'splits_rig':28, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
 #                'strides': (80,80), # intervals at which patches are laid out for motion correction
 #                'overlaps': (48,48), # overlap between pathes (size of patch strides+overlaps)
 #                'splits_els':28, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_els':[14,None], # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_els':[14,None], # if none all the splits are processed and the Movie is saved
 #                'upsample_factor_grid':3, # upsample factor to avoid smearing when merging patches
 #                'max_deviation_rigid':7, #maximum deviation allowed for patch with respect to rigid shift
 # 'p': 1, # order of the autoregressive system
@@ -142,11 +142,11 @@ params_movie = {'fname': '/opt/local/Data/Johannes/Ahrens/TM_layer20_crop_3000_5
 #                'niter_rig': 1,
 #                'max_shifts':(1,1), # maximum allow rigid shift
 #                'splits_rig':28, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
 #                'strides': (48,48), # intervals at which patches are laid out for motion correction
 #                'overlaps': (24,24), # overlap between pathes (size of patch strides+overlaps)
 #                'splits_els':28, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_els':[28,None], # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_els':[28,None], # if none all the splits are processed and the Movie is saved
 #                'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
 #                'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
 #                'p': 1, # order of the autoregressive system
@@ -160,14 +160,14 @@ params_movie = {'fname': '/opt/local/Data/Johannes/Ahrens/TM_layer20_crop_3000_5
 #                'alpha_snmf' : None,  # this controls sparsity
 #                'final_frate' : 30
 #                }
-#%% load movie (in memory!)
+#%% load Movie (in memory!)
 fname = params_movie['fname']
 niter_rig = params_movie['niter_rig']
 # maximum allow rigid shift
 max_shifts = params_movie['max_shifts']  
 # for parallelization split the movies in  num_splits chuncks across time
 splits_rig = params_movie['splits_rig']  
-# if none all the splits are processed and the movie is saved
+# if none all the splits are processed and the Movie is saved
 num_splits_to_process_rig = params_movie['num_splits_to_process_rig']
 # intervals at which patches are laid out for motion correction
 strides = params_movie['strides']
@@ -175,19 +175,19 @@ strides = params_movie['strides']
 overlaps = params_movie['overlaps']
 # for parallelization split the movies in  num_splits chuncks across time
 splits_els = params_movie['splits_els'] 
-# if none all the splits are processed and the movie is saved
+# if none all the splits are processed and the Movie is saved
 num_splits_to_process_els = params_movie['num_splits_to_process_els']
 # upsample factor to avoid smearing when merging patches
 upsample_factor_grid = params_movie['upsample_factor_grid'] 
 # maximum deviation allowed for patch with respect to rigid
 # shift
 max_deviation_rigid = params_movie['max_deviation_rigid']
-#%% download movie if not there
+#%% download Movie if not there
 if fname == 'example_movies/demoSue2x.tif':
     download_demo()
 #%%
 m_orig = cm.load(fname,subindices=slice(0,100,None))
-#%% play movie
+#%% play Movie
 downsample_ratio = .2
 offset_mov = -np.min(m_orig[:100])
 m_orig.resize(1, 1, downsample_ratio).play(
@@ -196,7 +196,7 @@ m_orig.resize(1, 1, downsample_ratio).play(
 c, dview, n_processes = cm.cluster.setup_cluster(
     backend='local', n_processes=None, single_thread=False)
 #%%
-# movie must be mostly positive for this to work
+# Movie must be mostly positive for this to work
 min_mov = cm.load(fname, subindices=range(400)).min()
 
 mc = MotionCorrect(fname, min_mov,
@@ -208,12 +208,12 @@ mc = MotionCorrect(fname, min_mov,
                 shifts_opencv = True, nonneg_movie = True)
 #%%
 mc.motion_correct_rigid(save_movie=True)
-# load motion corrected movie
+# load motion corrected Movie
 #%%
  
 pl.imshow(mc.total_template_rig, cmap = 'gray')
 #%% visualize templates
-cm.movie(np.array(mc.templates_rig)).play(
+cm.Movie(np.array(mc.templates_rig)).play(
     fr=10, gain=5, magnification=2, offset=offset_mov)
 #%% plot rigid shifts
 pl.close()
@@ -221,7 +221,7 @@ pl.plot(mc.shifts_rig)
 pl.legend(['x shifts','y shifts'])
 pl.xlabel('frames')
 pl.ylabel('pixels')
-#%% inspect movie
+#%% inspect Movie
 bord_px_rig = np.ceil(np.max(mc.shifts_rig)).astype(np.int)
 downsample_ratio = .2
 m_rig.resize(1, 1, downsample_ratio).play(
@@ -328,10 +328,10 @@ else:
 # idx_y=slice(border_nan,-border_nan,None)
 # idx_xy=(idx_x,idx_y)
 idx_xy = None
-add_to_movie = -np.nanmin(m_els[:100]) + 1  # movie must be positive
+add_to_movie = -np.nanmin(m_els[:100]) + 1  # Movie must be positive
 # if you need to remove frames from the beginning of each file
 remove_init = 0
-# downsample movie in time: use .2 or .1 if file is large and you want a quick answer             
+# downsample Movie in time: use .2 or .1 if file is large and you want a quick answer
 base_name = fname.split('/')[-1][:-4]
 name_new = cm.save_memmap_each(fnames, dview=dview, base_name=base_name, resize_fact=(1, 1, 1), remove_init=remove_init, idx_xy=idx_xy, add_to_movie=add_to_movie, border_to_0=border_to_0)
 name_new.sort()
@@ -353,7 +353,7 @@ Yr, dims, T = cm.load_memmap(fname_new)
 d1, d2 = dims
 images = np.reshape(Yr.T, [T] + list(dims), order='F')
 Y = np.reshape(Yr, dims + (T,), order='F')
-m_images = cm.movie(images)
+m_images = cm.Movie(images)
 #%%  checks on movies (might take time if large!)
 #if np.min(images) < 0:
 #    raise Exception('Movie too negative, add_to_movie should be larger')
@@ -382,7 +382,7 @@ init_method = params_movie['init_method']
 gSig = params_movie['gSig']  
 # this controls sparsity
 alpha_snmf = params_movie['alpha_snmf']  
-#frame rate of movie (even considering eventual downsampling)
+#frame rate of Movie (even considering eventual downsampling)
 final_frate = params_movie['final_frate']
 
 
@@ -478,11 +478,11 @@ cm.stop_server()
 log_files = glob.glob('*_LOG_*')
 for log_file in log_files:
     os.remove(log_file)
-#%% reconstruct denoised movie
-denoised = cm.movie(A.dot(C) + b.dot(f)).reshape(dims+(-1,),order = 'F').transpose([2,0,1])
+#%% reconstruct denoised Movie
+denoised = cm.Movie(A.dot(C) + b.dot(f)).reshape(dims + (-1,), order ='F').transpose([2, 0, 1])
 #%% 
 denoised.play(gain = 3, offset = -50,fr =50, magnification = 3)
-#%% reconstruct denoised movie without background
-denoised = cm.movie(A.tocsc()[:,idx_components].dot(C[idx_components])).reshape(dims+(-1,),order = 'F').transpose([2,0,1])
+#%% reconstruct denoised Movie without background
+denoised = cm.Movie(A.tocsc()[:, idx_components].dot(C[idx_components])).reshape(dims + (-1,), order ='F').transpose([2, 0, 1])
 #%%
 denoised.play(gain = 10, offset = 0,fr =20, magnification = 3)

@@ -18,7 +18,7 @@ pl.ion()
 from . import timeseries as ts
 
 #%%
-class trace(ts.timeseries):
+class trace(ts.Timeseries):
     """ 
     Class representing a trace.
 
@@ -44,7 +44,7 @@ class trace(ts.timeseries):
     @staticmethod
     def load(file_name):
         """
-        load movie from file
+        load Movie from file
         """
         return trace(**np.load(file_name))  
 
@@ -52,7 +52,7 @@ class trace(ts.timeseries):
 
     def computeDFF(self,window_sec=5,minQuantile=20):
         """ 
-        compute the DFF of the movie
+        compute the DFF of the Movie
 
         In order to compute the baseline frames are binned according to the window length parameter
         and then the intermediate values are interpolated. 
@@ -93,7 +93,7 @@ class trace(ts.timeseries):
 
 
     def resample(self,fx=1,fy=1,fz=1,interpolation=cv2.INTER_AREA):  
-        raise Exception('Not Implemented. Look at movie resize')
+        raise Exception('Not Implemented. Look at Movie resize')
 
 
     def plot(self, stacked=True, subtract_minimum=False, cmap=pl.cm.jet, **kwargs):
@@ -147,7 +147,7 @@ class trace(ts.timeseries):
 
 
     def extract_epochs(self,trigs=None,tb=1,ta=1):
-        raise Exception('Not Implemented. Look at movie resize')   
+        raise Exception('Not Implemented. Look at Movie resize')
 
 
 if __name__ == "__main__":

@@ -44,8 +44,8 @@ fname='/mnt/ceph/neuro/labeling/k37_20160109_AM_150um_65mW_zoom2p2_00001_1-16/im
 fname='./example_movies/demoMovie.tif'
 
 with tifffile.TiffFile(fname) as tf: 
-    m=cm.movie(tf,fr=30)
-    mh=cm.movie(tf.asarray(),fr=30)
+    m=cm.Movie(tf, fr=30)
+    mh=cm.Movie(tf.asarray(), fr=30)
 #(mh-np.percentile(mh,8)).play(backend='opencv',fr=100,gain=10.,magnification=5)
 #mh=mh.motion_correct(5,5)[0]
 #%%

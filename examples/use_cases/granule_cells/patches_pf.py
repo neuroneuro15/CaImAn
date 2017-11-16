@@ -101,7 +101,7 @@ n_chunks=6 # increase this number if you have memory issues at this point
 fname_new=cse.utilities.save_memmap_join(name_new,base_name='Yr', n_chunks=6, dview=dview)
 #%%  Create a unique file fot the whole dataset
 ##
-#fraction_downsample=1; # useful to downsample the movie across time. fraction_downsample=.1 measn downsampling by a factor of 10
+#fraction_downsample=1; # useful to downsample the Movie across time. fraction_downsample=.1 measn downsampling by a factor of 10
 #fname_new=cse.utilities.save_memmap(fnames,base_name='Yr',resize_fact=(1,1,fraction_downsample),order='F')
 #%%
 
@@ -224,7 +224,7 @@ if save_results:
 
     Yr,(d1,d2),T=cse.utilities.load_memmap(fname_new)
     d,T=np.shape(Yr)
-    Y=np.reshape(Yr,(d1,d2,T),order='F') # 3D version of the movie
+    Y=np.reshape(Yr,(d1,d2,T),order='F') # 3D version of the Movie
 
 
     traces=C2+YrA

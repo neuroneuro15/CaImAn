@@ -71,7 +71,7 @@ fnames=fnames
 #idx_y=slice(12,500,None)
 #idx_xy=(idx_x,idx_y)
 
-add_to_movie=0 # the movie must be positive!!!
+add_to_movie=0 # the Movie must be positive!!!
 downsample_factor=1 # use .2 or .1 if file is large and you want a quick answer
 idx_xy=None
 base_name='Yr'

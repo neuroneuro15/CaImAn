@@ -78,7 +78,7 @@ else:
 #idx_x=slice(12,500,None)
 #idx_y=slice(12,500,None)
 #idx_xy=(idx_x,idx_y)
-add_to_movie=100 # the movie must be positive!!!
+add_to_movie=100 # the Movie must be positive!!!
 border_to_0=0
 downsample_factor=1 # use .2 or .1 if file is large and you want a quick answer
 idx_xy=None
@@ -180,7 +180,7 @@ for imm_x,imm_y in zip(movie_shifts_x,movie_shifts_y):
     pl.pause(.01)
 
 
-#%% final movie shifts size 
+#%% final Movie shifts size
 np.multiply(shape_grid,2)
 movie_shifts_x = np.zeros(shape_grid+(T,))
 movie_shifts_y = np.zeros(shape_grid+(T,))
@@ -190,7 +190,7 @@ for idx,r in enumerate(res_p):
     movie_shifts_x[x1,x2,:] = np.array(r[0][-1])[:,0]
 #%%
 for idx,r in enumerate(res_p):
-    mm=cm.movie(r[-1])
+    mm=cm.Movie(r[-1])
     mm.play(fr=100,magnification=7,gain=2.)  
 #%%
 

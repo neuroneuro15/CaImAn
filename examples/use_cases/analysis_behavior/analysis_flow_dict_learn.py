@@ -60,7 +60,7 @@ from scipy.sparse import coo_matrix
 #
 #ms = [mask*fr for fr in m]
 #ms = np.dstack(ms)
-#ms = cm.movie(ms.transpose([2,0,1]))
+#ms = cm.Movie(ms.transpose([2,0,1]))
 #of_or = cm.behavior.behavior.compute_optical_flow(ms,do_show=True,polar_coord=True) 
 #%%
 #whole_field = True   
@@ -156,7 +156,7 @@ from scipy.sparse import coo_matrix
 ##            max_x,max_y = np.max(np.where(mask),1)
 #            
 #            spfl = spatial_filter
-#            spfl = cm.movie(spfl[None,:,:]).resize(1/resize_fact,1/resize_fact,1).squeeze()
+#            spfl = cm.Movie(spfl[None,:,:]).resize(1/resize_fact,1/resize_fact,1).squeeze()
 #            max_x,max_y = np.add( (min_x,min_y), np.shape(spfl) )
 #               
 #            mask[min_x:max_x,min_y:max_y] =  spfl
@@ -199,7 +199,7 @@ from scipy.sparse import coo_matrix
 #
 #ms = [mask*fr for fr in m]
 #ms = np.dstack(ms)
-#ms = cm.movie(ms.transpose([2,0,1]))
+#ms = cm.Movie(ms.transpose([2,0,1]))
 #of_or = cm.behavior.behavior.compute_optical_flow(ms,do_show=True,polar_coord=True) 
 pl.close('all')
 whole_field = True
@@ -306,7 +306,7 @@ for e,e1 in zip(gt_names,expt_names):
 #            max_x,max_y = np.max(np.where(mask),1)
             
             spfl = spatial_filter
-            spfl = cm.movie(spfl[None,:,:]).resize(1/resize_fact,1/resize_fact,1).squeeze()
+            spfl = cm.Movie(spfl[None, :, :]).resize(1 / resize_fact, 1 / resize_fact, 1).squeeze()
             max_x,max_y = np.add( (min_x,min_y), np.shape(spfl) )
                
             mask[min_x:max_x,min_y:max_y] =  spfl
@@ -448,7 +448,7 @@ for e in gt_names:
 #            max_x,max_y = np.max(np.where(mask),1)
             
             spfl = spatial_filter
-            spfl = cm.movie(spfl[None,:,:]).resize(1/resize_fact,1/resize_fact,1).squeeze()
+            spfl = cm.Movie(spfl[None, :, :]).resize(1 / resize_fact, 1 / resize_fact, 1).squeeze()
             max_x,max_y = np.add( (min_x,min_y), np.shape(spfl) )
                
             mask[min_x:max_x,min_y:max_y] =  spfl
@@ -592,7 +592,7 @@ pl.xlim([-.25,1.25])
 #    if mask_all:
 #        mask = coo_matrix(np.load(e[:-4]+'_mask_all.npy'))
 #        m = cm.load_movie_chain(mat_files[:1],fr=100)[2:].resize(resize_fact,resize_fact,1)
-#        mask = cm.movie(mask.toarray().astype(np.float32)[None,:,:]).resize(resize_fact,resize_fact,1)
+#        mask = cm.Movie(mask.toarray().astype(np.float32)[None,:,:]).resize(resize_fact,resize_fact,1)
 #        mask = coo_matrix(np.array(mask).squeeze())
 #    else:
 #        mask = coo_matrix(np.load(e[:-4]+'_mask_whisk.npy'))
@@ -606,7 +606,7 @@ pl.xlim([-.25,1.25])
 #    mask_new = get_nonzero_subarray(mask,mask) 
 #      
 #    ms = np.dstack(ms)
-#    ms = cm.movie(ms.transpose([2,0,1]))
+#    ms = cm.Movie(ms.transpose([2,0,1]))
 #    of_or = cm.behavior.behavior.compute_optical_flow(ms,do_show=False,polar_coord=False) 
 #    
 #    if only_magnitude:
@@ -711,7 +711,7 @@ pl.xlim([-.25,1.25])
 ##            max_x,max_y = np.max(np.where(mask),1)
 #            
 #            spfl = ld['spatial_filter'][idd]
-#            spfl = cm.movie(spfl[None,:,:]).squeeze()
+#            spfl = cm.Movie(spfl[None,:,:]).squeeze()
 #            max_x,max_y = np.add( (min_x,min_y), np.shape(spfl) )
 #               
 #            mask[min_x:max_x,min_y:max_y] =  spfl
@@ -818,12 +818,12 @@ for files_mat in ['AG051514-01.mat','AG052014-01.mat','gc-AG052014-02.mat']:
         if mask_all:
             mask = coo_matrix(np.load(os.path.join(e,'mask_wheel_all.npy')))
             
-            mask = cm.movie(mask.toarray().astype(np.float32)[None,:,:])
+            mask = cm.Movie(mask.toarray().astype(np.float32)[None, :, :])
             mask = coo_matrix(np.array(mask).squeeze())
             if not os.path.exists(os.path.join(e,'opt_flow_'+str(chunk_end)+'.npy')):
                 ms = [behavior.get_nonzero_subarray(mask.multiply(fr),mask) for fr in m]
                 ms = np.dstack(ms)
-                ms = cm.movie(ms.transpose([2,0,1]))
+                ms = cm.Movie(ms.transpose([2, 0, 1]))
                 of_or = cm.behavior.behavior.compute_optical_flow(ms,do_show=False,polar_coord=False) 
                 print('Saving OF..')
                 np.save(os.path.join(e,'opt_flow_'+str(chunk_end)+'.npy'),of_or)
@@ -836,7 +836,7 @@ for files_mat in ['AG051514-01.mat','AG052014-01.mat','gc-AG052014-02.mat']:
             if not os.path.exists(os.path.join(e,'opt_flow_small_'+str(chunk_end)+'.npy')):
                 ms = [behavior.get_nonzero_subarray(mask.multiply(fr),mask) for fr in m]
                 ms = np.dstack(ms)
-                ms = cm.movie(ms.transpose([2,0,1]))
+                ms = cm.Movie(ms.transpose([2, 0, 1]))
                 of_or = cm.behavior.behavior.compute_optical_flow(ms,do_show=False,polar_coord=False) 
                 print('Saving OF..')
                 np.save(os.path.join(e,'opt_flow_small_'+str(chunk_end)+'.npy'),of_or)
@@ -849,7 +849,7 @@ for files_mat in ['AG051514-01.mat','AG052014-01.mat','gc-AG052014-02.mat']:
         
        
             
-        of_or = np.concatenate([cm.movie(of_or[0]).resize(resize_fact,resize_fact,1)[np.newaxis,:,:,:],cm.movie(of_or[1]).resize(resize_fact,resize_fact,1)[np.newaxis,:,:,:]],axis = 0)
+        of_or = np.concatenate([cm.Movie(of_or[0]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :], cm.Movie(of_or[1]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :]], axis = 0)
         if only_magnitude:
             of = of_or
             spatial_filter_, time_trace_, norm_fact = cm.behavior.behavior.extract_components(np.sqrt(of[0]**2+of[1]**2),n_components=n_components,verbose = False,normalize_std=False,max_iter=1000)
@@ -1000,7 +1000,7 @@ for e,session,trials_id in zip(expt_names[idx_file],wheel_sessions[idx_file],tri
 #            max_x,max_y = np.max(np.where(mask),1)
             
             spfl = spatial_filter[idd]
-            spfl = cm.movie(spfl[None,:,:]).resize(1/resize_fact,1/resize_fact).squeeze()
+            spfl = cm.Movie(spfl[None, :, :]).resize(1 / resize_fact, 1 / resize_fact).squeeze()
 #            spfl[spfl<np.nanmax(spfl)*.5] = np.nan
             max_x,max_y = np.add( (min_x,min_y), np.shape(spfl) )
                
@@ -1063,12 +1063,12 @@ mask = coo_matrix(behavior.select_roi(m.mean(0),1)[0])
 t1 = time.time()
 ms = [behavior.get_nonzero_subarray(mask.multiply(fr),mask) for fr in m]
 ms = np.dstack(ms)
-ms = cm.movie(ms.transpose([2,0,1]))
+ms = cm.Movie(ms.transpose([2, 0, 1]))
 of_or = cm.behavior.behavior.compute_optical_flow(ms,do_show=False,polar_coord=False) 
 t_OF = time.time() - t1
 #%%   
 t1 = time.time() 
-of_or = np.concatenate([cm.movie(of_or[0]).resize(resize_fact,resize_fact,1)[np.newaxis,:,:,:],cm.movie(of_or[1]).resize(resize_fact,resize_fact,1)[np.newaxis,:,:,:]],axis = 0)
+of_or = np.concatenate([cm.Movie(of_or[0]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :], cm.Movie(of_or[1]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :]], axis = 0)
 t_resize = time.time() - t1
 #%%   
 t1 = time.time()              

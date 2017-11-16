@@ -287,13 +287,13 @@ idx_very_nice=idx_blobs
 view_patches_bar(Yr, scipy.sparse.coo_matrix(A.tocsc()[:, idx_very_nice]), C[
                                idx_very_nice, :], b, f, dims[0], dims[1], YrA=YrA[idx_very_nice, :], img=Cn)
 #%%
-new_m=cm.movie(np.reshape(A.tocsc()[:,idx_blobs]*C[idx_blobs]+b.dot(f),dims+(-1,),order='F').transpose([2,0,1]))
+new_m=cm.Movie(np.reshape(A.tocsc()[:, idx_blobs] * C[idx_blobs] + b.dot(f), dims + (-1,), order='F').transpose([2, 0, 1]))
 new_m.play(fr=30,backend='opencv',gain=7.,magnification=3.)
 #%%
-new_m=cm.movie(np.reshape(A.tocsc()[:,idx_blobs]*C[idx_blobs]+b*np.median(f),dims+(-1,),order='F').transpose([2,0,1]))
+new_m=cm.Movie(np.reshape(A.tocsc()[:, idx_blobs] * C[idx_blobs] + b * np.median(f), dims + (-1,), order='F').transpose([2, 0, 1]))
 new_m.play(fr=30,backend='opencv',gain=7.,magnification=3.)
 #%%
-new_m=cm.movie(np.reshape(A.tocsc()[:,idx_blobs]*C[idx_blobs],dims+(-1,),order='F').transpose([2,0,1]))
+new_m=cm.Movie(np.reshape(A.tocsc()[:, idx_blobs] * C[idx_blobs], dims + (-1,), order='F').transpose([2, 0, 1]))
 new_m.play(fr=30,backend='opencv',gain=30.,magnification=3.)
 #%%
 #idx_to_show=[0,1,5,8,14,17,18,23,24,25,26,28,29,31,32,33,34,36,43,45,47,51,53,54,57,60,61,62,63,64,65,66,67,71,72,74,75,78,79,80,81,91,95,96,97,99,102]
@@ -944,7 +944,7 @@ cb.trace(trs[np.hstack([sure_in_idx[idx_to_show],7])].T,fr=6).plot()
 ###                    print 1/np.mean(np.diff(new_ts))
 ###                    tims.append(new_ts)
 ###                    
-###                mov=cb.movie(mov*rois[0][::-1].T,fr=1/np.mean(np.diff(new_ts)))
+###                mov=cb.Movie(mov*rois[0][::-1].T,fr=1/np.mean(np.diff(new_ts)))
 ###                x_max,y_max=np.max(np.nonzero(np.max(mov,0)),1)
 ###                x_min,y_min=np.min(np.nonzero(np.max(mov,0)),1)
 ###                mov=mov[:,x_min:x_max,y_min:y_max]                                
@@ -971,7 +971,7 @@ cb.trace(trs[np.hstack([sure_in_idx[idx_to_show],7])].T,fr=6).plot()
 ###                    
 ###                mtot.append(mov)   
 ###                trial_info.append(dt['trials'][idx_tr,:])
-###        #            cb.movie(mov,fr=1/np.mean(np.diff(new_ts)))
+###        #            cb.Movie(mov,fr=1/np.mean(np.diff(new_ts)))
 ##
 ###%%
 ###%%
@@ -987,7 +987,7 @@ cb.trace(trs[np.hstack([sure_in_idx[idx_to_show],7])].T,fr=6).plot()
 ###for a,b in zip(sub_trig_names,sub_trig):
 ###    fnames.append(a+'.hdf5')
 ###
-###fraction_downsample=.333333333333333333333; # useful to downsample the movie across time. fraction_downsample=.1 measn downsampling by a factor of 10
+###fraction_downsample=.333333333333333333333; # useful to downsample the Movie across time. fraction_downsample=.1 measn downsampling by a factor of 10
 ###sub_trig[:2]=np.round(sub_trig[:2]*fraction_downsample)
 ###sub_trig[-1]=np.floor(sub_trig[-1]*fraction_downsample)
 ###sub_trig[-1]=np.cumsum(sub_trig[-1])
@@ -998,7 +998,7 @@ cb.trace(trs[np.hstack([sure_in_idx[idx_to_show],7])].T,fr=6).plot()
 ###%%
 ###if T != sub_trig[-1,-1]:
 ###    raise Exception('Triggers values do not match!')
-###%% how to take triggered aligned movie
+###%% how to take triggered aligned Movie
 ##wvf=mmm.take(trg)
 ###%%
 ##newm=m.take(trg,axis=0)
@@ -1008,7 +1008,7 @@ cb.trace(trs[np.hstack([sure_in_idx[idx_to_show],7])].T,fr=6).plot()
 ###%%v
 ##Yr,d1,d2,T=cm.load_memmap(fname_new)
 ##d,T=np.shape(Yr)
-##Y=np.reshape(Yr,(d1,d2,T),order='F') # 3D version of the movie 
+##Y=np.reshape(Yr,(d1,d2,T),order='F') # 3D version of the Movie
 ##
 ###%%
 ##
@@ -1016,7 +1016,7 @@ cb.trace(trs[np.hstack([sure_in_idx[idx_to_show],7])].T,fr=6).plot()
 ##
 ###%%
 ##mov = np.concatenate(mtot,axis=0)           
-##m1=cb.movie(mov,fr=1/np.mean(np.diff(new_ts)))
+##m1=cb.Movie(mov,fr=1/np.mean(np.diff(new_ts)))
 ###x_max,y_max=np.max(np.nonzero(np.max(m,0)),1)
 ###x_min,y_min=np.min(np.nonzero(np.max(m,0)),1)
 ###m1=m[:,x_min:x_max,y_min:y_max]

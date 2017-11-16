@@ -75,13 +75,13 @@ def extract_motor_components_OF(m, n_components, mask = None,  resize_fact= .5, 
         mask = coo_matrix(np.array(mask).squeeze())
         ms = [get_nonzero_subarray(mask.multiply(fr),mask) for fr in m]
         ms = np.dstack(ms)
-        ms = cm.movie(ms.transpose([2,0,1]))
+        ms = cm.Movie(ms.transpose([2, 0, 1]))
 
     else:
         ms = m
     of_or = compute_optical_flow(ms,do_show=False,polar_coord=False) 
-    of_or = np.concatenate([cm.movie(of_or[0]).resize(resize_fact,resize_fact,1)[np.newaxis,:,:,:],
-                            cm.movie(of_or[1]).resize(resize_fact,resize_fact,1)[np.newaxis,:,:,:]],axis = 0)
+    of_or = np.concatenate([cm.Movie(of_or[0]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :],
+                            cm.Movie(of_or[1]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :]], axis = 0)
 
     if only_magnitude:
         of = np.sqrt(of[0]**2+of[1]**2)
@@ -154,7 +154,7 @@ def compute_optical_flow(m,mask = None,polar_coord=True,do_show=False,do_write=F
     ----------
 
     m: 3D ndarray:
-        input movie
+        input Movie
 
     mask: 2D ndarray
         mask selecting relevant pixels       
@@ -163,13 +163,13 @@ def compute_optical_flow(m,mask = None,polar_coord=True,do_show=False,do_write=F
         wheather to return the coordinate in polar coordinates (or cartesian)
 
     do_show: bool
-        show flow movie
+        show flow Movie
 
     do_write: bool
-        save flow movie
+        save flow Movie
 
     frate: double
-        frame rate saved movie
+        frame rate saved Movie
 
     parameters_opencv_function: cv2.calcOpticalFlowFarneback
         pyr_scale,levels,winsize,iterations,poly_n,poly_sigma
@@ -279,7 +279,7 @@ def extract_components(mov_tot,n_components=6,normalize_std=True,max_iter_DL=-30
         whether to normalize each oof the optical flow components
 
     normalize_output_traces: boolean
-        whether to normalize the behavioral traces so that they match the units in the movie
+        whether to normalize the behavioral traces so that they match the units in the Movie
 
     Returns:
     -------
@@ -382,7 +382,7 @@ if __name__ == "__main__":
 #%%    
 def main():
     mmat=loadmat('mov_AG051514-01-060914 C.mat')['mov']
-    m=cm.movie(mmat.transpose((2,0,1)),fr=120)
+    m=cm.Movie(mmat.transpose((2, 0, 1)), fr=120)
     mask=select_roi(m[0])
     if 1:
         mov_tot=compute_optical_flow(m[:3000],mask)

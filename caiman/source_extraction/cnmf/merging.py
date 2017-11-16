@@ -30,7 +30,7 @@ Parameters:
 -----------     
 
 Y: np.ndarray
-     residual movie after subtracting all found components (Y_res = Y - A*C - b*f) (d x T)
+     residual Movie after subtracting all found components (Y_res = Y - A*C - b*f) (d x T)
 
 A: sparse matrix
      matrix of spatial components (d x K)

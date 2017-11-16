@@ -212,9 +212,9 @@ print('Saved trained model at %s ' % model_path)
 #%% visualize_results 
 
 predictions = model.predict(all_masks_gt, batch_size=32, verbose=1)
-cm.movie(np.squeeze(all_masks_gt[np.where(predictions[:,0]>=0.5)[0]])).play(gain=3., magnification = 5, fr = 10)
+cm.Movie(np.squeeze(all_masks_gt[np.where(predictions[:, 0] >= 0.5)[0]])).play(gain=3., magnification = 5, fr = 10)
 #%%
-cm.movie(np.squeeze(all_masks_gt[np.where(predictions[:,1]>=0.5)[0]])).play(gain=3., magnification = 5, fr =10)
+cm.Movie(np.squeeze(all_masks_gt[np.where(predictions[:, 1] >= 0.5)[0]])).play(gain=3., magnification = 5, fr =10)
 
 #%% retrieve and test
 json_file = open(json_path, 'r')
@@ -236,7 +236,7 @@ print('Test accuracy:', score[1])
 #%%
 from skimage.util.montage import montage2d
 predictions = loaded_model.predict(all_masks_gt, batch_size=32, verbose=1)
-cm.movie(np.squeeze(all_masks_gt[np.where(predictions[:,1]<0.1)[0]])).play(gain=3., magnification = 5, fr = 10)
+cm.Movie(np.squeeze(all_masks_gt[np.where(predictions[:, 1] < 0.1)[0]])).play(gain=3., magnification = 5, fr = 10)
 #%%
 pl.imshow(montage2d(all_masks_gt[np.where((labels_gt==0)&(predictions[:,1]>=0.5)&(predictions[:,1]>=0.5))[0]].squeeze()))
 #%%

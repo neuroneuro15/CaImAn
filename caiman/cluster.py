@@ -167,10 +167,10 @@ def apply_to_patch(mmap_file, shape, dview, rf , stride , function, *args, **kwa
     Parameters:
     ----------
     file_name: string
-        full path to an npy file (2D, pixels x time) containing the movie
+        full path to an npy file (2D, pixels x time) containing the Movie
 
     shape: tuple of three elements
-        dimensions of the original movie across y, x, and time
+        dimensions of the original Movie across y, x, and time
 
 
     rf: int

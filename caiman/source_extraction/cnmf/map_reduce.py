@@ -36,10 +36,10 @@ def cnmf_patches(args_in):
         Parameters:
         ----------
         file_name: string
-            full path to an npy file (2D, pixels x time) containing the movie
+            full path to an npy file (2D, pixels x time) containing the Movie
 
         shape: tuple of thre elements
-            dimensions of the original movie across y, x, and time
+            dimensions of the original Movie across y, x, and time
 
         options:
             dictionary containing all the parameters for the various algorithms
@@ -162,10 +162,10 @@ def run_CNMF_patches(file_name, shape, options, rf=16, stride=4, gnb=1, dview=No
     Parameters:
     ----------        
     file_name: string
-        full path to an npy file (2D, pixels x time) containing the movie        
+        full path to an npy file (2D, pixels x time) containing the Movie
 
     shape: tuple of thre elements
-        dimensions of the original movie across y, x, and time 
+        dimensions of the original Movie across y, x, and time
 
     options:
         dictionary containing all the parameters for the various algorithms

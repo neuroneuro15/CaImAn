@@ -56,7 +56,7 @@ mags, dircts, dircts_thresh, spatial_masks_thrs = cm.behavior.behavior.extract_m
 #%% if you want to visualize optical flow
 ms = [mask*fr for fr in m]
 ms = np.dstack(ms)
-ms = cm.movie(ms.transpose([2,0,1]))
+ms = cm.Movie(ms.transpose([2, 0, 1]))
 _ = cm.behavior.behavior.compute_optical_flow(ms,do_show=True,polar_coord=True) 
 
 #%% spatial components

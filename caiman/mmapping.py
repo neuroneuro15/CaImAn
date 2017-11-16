@@ -95,16 +95,16 @@ def save_memmap_each(fnames, dview=None, base_name=None, resize_fact=(1, 1, 1), 
         number of samples to remove from the beginning of each chunk
 
     idx_xy: slice operator
-        used to perform slicing of the movie (to select a subportion of the movie)
+        used to perform slicing of the Movie (to select a subportion of the Movie)
 
     xy_shifts: list
         x and y shifts computed by a motion correction algorithm to be applied before memory mapping
 
     add_to_movie: float
-        if movie too negative will make it positive
+        if Movie too negative will make it positive
 
     border_to_0: int
-        number of pixels on the border to set to the minimum of the movie
+        number of pixels on the border to set to the minimum of the Movie
 
     Returns:
     --------
@@ -302,7 +302,7 @@ def save_memmap(filenames, base_name='Yr', resize_fact=(1, 1, 1), remove_init=0,
                 Yr = Yr[remove_init:, idx_xy[0], idx_xy[1], idx_xy[2]]
 
         else:
-            Yr = cm.load(f, fr=1, in_memory=True) if isinstance(f, basestring) else cm.movie(f)
+            Yr = cm.load(f, fr=1, in_memory=True) if isinstance(f, basestring) else cm.Movie(f)
             if xy_shifts is not None:
                 Yr = Yr.apply_shifts(xy_shifts, interpolation='cubic', remove_blanks=False)
 
@@ -326,8 +326,8 @@ def save_memmap(filenames, base_name='Yr', resize_fact=(1, 1, 1), remove_init=0,
         fx, fy, fz = resize_fact
         if fx != 1 or fy != 1 or fz != 1:
 
-            if 'movie' not in str(type(Yr)):
-                Yr = cm.movie(Yr, fr=1)
+            if 'Movie' not in str(type(Yr)):
+                Yr = cm.Movie(Yr, fr=1)
 
             Yr = Yr.resize(fx=fx, fy=fy, fz=fz)
         T, dims = Yr.shape[0], Yr.shape[1:]
@@ -582,7 +582,7 @@ def save_tif_to_mmap_online(movie_iterable, save_base_name='YrOL_', order='C',
 
     if isinstance(movie_iterable, basestring):
         with tifffile.TiffFile(movie_iterable) as tf:
-            movie_iterable = cm.movie(tf)
+            movie_iterable = cm.Movie(tf)
 
     count = 0
     new_mov = []

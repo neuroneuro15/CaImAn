@@ -116,18 +116,18 @@ m=cb.movie(np.transpose(np.array(Y[:,:,N:N1]),[2,0,1]),fr=30)
 #m=m.IPCA_denoise(components=100,batch=10000)
 
 # denoise using median filter
-#m=cb.movie(scipy.ndimage.median_filter(m, size=(3,2,2), mode='nearest'),fr=30)
+#m=cb.Movie(scipy.ndimage.median_filter(m, size=(3,2,2), mode='nearest'),fr=30)
 
 # denoise using bilateral filters 
 #m=m.bilateral_blur_2D(diameter=10,sigmaColor=10000,sigmaSpace=0)
 
 # denoise using percentile filter
-#m=cb.movie(scipy.ndimage.percentile_filter(m, 90, size=(3,2,2), mode='nearest'),fr=30)
+#m=cb.Movie(scipy.ndimage.percentile_filter(m, 90, size=(3,2,2), mode='nearest'),fr=30)
 
 #denoise using gaussian filter: USE THIS!!!
 m=cb.movie(scipy.ndimage.gaussian_filter(m, sigma=(.5,.5,.5), mode='nearest',truncate=2),fr=30)
 
-# resize movie
+# resize Movie
 m=m.resize(1,1,.2)
 (m-np.mean(m)).play(gain=5.,magnification=2,fr=100)
 #%%
@@ -308,7 +308,7 @@ m1=cb.movie(scipy.ndimage.gaussian_filter(m1, sigma=(1,1,0), mode='nearest',trun
 if remove_baseline:  
     m1= np.maximum(0,m1-np.percentile(m1,perc,axis=0))
 
-# resize movie
+# resize Movie
 m=m.resize(1,1,.5)
 
 
@@ -659,7 +659,7 @@ mn1=m.copy().bilateral_blur_2D(diameter=10,sigmaColor=10000,sigmaSpace=0)
 
 mn1,shifts,xcorrs, template=mn1.motion_correct()
 mn2=mn2.apply_shifts(shifts)     
-#mn1=cb.movie(np.transpose(np.array(Y_n),[2,0,1]),fr=30)
+#mn1=cb.Movie(np.transpose(np.array(Y_n),[2,0,1]),fr=30)
 mn=cb.concatenate([mn1,m],axis=1)
 (mn-np.mean(mn)).play(gain=2.,magnification=4,backend='opencv',fr=20)    
 #%% EFTYCHIOS METHOD TO SEPARATE PIXELS

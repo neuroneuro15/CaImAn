@@ -51,11 +51,11 @@ from caiman.base.rois import extract_binary_masks_blob
 params_movie = {'fname':None,
                 'max_shifts':(6,6), # maximum allow rigid shift
                 'splits_rig':56, # for parallelization split the movies in  num_splits chuncks across time
-                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
                 'strides': (128,128), # intervals at which patches are laid out for motion correction
                 'overlaps': (32,32), # overlap between pathes (size of patch strides+overlaps)
                 'splits_els':56, # for parallelization split the movies in  num_splits chuncks across time
-                'num_splits_to_process_els':[28,None], # if none all the splits are processed and the movie is saved
+                'num_splits_to_process_els':[28,None], # if none all the splits are processed and the Movie is saved
                 'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
                 'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
                 'p': 1, # order of the autoregressive system  
@@ -90,7 +90,7 @@ add_to_movie = np.min(cm.load(all_files[0]))
 max_shifts = params_movie['max_shifts'] # maximum allowed shifts
 num_iter = 1 # number of times the algorithm is run
 splits = params_movie['splits_rig'] # for parallelization split the movies in  num_splits chuncks across time
-num_splits_to_process = params_movie['num_splits_to_process_rig'] # if none all the splits are processed and the movie is saved
+num_splits_to_process = params_movie['num_splits_to_process_rig'] # if none all the splits are processed and the Movie is saved
 shifts_opencv = True # apply shifts fast way (but smoothing results)
 save_movie_rigid = False # save the movies vs just get the template
 for file_to_process in all_files:
@@ -113,7 +113,7 @@ for file_to_process in all_files:
 pl.close()
 pl.plot(np.concatenate(total_shifts,0)) 
 #%% visualize all templates
-cm.movie(np.array(templates_all)).play(fr=2,gain = 5)
+cm.Movie(np.array(templates_all)).play(fr=2, gain = 5)
 
 #%% PIECEWISE RIGID MOTION CORRECTION
 total_shifts_els = []
@@ -158,7 +158,7 @@ fnames_map.sort()
 print(fnames_map)    
 
 #%%
-#add_to_movie=np.nanmin(templates_rig)+1# the movie must be positive!!!
+#add_to_movie=np.nanmin(templates_rig)+1# the Movie must be positive!!!
 downsample_factor=1 # use .2 or .1 if file is large and you want a quick answer
 idx_xy=None
 base_name='Yr'

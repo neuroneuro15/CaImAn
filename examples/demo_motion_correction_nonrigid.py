@@ -118,7 +118,7 @@ pl.axis('off')
 
 
 #%%
-mc = cm.movie(mc)
+mc = cm.Movie(mc)
 mc[np.isnan(mc)] = 0
 mc.resize(1,1,.25).play(gain=10.,fr=50)
 #%%

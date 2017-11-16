@@ -33,7 +33,7 @@ def max_correlation_image(Y, bin_size=1000, eight_neighbours=True, swap_dim=True
     -----------
 
     Y:  np.ndarray (3D or 4D)
-        Input movie data in 3D or 4D format
+        Input Movie data in 3D or 4D format
 
     bin_size: scalar (integer)
          Length of bin_size (if last bin is smaller than bin_size < 2 bin_size is increased to impose uniform bins)
@@ -84,7 +84,7 @@ def local_correlations_fft(Y, eight_neighbours=True, swap_dim=True, opencv=True)
     -----------
 
     Y:  np.ndarray (3D or 4D)
-        Input movie data in 3D or 4D format
+        Input Movie data in 3D or 4D format
 
     eight_neighbours: Boolean
         Use 8 neighbors if true, and 4 if false for 3D data (default = True)
@@ -147,7 +147,7 @@ def local_correlations(Y, eight_neighbours=True, swap_dim=True):
     -----------
 
     Y:  np.ndarray (3D or 4D)
-        Input movie data in 3D or 4D format
+        Input Movie data in 3D or 4D format
 
     eight_neighbours: Boolean
         Use 8 neighbors if true, and 4 if false for 3D data (default = True)
@@ -227,7 +227,7 @@ def correlation_pnr(Y, gSig=None, center_psf=True, swap_dim=True):
 
     Args:
         Y:  np.ndarray (3D or 4D).
-            Input movie data in 3D or 4D format
+            Input Movie data in 3D or 4D format
         gSig:  scalar or vector.
             gaussian width. If gSig == None, no spatial filtering
         center_psf: Boolearn

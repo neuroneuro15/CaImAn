@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-""" Suite of functions that are helpfull work with and manage the movie
+""" Suite of functions that are helpfull work with and manage the Movie
 
-Contains the movie class.
+Contains the Movie class.
 
 See Also:
 ------------
@@ -63,19 +63,19 @@ from ..utils import visualization
 from .. import summary_images as si
 from ..motion_correction import apply_shift_online,motion_correct_online
 
-class movie(ts.timeseries):
+class Movie(ts.Timeseries):
     """
-    Class representing a movie. This class subclasses timeseries,
+    Class representing a Movie. This class subclasses Timeseries,
     that in turn subclasses ndarray
 
-    movie(input_arr, fr=None,start_time=0,file_name=None, meta_data=None)
+    Movie(input_arr, fr=None,start_time=0,file_name=None, meta_data=None)
 
     Example of usage:
     ----------
     input_arr = 3d ndarray
     fr=33; # 33 Hz
     start_time=0
-    m=movie(input_arr, start_time=0,fr=33);
+    m=Movie(input_arr, start_time=0,fr=33);
 
     Parameters:
     ----------
@@ -84,7 +84,7 @@ class movie(ts.timeseries):
 
     fr: frame rate
 
-    start_time: time beginning movie, if None it is assumed 0
+    start_time: time beginning Movie, if None it is assumed 0
 
     meta_data: dictionary including any custom meta data
 
@@ -98,7 +98,7 @@ class movie(ts.timeseries):
            (type(input_arr) is h5py._hl.dataset.Dataset) or\
            ('mmap' in str(type(input_arr))) or\
            ('tifffile' in str(type(input_arr))):
-            return super(movie, cls).__new__(cls, input_arr, **kwargs)
+            return super(Movie, cls).__new__(cls, input_arr, **kwargs)
         else:
             raise Exception('Input must be an ndarray, use load instead!')
 
@@ -113,7 +113,7 @@ class movie(ts.timeseries):
         # todo: todocument
 
         if save_base_name is None:
-            return movie(apply_shift_online(self,xy_shifts,save_base_name=save_base_name),fr=self.fr)        
+            return Movie(apply_shift_online(self, xy_shifts, save_base_name=save_base_name), fr=self.fr)
         else:
             return apply_shift_online(self,xy_shifts,save_base_name=save_base_name)
 
@@ -126,7 +126,7 @@ class movie(ts.timeseries):
             tmp.append(np.nanmin(self[np.int(bins[i]):np.int(bins[i+1]), :, :]).tolist() + 1)
         minval = np.ndarray(1)
         minval[0] = np.nanmin(tmp)
-        return movie(input_arr = minval)
+        return Movie(input_arr = minval)
             
     def motion_correct(self,
                        max_shift_w=5,
@@ -137,7 +137,7 @@ class movie(ts.timeseries):
                        remove_blanks=False,interpolation='cubic'):
 
         """
-        Extract shifts and motion corrected movie automatically,
+        Extract shifts and motion corrected Movie automatically,
 
         for more control consider the functions extract_shifts and apply_shifts
         Disclaimer, it might change the object itself.
@@ -159,7 +159,7 @@ class movie(ts.timeseries):
 
         Returns:
         -------
-        self: motion corected movie, it might change the object itself
+        self: motion corected Movie, it might change the object itself
 
         shifts : tuple, contains x & y shifts and correlation with template
 
@@ -175,9 +175,9 @@ class movie(ts.timeseries):
             frames_to_skip = int(np.maximum(1, old_div(self.shape[0],num_frames_template)))
 
             # sometimes it is convenient to only consider a subset of the
-            # movie when computing the median
+            # Movie when computing the median
             submov = self[::frames_to_skip, :].copy()
-            templ = submov.bin_median() # create template with portion of movie
+            templ = submov.bin_median() # create template with portion of Movie
             shifts,xcorrs=submov.extract_shifts(max_shift_w=max_shift_w, max_shift_h=max_shift_h, template=templ, method=method)
             submov.apply_shifts(shifts,interpolation=interpolation,method=method)
             template=submov.bin_median()
@@ -320,7 +320,7 @@ class movie(ts.timeseries):
 
     def apply_shifts(self, shifts,interpolation='linear',method='opencv',remove_blanks=False):
         """
-        Apply precomputed shifts to a movie, using subpixels adjustment (cv2.INTER_CUBIC function)
+        Apply precomputed shifts to a Movie, using subpixels adjustment (cv2.INTER_CUBIC function)
 
         Parameters:
         ------------
@@ -439,14 +439,14 @@ class movie(ts.timeseries):
         return self
 
     def crop(self,crop_top=0,crop_bottom=0,crop_left=0,crop_right=0,crop_begin=0,crop_end=0):
-        """ Crop movie
+        """ Crop Movie
         """
         t,h,w=self.shape
         return self[crop_begin:t-crop_end,crop_top:h-crop_bottom,crop_left:w-crop_right]
 
     def computeDFF(self,secsWindow=5,quantilMin=8,method='only_baseline',order='F'):
         """
-        compute the DFF of the movie or remove baseline
+        compute the DFF of the Movie or remove baseline
 
         In order to compute the baseline frames are binned according to the window length parameter
         and then the intermediate values are interpolated.
@@ -463,7 +463,7 @@ class movie(ts.timeseries):
         -----------
         self: DF or DF/F or DF/sqrt(F) movies
 
-        movBL=baseline movie
+        movBL=baseline Movie
 
         Raise:
         -----
@@ -482,7 +482,7 @@ class movie(ts.timeseries):
         padafter=int(np.ceil(old_div(elm_missing,2.0)))
 
         print(('Inizial Size Image:' + np.str(np.shape(self)))); sys.stdout.flush()
-        mov_out=movie(np.pad(self.astype(np.float32),((padbefore,padafter),(0,0),(0,0)),mode='reflect'),**self.__dict__)
+        mov_out=Movie(np.pad(self.astype(np.float32), ((padbefore, padafter), (0, 0), (0, 0)), mode='reflect'), **self.__dict__)
         #mov_out[:padbefore] = mov_out[padbefore+1]
         #mov_out[-padafter:] = mov_out[-padafter-1]
         numFramesNew,linePerFrame,pixPerLine=np.shape(mov_out)
@@ -494,7 +494,7 @@ class movie(ts.timeseries):
         print("interpolating data ..."); sys.stdout.flush()
         print((movBL.shape))
         movBL=scipy.ndimage.zoom(np.array(movBL,dtype=np.float32),[downsampfact ,1, 1],order=1, mode='constant', cval=0.0, prefilter=False)
-#        movBL = movie(movBL).resize(1,1,downsampfact, interpolation = 4)
+#        movBL = Movie(movBL).resize(1,1,downsampfact, interpolation = 4)
         
 
 
@@ -510,7 +510,7 @@ class movie(ts.timeseries):
 
         mov_out=mov_out[padbefore:len(movBL)-padafter,:,:];
         print(('Final Size Movie:' +  np.str(self.shape)))
-        return mov_out,movie(movBL,fr=self.fr,start_time=self.start_time,meta_data=self.meta_data,file_name=self.file_name)
+        return mov_out, Movie(movBL, fr=self.fr, start_time=self.start_time, meta_data=self.meta_data, file_name=self.file_name)
 
     def NonnegativeMatrixFactorization(self,n_components=30, init='nndsvd', beta=1,tol=5e-7, sparseness='components',**kwargs):
         """
@@ -597,9 +597,9 @@ class movie(ts.timeseries):
         -------
         eigenseries: principal components (pixel time series) and associated singular values
 
-        eigenframes: eigenframes are obtained by multiplying the projected frame matrix by the projected movie (whitened frames?)
+        eigenframes: eigenframes are obtained by multiplying the projected frame matrix by the projected Movie (whitened frames?)
 
-        proj_frame_vectors:the reduced version of the movie vectors using only the principal component projection
+        proj_frame_vectors:the reduced version of the Movie vectors using only the principal component projection
         """
         # vectorize the images
         num_frames, h, w = np.shape(self)
@@ -610,7 +610,7 @@ class movie(ts.timeseries):
         ipca_f = incremental_pca(n_components=components, batch_size=batch)
         ipca_f.fit(frame_samples)
 
-        # construct the reduced version of the movie vectors using only the
+        # construct the reduced version of the Movie vectors using only the
         # principal component projection
 
         proj_frame_vectors = ipca_f.inverse_transform(ipca_f.transform(frame_samples))
@@ -679,7 +679,7 @@ class movie(ts.timeseries):
 
     def IPCA_denoise(self, components = 50, batch = 1000):
         """
-        Create a denoise version of the movie only using the first 'components' components
+        Create a denoise version of the Movie only using the first 'components' components
         """
         _, _, clean_vectors = self.IPCA(components, batch)
         self = self.__class__(np.reshape(np.float32(clean_vectors.T), np.shape(self)),**self.__dict__)
@@ -715,7 +715,7 @@ class movie(ts.timeseries):
             -----------
 
             Y:  np.ndarray (3D or 4D)
-                Input movie data in 3D or 4D format
+                Input Movie data in 3D or 4D format
 
             eight_neighbours: Boolean
                 Use 8 neighbors if true, and 4 if false for 3D data (default = True)
@@ -764,7 +764,7 @@ class movie(ts.timeseries):
         ------------------------------
         tradeoff_weight:between 0 and 1 will weight the contributions of distance and correlation in the overall metric
 
-        fx,fy: downsampling factor to apply to the movie
+        fx,fy: downsampling factor to apply to the Movie
 
         n_clusters,max_iter: KMeans algorithm parameters
 
@@ -850,14 +850,14 @@ class movie(ts.timeseries):
                 print(newshape)
                 for frame in self:
                     mov.append(cv2.resize(frame,newshape,fx=fx,fy=fy,interpolation=interpolation))
-                self=movie(np.asarray(mov),**self.__dict__)
+                self=Movie(np.asarray(mov), **self.__dict__)
             if fz!=1:
                 print("reshaping along z")
                 t,h,w=self.shape
                 self=np.reshape(self,(t,h*w))
                 mov=cv2.resize(self,(h*w,int(fz*t)),fx=1,fy=fz,interpolation=interpolation)
                 mov=np.reshape(mov,(np.maximum(1,int(fz*t)),h,w))
-                self=movie(mov,**self.__dict__)
+                self=Movie(mov, **self.__dict__)
                 self.fr=self.fr*fz
 
         return self
@@ -904,7 +904,7 @@ class movie(ts.timeseries):
         Returns:
         --------
         self: ndarray
-            blurred movie
+            blurred Movie
         """
 
         for idx,fr in enumerate(self):
@@ -932,7 +932,7 @@ class movie(ts.timeseries):
         Returns:
         --------
         self: ndarray
-            blurred movie
+            blurred Movie
         """
 
         for idx,fr in enumerate(self):
@@ -979,17 +979,17 @@ class movie(ts.timeseries):
 
     def local_correlations_movie(self,window=10):
         T,_,_=self.shape
-        return movie(np.concatenate([self[j:j+window,:,:].local_correlations(
-            eight_neighbours=True)[np.newaxis,:,:] for j in range(T-window)],axis=0),fr=self.fr)
+        return Movie(np.concatenate([self[j:j + window, :, :].local_correlations(
+            eight_neighbours=True)[np.newaxis, :, :] for j in range(T-window)], axis=0), fr=self.fr)
 
     def play(self,gain=1,fr=None,magnification=1,offset=0,interpolation=cv2.INTER_LINEAR,
              backend='opencv',do_loop=False, bord_px = None):
         """
-        Play the movie using opencv
+        Play the Movie using opencv
 
         Parameters:
         ----------
-        gain: adjust  movie brightness
+        gain: adjust  Movie brightness
 
         frate : playing speed if different from original (inter frame interval in seconds)
 
@@ -1092,7 +1092,7 @@ class movie(ts.timeseries):
 
 def load(file_name,fr=30,start_time=0,meta_data=None,subindices=None,shape=None, var_name_hdf5 = 'mov', in_memory = False, is_behavior = False):
     """
-    load movie from file. SUpports a variety of formats. tif, hdf5, npy and memory mapped. Matlab is experimental. 
+    load Movie from file. SUpports a variety of formats. tif, hdf5, npy and memory mapped. Matlab is experimental.
 
     Parameters:
     -----------
@@ -1106,13 +1106,13 @@ def load(file_name,fr=30,start_time=0,meta_data=None,subindices=None,shape=None,
         initial time for frame 1
     
     meta_data: dict
-        dictionary containing meta information about the movie
+        dictionary containing meta information about the Movie
     
     subindices: iterable indexes
-        for loading only portion of the movie
+        for loading only portion of the Movie
     
     shape: tuple of two values
-        dimension of the movie along x and y if loading from a two dimensional numpy array
+        dimension of the Movie along x and y if loading from a two dimensional numpy array
         
     num_frames_sub_idx:     
         when reading sbx format (experimental and unstable)
@@ -1122,7 +1122,7 @@ def load(file_name,fr=30,start_time=0,meta_data=None,subindices=None,shape=None,
         
     Returns:
     -------
-    mov: calblitz.movie
+    mov: calblitz.Movie
 
     Raise:
     -----
@@ -1136,7 +1136,7 @@ def load(file_name,fr=30,start_time=0,meta_data=None,subindices=None,shape=None,
 
     Exception('File not found!')
     """
-    # case we load movie from file
+    # case we load Movie from file
     if os.path.exists(file_name):
 
         name, extension = os.path.splitext(file_name)[:2]
@@ -1204,11 +1204,11 @@ def load(file_name,fr=30,start_time=0,meta_data=None,subindices=None,shape=None,
             if subindices is not None:
                 input_arr=input_arr[subindices]
 
-        elif extension == '.npz': # load movie from saved file
+        elif extension == '.npz': # load Movie from saved file
             if subindices is not None:
                 raise Exception('Subindices not implemented')
             with np.load(file_name) as f:
-                return movie(**f)
+                return Movie(**f)
 
         elif extension== '.hdf5':
             
@@ -1218,16 +1218,16 @@ def load(file_name,fr=30,start_time=0,meta_data=None,subindices=None,shape=None,
                     attrs['meta_data']=cpk.loads(attrs['meta_data'])
 
                 if subindices is None:
-                    return movie(f[var_name_hdf5],**attrs)
+                    return Movie(f[var_name_hdf5], **attrs)
                 else:
-                    return movie(f[var_name_hdf5][subindices],**attrs)
+                    return Movie(f[var_name_hdf5][subindices], **attrs)
                     
         elif extension== '.h5_at':
              with h5py.File(file_name, "r") as f:
                 if subindices is None:
-                    return movie(f['quietBlock'],fr=fr)
+                    return Movie(f['quietBlock'], fr=fr)
                 else:
-                    return movie(f['quietBlock'][subindices],fr=fr)
+                    return Movie(f['quietBlock'][subindices], fr=fr)
             
         elif extension== '.h5':
               if is_behavior:
@@ -1253,7 +1253,7 @@ def load(file_name,fr=30,start_time=0,meta_data=None,subindices=None,shape=None,
                             if images.ndim>3:
                                 images = images[:,0]
                                 
-                        return movie(images.astype(np.float32))
+                        return Movie(images.astype(np.float32))
                     
         elif extension == '.mmap':
 
@@ -1266,14 +1266,14 @@ def load(file_name,fr=30,start_time=0,meta_data=None,subindices=None,shape=None,
                 images = np.array(images)
             
             print('mmap')
-            return movie(images,fr=fr)
+            return Movie(images, fr=fr)
 
         elif extension == '.sbx':
             if subindices is not None:
-                return movie(sbxreadskip(file_name[:-4],skip = subindices.step), fr=fr)
+                return Movie(sbxreadskip(file_name[:-4], skip = subindices.step), fr=fr)
             else:
                 print('sbx')
-                return movie(sbxread(file_name[:-4],k = 0, n_frames = np.inf), fr=fr)
+                return Movie(sbxread(file_name[:-4], k = 0, n_frames = np.inf), fr=fr)
 
         elif extension == '.sima':
             if not HAS_SIMA:
@@ -1299,7 +1299,7 @@ def load(file_name,fr=30,start_time=0,meta_data=None,subindices=None,shape=None,
         print(file_name)
         raise Exception('File not found!')
 
-    return movie(input_arr,fr=fr,start_time=start_time,file_name=os.path.split(file_name)[-1], meta_data=meta_data)
+    return Movie(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1], meta_data=meta_data)
 
 
 def load_movie_chain(file_list, fr=30, start_time=0,
@@ -1319,8 +1319,8 @@ def load_movie_chain(file_list, fr=30, start_time=0,
         
     Returns:
     --------
-    movie: cm.movie
-        movie corresponding to the concatenation og the input files
+    Movie: cm.Movie
+        Movie corresponding to the concatenation og the input files
         
     """
     mov = []
@@ -1501,7 +1501,7 @@ def sbxshape(filename):
 
 def to_3D(mov2D,shape,order='F'):
     """
-    transform to 3D a vectorized movie
+    transform to 3D a vectorized Movie
     """
     return np.reshape(mov2D,shape,order=order)
 
@@ -1509,11 +1509,11 @@ def to_3D(mov2D,shape,order='F'):
 
 if __name__ == "__main__":
     print((1))
-#    mov=movie('/Users/agiovann/Dropbox/Preanalyzed Data/ExamplesDataAnalysis/Andrea/PC1/M_FLUO.tif',fr=15.62,start_time=0,meta_data={'zoom':2,'location':[100, 200, 300]})
-#    mov1=movie('/Users/agiovann/Dropbox/Preanalyzed Data/ExamplesDataAnalysis/Andrea/PC1/M_FLUO.tif',fr=15.62,start_time=0,meta_data={'zoom':2,'location':[100, 200, 300]})
+#    mov=Movie('/Users/agiovann/Dropbox/Preanalyzed Data/ExamplesDataAnalysis/Andrea/PC1/M_FLUO.tif',fr=15.62,start_time=0,meta_data={'zoom':2,'location':[100, 200, 300]})
+#    mov1=Movie('/Users/agiovann/Dropbox/Preanalyzed Data/ExamplesDataAnalysis/Andrea/PC1/M_FLUO.tif',fr=15.62,start_time=0,meta_data={'zoom':2,'location':[100, 200, 300]})
 ##    newmov=ts.concatenate([mov,mov1])
 ##    mov.save('./test.npz')
-##    mov=movie.load('test.npz')
+##    mov=Movie.load('test.npz')
 #    max_shift=5;
 #    mov,template,shifts,xcorrs=mov.motion_correct(max_shift_h=max_shift,max_shift_w=max_shift,show_movie=0)
 #    max_shift=5;

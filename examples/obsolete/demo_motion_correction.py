@@ -46,7 +46,7 @@ fname = 'example_movies/Sue_2x_3000_40_-46.tif'
 max_shifts = (6,6)
 num_iter = 1 # number of times the algorithm is run
 splits = 56 # for parallelization split the movies in  num_splits chuncks across time
-num_splits_to_process = None # if none all the splits are processed and the movie is saved
+num_splits_to_process = None # if none all the splits are processed and the Movie is saved
 shifts_opencv = True # apply shifts fast way (but smoothing results)
 save_movie_rigid = True # save the movies vs just get the template
 t1 = time.time()
@@ -64,7 +64,7 @@ print(add_to_movie)
 #%% visualize movies
 m_rig.resize(1,1,.2).play(fr = 30, gain = 20, magnification=2, offset = add_to_movie)
 #%% visualize templates
-cm.movie(np.array(templates_rig)).play(fr = 10, gain = 5, magnification=2, offset = add_to_movie)
+cm.Movie(np.array(templates_rig)).play(fr = 10, gain = 5, magnification=2, offset = add_to_movie)
 #%%
 ## for 512 512 this seems good
 t1 = time.time()

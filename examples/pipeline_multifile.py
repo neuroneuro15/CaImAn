@@ -51,11 +51,11 @@ from caiman.base.rois import extract_binary_masks_blob
 params_movie = {'fname':None,
                 'max_shifts':(10,10), # maximum allow rigid shift
                 'splits_rig':20, # for parallelization split the movies in  num_splits chuncks across time
-                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
                 'strides': (128,128), # intervals at which patches are laid out for motion correction
                 'overlaps': (32,32), # overlap between pathes (size of patch strides+overlaps)
                 'splits_els':20, # for parallelization split the movies in  num_splits chuncks across time
-                'num_splits_to_process_els':[None], # if none all the splits are processed and the movie is saved
+                'num_splits_to_process_els':[None], # if none all the splits are processed and the Movie is saved
                 'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
                 'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
                 'p': 1, # order of the autoregressive system  
@@ -90,7 +90,7 @@ add_to_movie = - np.min(np.array(cm.load(all_files[0])).astype(np.float32))
 max_shifts = params_movie['max_shifts'] # maximum allowed shifts
 num_iter = 1 # number of times the algorithm is run
 splits = params_movie['splits_rig'] # for parallelization split the movies in  num_splits chuncks across time
-num_splits_to_process = params_movie['num_splits_to_process_rig'] # if none all the splits are processed and the movie is saved
+num_splits_to_process = params_movie['num_splits_to_process_rig'] # if none all the splits are processed and the Movie is saved
 shifts_opencv = True # apply shifts fast way (but smoothing results)
 save_movie_rigid = False # save the movies vs just get the template
 t1 = time.time()
@@ -118,7 +118,7 @@ print(t2)
 pl.close()
 pl.plot(np.concatenate(total_shifts,0)) 
 #%% visualize all templates
-#cm.movie(np.array(templates_all)).play(fr=2,gain = 5, offset =add_to_movie)
+#cm.Movie(np.array(templates_all)).play(fr=2,gain = 5, offset =add_to_movie)
 
 #%% PIECEWISE RIGID MOTION CORRECTION
 total_shifts_els = []
@@ -161,7 +161,7 @@ templates_all_els = templates_all_els[1:]
 total_shifts_els = total_shifts_els[1:]  
 #%%
 
-#cm.movie(np.array(templates_all_els)).play(fr=105,gain = 10, offset = add_to_movie-10)
+#cm.Movie(np.array(templates_all_els)).play(fr=105,gain = 10, offset = add_to_movie-10)
     
     
 #%%
@@ -183,7 +183,7 @@ add_to_movie = - np.min(adds_to_movie)
 print(adds_to_movie)
 print(add_to_movie)
 #%%
-#add_to_movie=np.nanmin(templates_rig)+1# the movie must be positive!!!
+#add_to_movie=np.nanmin(templates_rig)+1# the Movie must be positive!!!
 t1 = time.time()
 n_processes_mmap = 14# lower this number if you have memory problems!
 dview_sub = c[:n_processes_mmap]

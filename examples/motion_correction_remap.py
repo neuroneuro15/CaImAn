@@ -62,8 +62,8 @@ for k in range(num_frames):
 #                mapY[k,j,i] = j +  flow[j,i,1]
 #%%
 num_frames = mc.shape[0]
-mapX_res = cm.movie(mapX).resize(1,1, 1/dsfactor)
-mapY_res = cm.movie(mapY).resize(1,1, 1/dsfactor)
+mapX_res = cm.Movie(mapX).resize(1, 1, 1 / dsfactor)
+mapY_res = cm.Movie(mapY).resize(1, 1, 1 / dsfactor)
 #%%    
 fact = np.max(m)  
 bl= np.min(m)     
@@ -80,9 +80,9 @@ for counter,mm in enumerate(mc[:num_frames]):
     times.append(time()-t1)        
 #cv2.destroyAllWindows()            
 #%%
-cm.movie(np.array(mc[:num_frames]-new_ms[:num_frames])).play(gain = 50.,magnification = 1)
+cm.Movie(np.array(mc[:num_frames] - new_ms[:num_frames])).play(gain = 50., magnification = 1)
 #%%
-cm.concatenate([cm.movie(np.array(new_ms[:num_frames]),fr = mc.fr),mc[:num_frames]],axis=2).resize(1,1,.5).play(gain = 2,magnification= 3 ,fr = 30, offset =-100)
+cm.concatenate([cm.Movie(np.array(new_ms[:num_frames]), fr = mc.fr), mc[:num_frames]], axis=2).resize(1, 1, .5).play(gain = 2, magnification= 3, fr = 30, offset =-100)
 #%%     
 pl.subplot(1,3,1)
 pl.imshow(np.mean(m[:2000],0),cmap = 'gray', vmax = 200)
@@ -91,7 +91,7 @@ pl.imshow(np.mean(new_ms[:2000],0),cmap = 'gray',vmax = 200)
 pl.subplot(1,3,3)
 pl.imshow(np.mean(new_ms[:2000],0)- np.mean(m[:2000],0),cmap = 'gray')
 #%%
-cm.movie(np.array(m[:2000]-new_ms[:2000])).play()
+cm.Movie(np.array(m[:2000] - new_ms[:2000])).play()
 #%%
 from multiprocessing import Pool
 pl = Pool(processes=5)

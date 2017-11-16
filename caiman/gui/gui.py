@@ -23,7 +23,7 @@ def isin(r, ax):
 
 class GUI(animation.TimedAnimation):
     """
-        interface for viewing a movie and its associated roi, traces, other things
+        interface for viewing a Movie and its associated roi, traces, other things
 
         implementation is only through matplotlib, and is non-blocking
         backend affects performance somewhat dramatically. have achieved decent performance with qt5agg and tkagg
@@ -73,7 +73,7 @@ class GUI(animation.TimedAnimation):
         gs = gridspec.GridSpec(nrows=NR, ncols=NC)
         gs.update(wspace=0.1, hspace=0.1, left=.04, right=.96, top=.98, bottom=.02)
 
-        # movie axes
+        # Movie axes
         self.ax_contrast0 = self.fig.add_subplot(gs[0:5,0:NC//3])
         self.ax_contrast1 = self.fig.add_subplot(gs[5:10,0:NC//3])
         self.ax_mov = self.fig.add_subplot(gs[10:55,0:NC//3])

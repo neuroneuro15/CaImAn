@@ -197,7 +197,7 @@ params_movie[8] = {'fname': '/mnt/ceph/neuro/labeling/J123_2015-11-20_L01_0/imag
 #    for file_count, ffll in enumerate(fls):
 #        file_name = '/'.join(ffll.split('/')[:-2]+['mmap_tifs']+[ffll.split('/')[-1][:-4]+'tif'])
 #        if not os.path.isfile(file_name):
-#            fl_temp = cm.movie(np.array(cm.load(ffll)))        
+#            fl_temp = cm.Movie(np.array(cm.load(ffll)))
 #            fl_temp.save(file_name)
 #        print(file_name)
 #    print(ind_dataset)
@@ -245,7 +245,7 @@ deconv_flag =  p>0
 
 #minibatch_length = int(global_params['batch_length_dt']*params_movie[ind_dataset]['fr']*params_movie[ind_dataset]['decay_time'])
 
-#%%    Initialize movie
+#%%    Initialize Movie
 
 if ds_factor > 1:                                   # load only the first initbatch frames and possibly downsample them
     Y = cm.load(fls[0], subindices = slice(0,initbatch,None)).astype(np.float32).resize(1. / ds_factor, 1. / ds_factor)
@@ -260,7 +260,7 @@ if mot_corr:                                        # perform motion correction 
 else:
     Y = Y.astype(np.float32)
       
-img_min = Y.min()                                   # minimum value of movie. Subtract it to make the data non-negative
+img_min = Y.min()                                   # minimum value of Movie. Subtract it to make the data non-negative
 Y -= img_min
 img_norm = np.std(Y, axis=0)                        
 img_norm += np.median(img_norm)                     # normalizing factor to equalize the FOV
@@ -302,8 +302,8 @@ Cn = Cn_init.copy()
 
 plot_contours_flag = False               # flag for plotting contours of detected components at the end of each file
 play_reconstr = False                    # flag for showing video with results online (turn off flags for improving speed)
-save_movie = False                       # flag for saving movie (file could be quite large..)
-movie_name = params_movie[ind_dataset]['folder_name'] + 'output.avi' # name of movie to be saved
+save_movie = False                       # flag for saving Movie (file could be quite large..)
+movie_name = params_movie[ind_dataset]['folder_name'] + 'output.avi' # name of Movie to be saved
 resize_fact = 1.2                        # image resizing factor
 
 if online_files == 0:                    # check whether there are any additional files
@@ -377,7 +377,7 @@ for iter in range(epochs):
                 crd = cm.utils.visualization.plot_contours(A, Cn, thr=0.9)  # update the contour plot every 1000 frames
                 pl.pause(1)
                 
-            if play_reconstr:                                               # generate movie with the results
+            if play_reconstr:                                               # generate Movie with the results
                 A, b = cnm2.Ab[:, cnm2.gnb:], cnm2.Ab[:, :cnm2.gnb].toarray()
                 C, f = cnm2.C_on[cnm2.gnb:cnm2.M, :], cnm2.C_on[:cnm2.gnb, :]
                 comps_frame = A.dot(C[:,t-1]).reshape(cnm2.dims, order = 'F')*img_norm/np.max(img_norm)   # inferred activity due to components (no background)
@@ -467,7 +467,7 @@ with np.load(gt_file, encoding = 'latin1') as ld:
     #dims = (d1,d2)
 
 if ds_factor > 1:
-    A_gt = cm.movie(np.reshape(A_gt,dims_or+(-1,),order='F')).transpose(2,0,1).resize(1./ds_factor,1./ds_factor)
+    A_gt = cm.Movie(np.reshape(A_gt, dims_or + (-1,), order='F')).transpose(2, 0, 1).resize(1. / ds_factor, 1. / ds_factor)
     pl.figure(); pl.imshow(A_gt.sum(0))
     A_gt = np.array(np.reshape(A_gt,(A_gt.shape[0],-1),order='F')).T
     Cn_orig = cv2.resize(Cn_orig,None,fx=1./ds_factor,fy=1./ds_factor)

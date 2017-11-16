@@ -341,7 +341,7 @@ for folder_in,f_r,gsig,K in zip(base_folders[-1:],f_rates[-1:],gsigs[-1:],Ks[-1:
     #    
     #    Yr,(d1,d2),T=cse.utilities.load_memmap(fname_new)
     #    d,T=np.shape(Yr)
-    #    Y=np.reshape(Yr,(d1,d2,T),order='F') # 3D version of the movie
+    #    Y=np.reshape(Yr,(d1,d2,T),order='F') # 3D version of the Movie
     #    A2=scipy.sparse.coo_matrix(A2)
     #
     #    

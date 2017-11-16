@@ -68,14 +68,14 @@ params_movie = {'fname': fls,
                'niter_rig': 1,
                'max_shifts': (1, 1),  # maximum allow rigid shift
                'splits_rig': 10,  # for parallelization split the movies in  num_splits chuncks across time
-               # if none all the splits are processed and the movie is saved
+               # if none all the splits are processed and the Movie is saved
                'num_splits_to_process_rig': None,
                # intervals at which patches are laid out for motion correction
                'strides': (48, 48),
                # overlap between pathes (size of patch strides+overlaps)
                'overlaps': (24, 24),
                'splits_els': 10,  # for parallelization split the movies in  num_splits chuncks across time
-               # if none all the splits are processed and the movie is saved
+               # if none all the splits are processed and the Movie is saved
                'num_splits_to_process_els': [7,None],
                'upsample_factor_grid': 6,  # upsample factor to avoid smearing when merging patches
                # maximum deviation allowed for patch with respect to rigid
@@ -114,7 +114,7 @@ params_display = {
 
 # TODO: do find&replace on those parameters and delete this paragrph
 
-# @params fname name of the movie
+# @params fname name of the Movie
 fname = params_movie['fname']
 niter_rig = params_movie['niter_rig']
 # @params max_shifts maximum allow rigid shift
@@ -123,7 +123,7 @@ max_shifts = params_movie['max_shifts']
 # @params splits_rig for parallelization split the movies in  num_splits chuncks across time
 splits_rig = params_movie['splits_rig']
 
-# @params num_splits_to_process_ri if none all the splits are processed and the movie is saved
+# @params num_splits_to_process_ri if none all the splits are processed and the Movie is saved
 num_splits_to_process_rig = params_movie['num_splits_to_process_rig']
 
 # @params strides intervals at which patches are laid out for motion correction
@@ -135,7 +135,7 @@ overlaps = params_movie['overlaps']
 # @params splits_els for parallelization split the movies in  num_splits chuncks across time
 splits_els = params_movie['splits_els']
 
-# @params num_splits_to_process_els  if none all the splits are processed and the movie is saved
+# @params num_splits_to_process_els  if none all the splits are processed and the Movie is saved
 num_splits_to_process_els = params_movie['num_splits_to_process_els']
 
 # @params upsample_factor_grid upsample factor to avoid smearing when merging patches
@@ -144,7 +144,7 @@ upsample_factor_grid = params_movie['upsample_factor_grid']
 # @params max_deviation_rigid maximum deviation allowed for patch with respect to rigid shift
 max_deviation_rigid = params_movie['max_deviation_rigid']
 
-# %% download movie if not there
+# %% download Movie if not there
 if fname[0] in ['Sue_2x_3000_40_-46.tif','demoMovieJ.tif']:
     # TODO: todocument
     download_demo(fname[0])
@@ -152,7 +152,7 @@ if fname[0] in ['Sue_2x_3000_40_-46.tif','demoMovieJ.tif']:
 # TODO: todocument
 m_orig = cm.load_movie_chain(fname[:1])
 m_orig = m_orig.astype(np.float32)
-# %% play movie
+# %% play Movie
 # TODO: load screenshot 1
 downsample_ratio = params_display['downsample_ratio']
 offset_mov = -np.min(m_orig[:100])*1.
@@ -165,7 +165,7 @@ c, dview, n_processes = cm.cluster.setup_cluster(
 
 # %% INITIALIZING
 t1 = time.time()
-# movie must be mostly positive for this to work
+# Movie must be mostly positive for this to work
 # TODO : document
 # setting timer to see how the changement in functions make the code react on a same computer.
 
@@ -200,11 +200,11 @@ for each_file in fname:
 # TODO: show screenshot 2,3
 
 # %%
-# load motion corrected movie
+# load motion corrected Movie
 m_rig = cm.load(mc.fname_tot_rig)
 pl.imshow(mc.total_template_rig, cmap='gray')
 # %% visualize templates
-cm.movie(np.array(mc.templates_rig)).play(
+cm.Movie(np.array(mc.templates_rig)).play(
     fr=5, gain=3, magnification=2, offset=offset_mov)
 # %% plot rigid shifts
 pl.close()
@@ -212,7 +212,7 @@ pl.plot(mc.shifts_rig)
 pl.legend(['x shifts', 'y shifts'])
 pl.xlabel('frames')
 pl.ylabel('pixels')
-# %% inspect movie
+# %% inspect Movie
 downsample_ratio = params_display['downsample_ratio']
 # TODO: todocument
 offset_mov = np.min(m_orig[:100])
@@ -239,10 +239,10 @@ for fold in folders:
     m_els = cm.load(fnames[0])    
     idx_xy = None
     # TODO: needinfo
-    add_to_movie = -np.nanmin(m_els) + 1  # movie must be positive
+    add_to_movie = -np.nanmin(m_els) + 1  # Movie must be positive
     # if you need to remove frames from the beginning of each file
     remove_init = 0
-    # downsample movie in time: use .2 or .1 if file is large and you want a quick answer
+    # downsample Movie in time: use .2 or .1 if file is large and you want a quick answer
     downsample_factor = 1
     base_name = fnames[0].split('/')[-1][:-4]
     # TODO: todocument
@@ -295,10 +295,10 @@ m_els = m_rig
 
 idx_xy = None
 # TODO: needinfo
-add_to_movie = -np.nanmin(m_els) + 1  # movie must be positive
+add_to_movie = -np.nanmin(m_els) + 1  # Movie must be positive
 # if you need to remove frames from the beginning of each file
 remove_init = 0
-# downsample movie in time: use .2 or .1 if file is large and you want a quick answer
+# downsample Movie in time: use .2 or .1 if file is large and you want a quick answer
 downsample_factor = 1
 base_name = fname[0].split('/')[-1][:-4]
 # TODO: todocument
@@ -318,7 +318,7 @@ d1, d2 = dims
 images = np.reshape(Yr.T, [T] + list(dims), order='F')
 # TODO: needinfo
 Y = np.reshape(Yr, dims + (T,), order='F')
-m_images = cm.movie(images)
+m_images = cm.Movie(images)
 
 # TODO: show screenshot 10
 # %%  checks on movies
@@ -332,7 +332,7 @@ if np.sum(np.isnan(images)) > 0:
 # %% correlation image
 # TODO: needinfo it is not the same and not used
 # for fff in fname_new:
-#    Cn = cm.movie(images[:1000]).local_correlations(eight_neighbours=True,swap_dim=True)
+#    Cn = cm.Movie(images[:1000]).local_correlations(eight_neighbours=True,swap_dim=True)
 #    #Cn[np.isnan(Cn)] = 0
 #    pl.imshow(Cn, cmap='gray', vmax=.35)
 # %% correlation image
@@ -360,7 +360,7 @@ init_method = params_movie['init_method']
 gSig = params_movie['gSig']
 # this controls sparsity
 alpha_snmf = params_movie['alpha_snmf']
-# frame rate of movie (even considering eventual downsampling)
+# frame rate of Movie (even considering eventual downsampling)
 final_frate = params_movie['final_frate']
 
 if params_movie['is_dendrites'] == True:
@@ -469,13 +469,13 @@ cm.stop_server()
 log_files = glob.glob('*_LOG_*')
 for log_file in log_files:
     os.remove(log_file)
-# %% reconstruct denoised movie
-denoised = cm.movie(A.dot(C) + b.dot(f)).reshape(dims + (-1,), order='F').transpose([2, 0, 1])
+# %% reconstruct denoised Movie
+denoised = cm.Movie(A.dot(C) + b.dot(f)).reshape(dims + (-1,), order='F').transpose([2, 0, 1])
 # %%
 # TODO: show screenshot 15
 denoised.play(gain=10, offset=0, fr=50, magnification=2)
-# %% reconstruct denoised movie without background
-denoised = cm.movie(A.dot(C)).reshape(dims + (-1,), order='F').transpose([2, 0, 1])
+# %% reconstruct denoised Movie without background
+denoised = cm.Movie(A.dot(C)).reshape(dims + (-1,), order='F').transpose([2, 0, 1])
 # %%
 # TODO: show screenshot 16
 denoised.play(gain=10, offset=0, fr=100, magnification=2)

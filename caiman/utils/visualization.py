@@ -45,7 +45,7 @@ def view_patches(Yr, A, C, b, f, d1, d2, YrA=None, secs=1):
      Parameters:
      -----------
      Yr:        np.ndarray
-            movie in format pixels (d) x frames (T)
+            Movie in format pixels (d) x frames (T)
 
      A:     sparse matrix
                 matrix of spatial components (d x K)
@@ -130,13 +130,13 @@ def nb_view_patches(Yr, A, C, b, f, d1, d2, YrA = None, image_neurons=None, thr=
     Parameters:
     -----------
     Yr: np.ndarray
-        movie
+        Movie
 
     A,C,b,f: np.ndarrays
         outputs of matrix factorization algorithm
 
     d1,d2: floats
-        dimensions of movie (x and y)
+        dimensions of Movie (x and y)
 
     YrA:   np.ndarray
         ROI filtered residual as it is given from update_temporal_components
@@ -244,7 +244,7 @@ def get_contours(A, dims, thr=0.9):
                Matrix of Spatial components (d x K)
      
 	 dims: tuple of ints
-               Spatial dimensions of movie (x, y[, z])
+               Spatial dimensions of Movie (x, y[, z])
      
 	 thr: scalar between 0 and 1
                Energy threshold for computing contours (default 0.9)
@@ -330,14 +330,14 @@ def nb_view_patches3d(Y_r, A, C, dims, image_type='mean', Yr=None,
         outputs of matrix factorization algorithm
 
     dims: tuple of ints
-        dimensions of movie (x, y and z)
+        dimensions of Movie (x, y and z)
 
     image_type: 'mean', 'max' or 'corr'
         image to be overlaid to neurons
         (average of shapes, maximum of shapes or nearest neigbor correlation of raw data)
 
     Yr: np.ndarray
-        movie, only required if image_type=='corr' to calculate correlation image
+        Movie, only required if image_type=='corr' to calculate correlation image
 
     max_projection: boolean
         plot max projection along specified axis if True, plot layers if False
@@ -739,7 +739,7 @@ def view_patches_bar(Yr, A, C, b, f, d1, d2, YrA=None, img=None):
      Parameters:
      -----------
      Yr:    np.ndarray
-            movie in format pixels (d) x frames (T)
+            Movie in format pixels (d) x frames (T)
 
      A:     sparse matrix
                 matrix of spatial components (d x K)

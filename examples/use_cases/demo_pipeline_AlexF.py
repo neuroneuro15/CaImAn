@@ -63,7 +63,7 @@ params_movie = {'fname': ['/mnt/ceph/neuro/ImagingData/AlexFanning/Concatenated0
                  'max_shifts': (3, 3),  # maximum allow rigid shift (2,2)
                  'niter_rig': 1,
                  'splits_rig': 14,  # for parallelization split the movies in  num_splits chuncks across time
-                 'num_splits_to_process_rig': None,  # if none all the splits are processed and the movie is saved                 
+                 'num_splits_to_process_rig': None,  # if none all the splits are processed and the Movie is saved
                  'p': 1,  # order of the autoregressive system
                  'merge_thresh': 0.8,  # merging threshold, max correlation allow
                  'rf': 14,  # half-size of the patches in pixels. rf=25, patches are 50x50    20
@@ -98,7 +98,7 @@ params_display = {
 }
 # TODO: do find&replace on those parameters and delete this paragrph
 
-# @params fname name of the movie
+# @params fname name of the Movie
 fname = params_movie['fname']
 niter_rig = params_movie['niter_rig']
 # @params max_shifts maximum allow rigid shift
@@ -107,16 +107,16 @@ max_shifts = params_movie['max_shifts']
 # @params splits_rig for parallelization split the movies in  num_splits chuncks across time
 splits_rig = params_movie['splits_rig']
 
-# @params num_splits_to_process_ri if none all the splits are processed and the movie is saved
+# @params num_splits_to_process_ri if none all the splits are processed and the Movie is saved
 num_splits_to_process_rig = params_movie['num_splits_to_process_rig']
 
 
-# %% download movie if not there
+# %% download Movie if not there
 channel = 0
 m_orig = cm.load_movie_chain(fname[:1], channel = (slice(None),channel,slice(None),slice(None)))
 m_orig.save(fname[0][:-4]+'_channel_'+str(channel)+'.tif')
 fname[0] = fname[0][:-4]+'_channel_'+str(channel)+'.tif'
-# %% play movie
+# %% play Movie
 downsample_ratio = params_display['downsample_ratio']
 offset_mov = -np.min(m_orig[:100])
 m_orig.resize(1, 1, downsample_ratio).play(
@@ -128,7 +128,7 @@ c, dview, n_processes = cm.cluster.setup_cluster(
 
 # %% INITIALIZING
 t1 = time.time()
-# movie must be mostly positive for this to work
+# Movie must be mostly positive for this to work
 # TODO : document
 # setting timer to see how the changement in functions make the code react on a same computer.
 
@@ -160,11 +160,11 @@ for each_file in fname:
 # TODO: show screenshot 2,3
 
 # %%
-# load motion corrected movie
+# load motion corrected Movie
 m_rig = cm.load(mc.fname_tot_rig)
 pl.imshow(mc.total_template_rig, cmap='gray')
 # %% visualize templates
-cm.movie(np.array(mc.templates_rig)).play(
+cm.Movie(np.array(mc.templates_rig)).play(
     fr=10, gain=5, magnification=5, offset=offset_mov)
 # %% plot rigid shifts
 pl.close()
@@ -172,7 +172,7 @@ pl.plot(mc.shifts_rig)
 pl.legend(['x shifts', 'y shifts'])
 pl.xlabel('frames')
 pl.ylabel('pixels')
-# %% inspect movie
+# %% inspect Movie
 downsample_ratio = params_display['downsample_ratio']
 # TODO: todocument
 offset_mov = -np.min(m_orig[:100])
@@ -218,10 +218,10 @@ else:  # elif not params_movie.has_key('overlaps'):
 # idx_xy=(idx_x,idx_y)
 idx_xy = None
 # TODO: needinfo
-add_to_movie = -np.nanmin(m_els) + 1  # movie must be positive
+add_to_movie = -np.nanmin(m_els) + 1  # Movie must be positive
 # if you need to remove frames from the beginning of each file
 remove_init = 0
-# downsample movie in time: use .2 or .1 if file is large and you want a quick answer
+# downsample Movie in time: use .2 or .1 if file is large and you want a quick answer
 downsample_factor = 1
 base_name = fname[0].split('/')[-1][:-4]
 # TODO: todocument
@@ -247,7 +247,7 @@ d1, d2 = dims
 images = np.reshape(Yr.T, [T] + list(dims), order='F')
 # TODO: needinfo
 Y = np.reshape(Yr, dims + (T,), order='F')
-m_images = cm.movie(images)
+m_images = cm.Movie(images)
 
 # TODO: show screenshot 10
 # %%  checks on movies
@@ -261,7 +261,7 @@ if np.sum(np.isnan(images)) > 0:
 # %% correlation image
 # TODO: needinfo it is not the same and not used
 # for fff in fname_new:
-#    Cn = cm.movie(images[:1000]).local_correlations(eight_neighbours=True,swap_dim=True)
+#    Cn = cm.Movie(images[:1000]).local_correlations(eight_neighbours=True,swap_dim=True)
 #    #Cn[np.isnan(Cn)] = 0
 #    pl.imshow(Cn, cmap='gray', vmax=.35)
 # %% correlation image
@@ -289,7 +289,7 @@ init_method = params_movie['init_method']
 gSig = params_movie['gSig']
 # this controls sparsity
 alpha_snmf = params_movie['alpha_snmf']
-# frame rate of movie (even considering eventual downsampling)
+# frame rate of Movie (even considering eventual downsampling)
 final_frate = params_movie['final_frate']
 
 if params_movie['is_dendrites'] == True:
@@ -392,23 +392,23 @@ cm.stop_server()
 log_files = glob.glob('*_LOG_*')
 for log_file in log_files:
     os.remove(log_file)
-# %% reconstruct denoised movie
-denoised = cm.movie(A.dot(C) + b.dot(f)).reshape(dims + (-1,), order='F').transpose([2, 0, 1])
+# %% reconstruct denoised Movie
+denoised = cm.Movie(A.dot(C) + b.dot(f)).reshape(dims + (-1,), order='F').transpose([2, 0, 1])
 # %%
 # TODO: show screenshot 15
 denoised.play(gain=10, offset=0, fr=50, magnification=4)
 #%% background only 
-denoised = cm.movie(b.dot(f)).reshape(dims + (-1,), order='F').transpose([2, 0, 1])
+denoised = cm.Movie(b.dot(f)).reshape(dims + (-1,), order='F').transpose([2, 0, 1])
 denoised.play(gain=5, offset=0, fr=20, magnification=4)
 
 
-# %% reconstruct denoised movie without background
-denoised = cm.movie(A.dot(C)).reshape(dims + (-1,), order='F').transpose([2, 0, 1])
+# %% reconstruct denoised Movie without background
+denoised = cm.Movie(A.dot(C)).reshape(dims + (-1,), order='F').transpose([2, 0, 1])
 # %%
 # TODO: show screenshot 16
 denoised.play(gain=10, offset=0, fr=100, magnification=5)
 #%% show background(s)
-BB  = cm.movie(b.reshape(dims+(-1,), order = 'F').transpose(2,0,1))
+BB  = cm.Movie(b.reshape(dims + (-1,), order ='F').transpose(2, 0, 1))
 BB.play(gain=2, offset=0, fr=2, magnification=4)
 BB.zproject()
 

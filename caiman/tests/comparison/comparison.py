@@ -174,7 +174,7 @@ class Comparison(object):
                 if we want it ot be the ground truth
 
             params:
-                movie parameters
+                Movie parameters
 
             dview :
                 your dview object
@@ -294,7 +294,7 @@ class Comparison(object):
                   " because of that\n try recreate your own groundtruth before testing\n")
             information['differences']['proc'] = True
         if data['params'] != information['params']:
-            print("you do not use the same movie parameters... Things can go wrong\n\n")
+            print("you do not use the same Movie parameters... Things can go wrong\n\n")
             print('you need to use the same paramters to compare your version of the code with '
                   'the groundtruth one. look for the groundtruth paramters with the see() method\n')
             information['differences']['params_movie'] = True

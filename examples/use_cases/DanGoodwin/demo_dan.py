@@ -54,11 +54,11 @@ from caiman.base.rois import extract_binary_masks_blob
 #                'niter_rig':1,
 #                'max_shifts':(6,6), # maximum allow rigid shift
 #                'splits_rig':56, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
 #                'strides': (48,48), # intervals at which patches are laid out for motion correction
 #                'overlaps': (24,24), # overlap between pathes (size of patch strides+overlaps)
 #                'splits_els':56, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_els':[28,None], # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_els':[28,None], # if none all the splits are processed and the Movie is saved
 #                'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
 #                'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
 #                'p': 1, # order of the autoregressive system  
@@ -76,11 +76,11 @@ from caiman.base.rois import extract_binary_masks_blob
 #params_movie = {'fname':'/Users/agiovann/SOFTWARE/CaImAn/example_movies/CaImWorkshop2017/VIPA_000_002_crop.tif',
 #                'max_shifts':(12,12), # maximum allow rigid shift
 #                'splits_rig':56, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
 ##                'strides': (96,96), # intervals at which patches are laid out for motion correction
 ##                'overlaps': (32,32), # overlap between pathes (size of patch strides+overlaps)
 ##                'splits_els':56, # for parallelization split the movies in  num_splits chuncks across time
-##                'num_splits_to_process_els':[28,None], # if none all the splits are processed and the movie is saved
+##                'num_splits_to_process_els':[28,None], # if none all the splits are processed and the Movie is saved
 ##                'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
 ##                'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
 #                'p': 1, # order of the autoregressive system  
@@ -99,11 +99,11 @@ params_movie = {'fname':'/mnt/xfs1/home/agiovann/Downloads/Fish11-AV133-Z13-1.ti
                 'max_shifts':(15,15), # maximum allow rigid shift
                 'niter_rig':1,
                 'splits_rig':2, # for parallelization split the movies in  num_splits chuncks across time
-                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
                 'strides': (256,256), # intervals at which patches are laid out for motion correction
                 'overlaps': (32,32), # overlap between pathes (size of patch strides+overlaps)
                 'splits_els':1, # for parallelization split the movies in  num_splits chuncks across time
-                'num_splits_to_process_els':[None], # if none all the splits are processed and the movie is saved
+                'num_splits_to_process_els':[None], # if none all the splits are processed and the Movie is saved
                 'upsample_factor_grid':3, # upsample factor to avoid smearing when merging patches
                 'max_deviation_rigid':7, #maximum deviation allowed for patch with respect to rigid shift
                 'p': 1, # order of the autoregressive system  
@@ -121,11 +121,11 @@ params_movie = {'fname':'/mnt/xfs1/home/agiovann/Downloads/Fish11-AV133-Z13-1.ti
 #params_movie = {'fname':'example_movies/demoMovie.tif',
 #                'max_shifts':(1,1), # maximum allow rigid shift
 #                'splits_rig':28, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
 #                'strides': (48,48), # intervals at which patches are laid out for motion correction
 #                'overlaps': (24,24), # overlap between pathes (size of patch strides+overlaps)
 #                'splits_els':28, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_els':[28,None], # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_els':[28,None], # if none all the splits are processed and the Movie is saved
 #                'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
 #                'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
 #                'p': 1, # order of the autoregressive system  
@@ -144,11 +144,11 @@ params_movie = {'fname':'/mnt/xfs1/home/agiovann/Downloads/Fish11-AV133-Z13-1.ti
 #params_movie = {'fname':'/Users/agiovann/SOFTWARE/CaImAn/example_movies/CaImWorkshop2017/LBina/160121_b2_arthiha_brian.tif',
 #                'max_shifts':(3,3), # maximum allow rigid shift
 #                'splits_rig':14, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
 ##                'strides': (96,96), # intervals at which patches are laid out for motion correction
 ##                'overlaps': (32,32), # overlap between pathes (size of patch strides+overlaps)
 ##                'splits_els':28, # for parallelization split the movies in  num_splits chuncks across time
-##                'num_splits_to_process_els':[14,None], # if none all the splits are processed and the movie is saved
+##                'num_splits_to_process_els':[14,None], # if none all the splits are processed and the Movie is saved
 ##                'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
 ##                'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
 #                'p': 1, # order of the autoregressive system  
@@ -166,11 +166,11 @@ params_movie = {'fname':'/mnt/xfs1/home/agiovann/Downloads/Fish11-AV133-Z13-1.ti
 #params_movie = {'fname':'/Users/agiovann/Dropbox (Simons Foundation)/CaImWorkshop2017/THoogland/tmh_endoscope_0.5x.tif',
 #                'max_shifts':(10,10), # maximum allow rigid shift
 #                'splits_rig':7, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
 #                'strides': (96,96), # intervals at which patches are laid out for motion correction
 #                'overlaps': (32,32), # overlap between pathes (size of patch strides+overlaps)
 #                'splits_els':7, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_els':[7,None], # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_els':[7,None], # if none all the splits are processed and the Movie is saved
 #                'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
 #                'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
 #                'p': 1, # order of the autoregressive system  
@@ -188,11 +188,11 @@ params_movie = {'fname':'/mnt/xfs1/home/agiovann/Downloads/Fish11-AV133-Z13-1.ti
 #params_movie = {'fname':'/Users/agiovann/SOFTWARE/CaImAn/example_movies/CaImWorkshop2017/msCam20.tif',
 #                'max_shifts':(10,10), # maximum allow rigid shift
 #                'splits_rig':7, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
 ##                'strides': (96,96), # intervals at which patches are laid out for motion correction
 ##                'overlaps': (32,32), # overlap between pathes (size of patch strides+overlaps)
 ##                'splits_els':7, # for parallelization split the movies in  num_splits chuncks across time
-##                'num_splits_to_process_els':[7,None], # if none all the splits are processed and the movie is saved
+##                'num_splits_to_process_els':[7,None], # if none all the splits are processed and the Movie is saved
 ##                'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
 ##                'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
 #                 'p': 1, # order of the autoregressive system  
@@ -210,11 +210,11 @@ params_movie = {'fname':'/mnt/xfs1/home/agiovann/Downloads/Fish11-AV133-Z13-1.ti
 #params_movie = {'fname':'/Users/agiovann/Dropbox (Simons Foundation)/CaImWorkshop2017/Z.Gao/calcium imaging Gao.tif',
 #                'max_shifts':(12,12), # maximum allow rigid shift
 #                'splits_rig':34, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
 #                'strides': (32,32), # intervals at which patches are laid out for motion correction
 #                'overlaps': (32,32), # overlap between pathes (size of patch strides+overlaps)
 #                'splits_els':34, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_els':[17,None], # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_els':[17,None], # if none all the splits are processed and the Movie is saved
 #                'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
 #                'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
 #                'p': 1, # order of the autoregressive system  
@@ -232,11 +232,11 @@ params_movie = {'fname':'/mnt/xfs1/home/agiovann/Downloads/Fish11-AV133-Z13-1.ti
 #params_movie = {'fname':'/Users/agiovann/Dropbox (Simons Foundation)/CaImWorkshop2017/GMeijer/GM_V1_1.tif',
 #                'max_shifts':(12,12), # maximum allow rigid shift
 #                'splits_rig':34, # for parallelization split the movies in  num_splits chuncks across time
-#                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+#                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
 ##                'strides': (128,128), # intervals at which patches are laid out for motion correction
 ##                'overlaps': (32,32), # overlap between pathes (size of patch strides+overlaps)
 ##                'splits_els':34, # for parallelization split the movies in  num_splits chuncks across time
-##                'num_splits_to_process_els':[17,None], # if none all the splits are processed and the movie is saved
+##                'num_splits_to_process_els':[17,None], # if none all the splits are processed and the Movie is saved
 ##                'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
 ##                'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
 #                'p': 1, # order of the autoregressive system  
@@ -254,11 +254,11 @@ params_movie = {'fname':'/mnt/xfs1/home/agiovann/Downloads/Fish11-AV133-Z13-1.ti
 #params_movie = {'fname':'/Users/agiovann/Dropbox (Simons Foundation)/CaImWorkshop2017/Johny H. Pires/JHP_mpfc_A.tif',
 ##                'max_shifts':(12,12), # maximum allow rigid shift
 ##                'splits_rig':34, # for parallelization split the movies in  num_splits chuncks across time
-##                'num_splits_to_process_rig':None, # if none all the splits are processed and the movie is saved
+##                'num_splits_to_process_rig':None, # if none all the splits are processed and the Movie is saved
 ##                'strides': (128,128), # intervals at which patches are laid out for motion correction
 ##                'overlaps': (32,32), # overlap between pathes (size of patch strides+overlaps)
 ##                'splits_els':34, # for parallelization split the movies in  num_splits chuncks across time
-##                'num_splits_to_process_els':[17,None], # if none all the splits are processed and the movie is saved
+##                'num_splits_to_process_els':[17,None], # if none all the splits are processed and the Movie is saved
 ##                'upsample_factor_grid':4, # upsample factor to avoid smearing when merging patches
 ##                'max_deviation_rigid':3, #maximum deviation allowed for patch with respect to rigid shift
 #                'p': 1, # order of the autoregressive system  
@@ -296,7 +296,7 @@ fname = params_movie['fname']
 max_shifts = params_movie['max_shifts'] # maximum allowed shifts
 num_iter = params_movie['niter_rig'] # number of times the algorithm is run
 splits = params_movie['splits_rig'] # for parallelization split the movies in  num_splits chuncks across time
-num_splits_to_process = params_movie['num_splits_to_process_rig'] # if none all the splits are processed and the movie is saved
+num_splits_to_process = params_movie['num_splits_to_process_rig'] # if none all the splits are processed and the Movie is saved
 shifts_opencv = True # apply shifts fast way (but smoothing results)
 save_movie_rigid = True # save the movies vs just get the template
 t1 = time.time()
@@ -320,7 +320,7 @@ downs = .2
 cm.concatenate([m_rig.resize(1,1,downs),m_orig.resize(1,1,downs)],axis = 1).play(fr = 30, gain = 2,magnification=1, offset = add_to_movie) 
 
 #%% visualize templates
-cm.movie(np.array(templates_rig)).play(fr = 10, gain = 2, magnification=1, offset = add_to_movie)
+cm.Movie(np.array(templates_rig)).play(fr = 10, gain = 2, magnification=1, offset = add_to_movie)
 #%% PIECEWISE RIGID MOTION CORRECTION
 t1 = time.time()
 new_templ = total_template_rig.copy()
@@ -361,7 +361,7 @@ pl.imshow(m_els.local_correlations(eight_neighbours=True,swap_dim=False))
 downs = .2
 m_els.resize(1,1,downs).play(fr = 20, gain = 5, magnification=1, offset = add_to_movie)
 #%%
-cm.movie(np.array(templates_els)).play(fr = 2, gain = 5, magnification=1, offset = add_to_movie)
+cm.Movie(np.array(templates_els)).play(fr = 2, gain = 5, magnification=1, offset = add_to_movie)
 
 #%%
 m_els = cm.load(fname_tot_els) 
@@ -427,7 +427,7 @@ else:
 #idx_x=slice(border_nan,-border_nan,None)
 #idx_y=slice(border_nan,-border_nan,None)
 #idx_xy=(idx_x,idx_y)
-add_to_movie = -np.nanmin(m_els) + 1# movie must be positive
+add_to_movie = -np.nanmin(m_els) + 1# Movie must be positive
 idx_xy = None
 downsample_factor = 1 # use .2 or .1 if file is large and you want a quick answer
 base_name='Yr'
@@ -449,7 +449,7 @@ Yr, dims, T = cm.load_memmap(fname_new)
 d1, d2 = dims
 images = np.reshape(Yr.T, [T] + list(dims), order='F')
 Y = np.reshape(Yr, dims + (T,), order='F')
-m_images = cm.movie(images)
+m_images = cm.Movie(images)
 #%%  checks on movies
 if np.min(images)<0:
     raise Exception('Movie too negative, add_to_movie should be larger')

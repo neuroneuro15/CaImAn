@@ -85,7 +85,7 @@ class MotionCorrect(object):
             path to file to motion correct        
 
         min_mov: int16 or float32
-            estimated minimum value of the movie to produce an output that is positive  
+            estimated minimum value of the Movie to produce an output that is positive
 
         dview: ipyparallel view object list
             to perform parallel computing, if NOne will operate in single thread    
@@ -101,7 +101,7 @@ class MotionCorrect(object):
              for parallelization split the movies in  num_splits chuncks across time
 
         num_splits_to_process_rig:list,
-            if none all the splits are processed and the movie is saved, otherwise at each iteration
+            if none all the splits are processed and the Movie is saved, otherwise at each iteration
             num_splits_to_process_rig are considered
 
         strides: tuple
@@ -114,7 +114,7 @@ class MotionCorrect(object):
             for parallelization split the movies in  num_splits chuncks across time 
 
         num_splits_to_process_els:list,
-            if none all the splits are processed and the movie is saved  otherwise at each iteration
+            if none all the splits are processed and the Movie is saved  otherwise at each iteration
              num_splits_to_process_els are considered
 
         upsample_factor_grid:int,
@@ -127,7 +127,7 @@ class MotionCorrect(object):
             apply shifts fast way (but smoothing results)
         
         nonneg_movie: boolean
-            make the SAVED movie and template mostly nonnegative by removing min_mov from movie
+            make the SAVED Movie and template mostly nonnegative by removing min_mov from Movie
             
         Returns:
         -------
@@ -271,15 +271,15 @@ class MotionCorrect(object):
         Parameters:
         -----------
         fname: str
-            name of the movie to motion correct. It should not contain nans. All the loadable formats from CaImAn are acceptable
+            name of the Movie to motion correct. It should not contain nans. All the loadable formats from CaImAn are acceptable
             
         rigid_shifts: bool
             apply rigid or pw-rigid shifts (must exist in the mc object)    
         
         Returns:
         ----------
-        m_reg: caiman movie object
-            caiman movie object with applied shifts (not memory mapped)
+        m_reg: caiman Movie object
+            caiman Movie object with applied shifts (not memory mapped)
         """
         
         Y = cm.load(fname).astype(np.float32)
@@ -301,7 +301,7 @@ class MotionCorrect(object):
                         -np.resize(shiftY, dims)+x_grid, -np.resize(shiftX, dims)+y_grid, cv2.INTER_CUBIC) 
                         for img, shiftX, shiftY in zip(Y, shifts_x, shifts_y)]
             
-        return cm.movie(np.stack(m_reg,axis=0))
+        return cm.Movie(np.stack(m_reg, axis=0))
 
 
 
@@ -333,7 +333,7 @@ def apply_shift_online(movie_iterable,xy_shifts,save_base_name=None,order='F'):
     # todo todocument
 
     if len(movie_iterable) != len(xy_shifts):
-        raise Exception('Number of shifts does not match movie length!')
+        raise Exception('Number of shifts does not match Movie length!')
     count=0
     new_mov=[]
     dims=(len(movie_iterable),)+movie_iterable[0].shape
@@ -426,11 +426,11 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
         template = bin_median(init_mov)
         count=init_frames_template
         if np.percentile(template, 1) + add_to_movie < - 10:
-            raise Exception('Movie too negative, You need to add a larger value to the movie (add_to_movie)')
+            raise Exception('Movie too negative, You need to add a larger value to the Movie (add_to_movie)')
         template=np.array(template + add_to_movie,dtype=np.float32)    
     else:
         if np.percentile(template, 1) < - 10:
-            raise Exception('Movie too negative, You need to add a larger value to the movie (add_to_movie)')
+            raise Exception('Movie too negative, You need to add a larger value to the Movie (add_to_movie)')
         count=min_count
 
     min_mov = 0
@@ -893,12 +893,12 @@ def process_movie_parallel(arg_in):
                 raise Exception('Path to template does not exist:'+template)                
 
     type_input = str(type(fname)) 
-    if 'movie' in type_input:        
+    if 'Movie' in type_input:
 #        print((type(fname)))
         Yr=fname
 
     elif ('ndarray' in type_input):        
-        Yr=cm.movie(np.array(fname,dtype=np.float32),fr=fr)
+        Yr=cm.Movie(np.array(fname, dtype=np.float32), fr=fr)
     elif isinstance(fname,basestring): 
         Yr=cm.load(fname,fr=fr)
     else:
@@ -919,7 +919,7 @@ def process_movie_parallel(arg_in):
         Yr,shifts,xcorrs,template=Yr.motion_correct(max_shift_w=max_shift_w, max_shift_h=max_shift_h,
                                                     method='opencv',template=template,remove_blanks=remove_blanks)
         
-        if ('movie' in type_input) or ('ndarray' in type_input):
+        if ('Movie' in type_input) or ('ndarray' in type_input):
 #            print('Returning Values')
             return Yr, shifts, xcorrs, template
 
@@ -952,7 +952,7 @@ def motion_correct_parallel(file_names,fr=10,template=None,margins_out=0,
         names of he files to be motion corrected
 
     fr: double
-        fr parameters for calcblitz movie 
+        fr parameters for calcblitz Movie
 
     margins_out: int
         number of pixels to remove from the borders    
@@ -1564,7 +1564,7 @@ def tile_and_correct(img,template, strides, overlaps,max_shifts, newoverlaps = N
     max_deviation_rigid: int
         maximum deviation in shifts of each patch from the rigid shift (should not be large)    
 
-    add_to_movie: if movie is too negative the correction might have some issues. In this case it is good to add values so that it is non negative most of the times
+    add_to_movie: if Movie is too negative the correction might have some issues. In this case it is good to add values so that it is non negative most of the times
 
     filt_sig_size: tuple
         standard deviation and size of gaussian filter to center filter data in case of one photon imaging data
@@ -1811,7 +1811,7 @@ def compute_metrics_motion_correction(fname,final_size_x,final_size_y, swap_dim,
             pl.subplot(1,3,1)    
             pl.cla()    
             pl.imshow(fr,vmin = 0, vmax = 300, cmap = 'gray' )       
-            pl.title('movie')
+            pl.title('Movie')
             pl.subplot(1,3,3)    
             pl.cla()    
             pl.imshow(flow[:,:,1],vmin=vmin,vmax=vmax)       
@@ -1843,7 +1843,7 @@ def motion_correct_batch_rigid(fname, max_shifts, dview = None, splits = 56 ,num
     Parameters:
     -----------
     fname: str
-        name of the movie to motion correct. It should not contain nans. All the loadable formats from CaImAn are acceptable
+        name of the Movie to motion correct. It should not contain nans. All the loadable formats from CaImAn are acceptable
 
     max_shifts: tuple
         x and y maximum allowd shifts 
@@ -1855,7 +1855,7 @@ def motion_correct_batch_rigid(fname, max_shifts, dview = None, splits = 56 ,num
         number of batches in which the movies is subdivided
 
     num_splits_to_process: int
-        number of batches to process. when not None, the movie is not saved since only a random subset of batches will be processed
+        number of batches to process. when not None, the Movie is not saved since only a random subset of batches will be processed
 
     num_iter: int
         number of iterations to perform. The more iteration the better will be the template. 
@@ -1867,7 +1867,7 @@ def motion_correct_batch_rigid(fname, max_shifts, dview = None, splits = 56 ,num
          toggle the shifts applied with opencv, if yes faster but induces some smoothing
 
     save_movie_rigid: boolean
-         toggle save movie
+         toggle save Movie
 
     subidx: slice
         Indices to slice
@@ -1882,11 +1882,11 @@ def motion_correct_batch_rigid(fname, max_shifts, dview = None, splits = 56 ,num
         list of produced templates, one per batch
     
     shifts: list
-        inferred rigid shifts to correct the movie
+        inferred rigid shifts to correct the Movie
 
     Raise:
     -----
-        Exception('The movie contains nans. Nans are not allowed!')
+        Exception('The Movie contains nans. Nans are not allowed!')
     
     """
     corrected_slicer = slice(subidx.start, subidx.stop, subidx.step*10)
@@ -1903,7 +1903,7 @@ def motion_correct_batch_rigid(fname, max_shifts, dview = None, splits = 56 ,num
     
     if template is None:   
         if gSig_filt is not None:
-            m = cm.movie(np.array([low_pass_filter_space(m_,gSig_filt) for m_ in m]))
+            m = cm.Movie(np.array([low_pass_filter_space(m_, gSig_filt) for m_ in m]))
             
         template = cm.motion_correction.bin_median(m.motion_correct(max_shifts[0],max_shifts[1],template=None)[0])
 
@@ -1913,9 +1913,9 @@ def motion_correct_batch_rigid(fname, max_shifts, dview = None, splits = 56 ,num
         
     
     if np.isnan(add_to_movie):
-        raise Exception('The movie contains nans. Nans are not allowed!')
+        raise Exception('The Movie contains nans. Nans are not allowed!')
     else:
-        print('Adding to movie '+ str(add_to_movie))
+        print('Adding to Movie '+ str(add_to_movie))
         
     save_movie = False
     fname_tot_rig = None
@@ -1961,7 +1961,7 @@ def motion_correct_batch_pwrigid(fname, max_shifts, strides, overlaps, add_to_mo
     Parameters:
     -----------
     fname: str
-        name of the movie to motion correct. It should not contain nans. All the loadable formats from CaImAn are acceptable
+        name of the Movie to motion correct. It should not contain nans. All the loadable formats from CaImAn are acceptable
 
     strides: tuple
         strides of patches along x and y
@@ -1985,7 +1985,7 @@ def motion_correct_batch_pwrigid(fname, max_shifts, strides, overlaps, add_to_mo
         number of batches in which the movies is subdivided
 
     num_splits_to_process: int
-        number of batches to process. when not None, the movie is not saved since only a random subset of batches will be processed
+        number of batches to process. when not None, the Movie is not saved since only a random subset of batches will be processed
 
     num_iter: int
         number of iterations to perform. The more iteration the better will be the template. 
@@ -1997,7 +1997,7 @@ def motion_correct_batch_pwrigid(fname, max_shifts, strides, overlaps, add_to_mo
          toggle the shifts applied with opencv, if yes faster but induces some smoothing
 
     save_movie_rigid: boolean
-         toggle save movie
+         toggle save Movie
     
     Returns:
     --------    
@@ -2009,7 +2009,7 @@ def motion_correct_batch_pwrigid(fname, max_shifts, strides, overlaps, add_to_mo
         list of produced templates, one per batch
     
     shifts: list
-        inferred rigid shifts to corrrect the movie
+        inferred rigid shifts to corrrect the Movie
 
     Raise:
     ----
@@ -2025,7 +2025,7 @@ def motion_correct_batch_pwrigid(fname, max_shifts, strides, overlaps, add_to_mo
     if np.isnan(add_to_movie):
         raise Exception('The template contains nans. Nans are not allowed!')
     else:
-        print('Adding to movie '+ str(add_to_movie))
+        print('Adding to Movie '+ str(add_to_movie))
     
     for iter_ in range(num_iter):
         print(iter_)

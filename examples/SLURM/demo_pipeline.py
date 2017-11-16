@@ -28,7 +28,7 @@ from time import time
 import pylab as pl
 import psutil
 import calblitz as cb
-#%% load and motion correct movie
+#%% load and motion correct Movie
 preprocess=1
 if preprocess:
     Yr=cb.load('movies/demo_mc.tif',fr=30)
@@ -49,7 +49,7 @@ _,d1,d2=np.shape(cb.load('demo_mc.hdf5',subindices=list(range(3))))
 Yr=np.load('Yr.npy',mmap_mode='r')  
 d,T=Yr.shape      
 Y=np.reshape(Yr,(d1,d2,T),order='F')
-#%% play movie
+#%% play Movie
 
 
 #%%compute local correlation

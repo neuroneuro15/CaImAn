@@ -184,7 +184,7 @@ params_display = {
 }
 # TODO: do find&replace on those parameters and delete this paragrph
 
-# @params fname name of the movie
+# @params fname name of the Movie
 fname_new = params_movie['fname']
 
 
@@ -201,7 +201,7 @@ d1, d2 = dims
 images = np.reshape(Yr.T, [T] + list(dims), order='F')
 # TODO: needinfo
 Y = np.reshape(Yr, dims + (T,), order='F')
-m_images = cm.movie(images)
+m_images = cm.Movie(images)
 
 # TODO: show screenshot 10
 # %% correlation image
@@ -231,7 +231,7 @@ init_method = params_movie['init_method']
 gSig = params_movie['gSig']
 # this controls sparsity
 alpha_snmf = params_movie['alpha_snmf']
-# frame rate of movie (even considering eventual downsampling)
+# frame rate of Movie (even considering eventual downsampling)
 final_frate = params_movie['final_frate']
 
 if params_movie['is_dendrites'] == True:
@@ -353,11 +353,11 @@ with np.load(os.path.join(os.path.split(fname_new)[0], os.path.split(fname_new)[
 from caiman.components_evaluation import evaluate_components_CNN
 predictions,final_crops = evaluate_components_CNN(A,dims,gSig,model_name = 'use_cases/CaImAnpaper/cnn_model')
 #%%
-cm.movie(final_crops).play(gain=3,magnification = 6,fr=5)
+cm.Movie(final_crops).play(gain=3, magnification = 6, fr=5)
 #%%
-cm.movie(np.squeeze(final_crops[np.where(predictions[:,1]>=0.5)[0]])).play(gain=2., magnification = 5,fr=5)
+cm.Movie(np.squeeze(final_crops[np.where(predictions[:, 1] >= 0.5)[0]])).play(gain=2., magnification = 5, fr=5)
 #%%
-cm.movie(np.squeeze(final_crops[np.where(predictions[:,0]>=0.5)[0]])).play(gain=2., magnification = 5,fr=5)
+cm.Movie(np.squeeze(final_crops[np.where(predictions[:, 0] >= 0.5)[0]])).play(gain=2., magnification = 5, fr=5)
 #%%
 thresh = .5
 idx_components_cnn = np.where(predictions[:,1]>=thresh)[0]

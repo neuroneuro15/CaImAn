@@ -9,7 +9,7 @@ Class representing a time series.
 
     input_arr: np.ndarray
 
-    start_time: time beginning movie
+    start_time: time beginning Movie
 
     fr: frame rate
 
@@ -19,25 +19,15 @@ Class representing a time series.
 author: Andrea Giovannucci
 """
 from __future__ import print_function
-#%%
+
 import os
 import warnings
 import numpy as np
-import cv2
-import h5py
-import pylab as plt
-import pickle as cpk
-try:
-    plt.ion()
-except:
-    1
-
-from scipy.io import savemat
 
 
 
-#%%
-class timeseries(np.ndarray):
+
+class Timeseries(np.ndarray):
     """
     Class representing a time series.
 
@@ -49,7 +39,7 @@ class timeseries(np.ndarray):
 
     fr: frame rate
 
-    start_time: time beginning movie
+    start_time: time beginning Movie
 
     meta_data: dictionary including any custom meta data
 
@@ -58,7 +48,7 @@ class timeseries(np.ndarray):
     Exception('You need to specify the frame rate')
     """
 
-    def __new__(cls, input_arr, fr=30,start_time=0,file_name=None, meta_data=None):
+    def __new__(cls, input_arr, fr=30, start_time=0, file_name=None, meta_data=None):
         """
             Class representing a time series.
 
@@ -70,7 +60,7 @@ class timeseries(np.ndarray):
 
             fr: frame rate
 
-            start_time: time beginning movie
+            start_time: time beginning Movie
 
             meta_data: dictionary including any custom meta data
 
@@ -109,7 +99,7 @@ class timeseries(np.ndarray):
         frRef=None
         startRef=None
         for inp in inputs:
-            if type(inp) is timeseries:
+            if type(inp) is Timeseries:
                 if frRef is None:
                     frRef=inp.fr
                 else:
@@ -136,10 +126,9 @@ class timeseries(np.ndarray):
         self.file_name = getattr(obj, 'file_name', None)
         self.meta_data = getattr(obj, 'meta_data', None)
 
-
-    def save(self,file_name, to32 = True, order= 'F'):
+    def save(self, file_name, to32=True, order='F'):
         """
-        Save the timeseries in various formats
+        Save the Timeseries in various formats, depending on the file_name's extenstion.
 
         parameters:
         ----------
@@ -148,104 +137,94 @@ class timeseries(np.ndarray):
 
         to32: Bool
             whether to transform to 32 bits
-			
-		order: 'F' or 'C'
-			C or Fortran order	
+
+        order: 'F' or 'C'
+            C or Fortran order
 
         Raise:
         -----
-        raise Exception('Extension Unknown')
+        raise ValueError('Extension Unknown')
 
         """
-        name,extension = os.path.splitext(file_name)[:2]
-        print(extension)
-
-        if extension == '.tif': # load avi file
-            try:
-                
-                from tifffile import imsave
-                print('tifffile package not found, using skimage instead for imsave')
-                
-            except:
-                
-                from skimage.external.tifffile import imsave
-            if to32:    
-                np.clip(self,np.percentile(self,1),np.percentile(self,99.99999),self)
-                minn,maxx = np.min(self),np.max(self)
-                data = 65536 * (self-minn)/(maxx-minn)
-                data = data.astype(np.int32)
-                imsave(file_name, self.astype(np.float32))
-            else:
-                imsave(file_name, self)
-
-        elif extension == '.npz':
-            np.savez(file_name,input_arr=self, start_time=self.start_time,fr=self.fr,meta_data=self.meta_data,file_name=self.file_name)
-
-
-        elif extension == '.avi':
-            codec = None
-            try:
-                codec=cv2.FOURCC('I','Y','U','V')
-            except AttributeError:
-                codec = cv2.VideoWriter_fourcc(*'IYUV')
-            np.clip(self,np.percentile(self,1),np.percentile(self,99),self)
-            minn,maxx = np.min(self),np.max(self)
-            data = 255 * (self-minn)/(maxx-minn)
-            data = data.astype(np.uint8)
-            y,x = data[0].shape
-            vw = cv2.VideoWriter(file_name, codec, self.fr, (x,y), isColor=True)
-            for d in data:
-                vw.write(cv2.cvtColor(d, cv2.COLOR_GRAY2BGR))
-            vw.release()
-
-        elif extension == '.mat':
-            if self.file_name[0] is not None:
-                f_name=self.file_name
-            else:
-                f_name=''
-            if self.meta_data[0] is None:
-                savemat(file_name,{'input_arr':np.rollaxis(self,axis=0,start=3), 'start_time':self.start_time,'fr':self.fr,'meta_data':[],'file_name':f_name})
-            else:
-                savemat(file_name,{'input_arr':np.rollaxis(self,axis=0,start=3), 'start_time':self.start_time,'fr':self.fr,'meta_data':self.meta_data,'file_name':f_name})
-
-        elif extension == '.hdf5':
-            with h5py.File(file_name, "w") as f:
-                dset=f.create_dataset("mov",data=np.asarray(self))
-                dset.attrs["fr"]=self.fr
-                dset.attrs["start_time"]=self.start_time
-                try: 
-                    dset.attrs["file_name"]=[a.encode('utf8') for a in self.file_name]
-                except:
-                    print('No file name saved')
-                if self.meta_data[0] is not None:      
-                    print(self.meta_data)
-                    dset.attrs["meta_data"]=cpk.dumps(self.meta_data)
-                    
-
-        elif extension == '.mmap':
-            base_name=name
-            
-            T = self.shape[0]
-            dims = self.shape[1:]
-            Yr = np.transpose(self, list(range(1, len(dims) + 1)) + [0])
-            Yr = np.reshape(Yr, (np.prod(dims), T), order='F')
-            
-                      
-            fname_tot = base_name + '_d1_' + str(dims[0]) + '_d2_' + str(dims[1]) + '_d3_' + str(
-                1 if len(dims) == 2 else dims[2]) + '_order_' + str(order) +  '_frames_' + str(T) + '_.mmap'
-            fname_tot = os.path.join(os.path.split(file_name)[0],fname_tot)         
-            big_mov = np.memmap(fname_tot, mode='w+', dtype=np.float32,
-                                shape=(np.prod(dims), T), order=order)
-        
-            big_mov[:] = np.asarray(Yr, dtype=np.float32)
-            big_mov.flush()
-            del big_mov
-            return fname_tot
-        
-            
+        _, extension = os.path.splitext(file_name)
+        if 'tif' in extension:
+            self.to_tiff(file_name=file_name, to32=to32)
+        elif 'mat' in extension:
+            self.to_matlab(file_name=file_name)
+        elif 'npz' in extension:
+            self.to_npz(file_name=file_name)
+        elif 'hdf' in extension or extension == '.h5':
+            self.to_hdf(file_name=file_name)
+        elif 'avi' in extension:
+            self.to_avi(file_name=file_name)
         else:
-            print(extension)
-            raise Exception('Extension Unknown')
+            raise ValueError('Could Not Save to File: File Extension "{}" Not Supported.'.format(extension))
+
+    def to_tiff(self, file_name, to32=True):
+        """Save the Timeseries in a .tiff image file."""
+        try:
+            from tifffile import imsave
+        except ImportError:
+            warnings.warn('tifffile package not found, importing skimage instead for saving tiff files.')
+            from skimage.external.tifffile import imsave
+
+        if to32:
+            np.clip(self, np.percentile(self, 1), np.percentile(self, 99.99999), self)
+            minn, maxx = np.min(self), np.max(self)
+            data = 65536 * (self - minn) / (maxx - minn)
+            data = data.astype(np.int32)  # todo: Fix unused data variable.  What is supposed to happen here?
+            imsave(file_name, self.astype(np.float32))
+        else:
+            imsave(file_name, self)
+
+    def to_npz(self, file_name):
+        """Save the Timeseries in a NumPy .npz array file."""
+        np.savez(file_name, input_arr=self, start_time=self.start_time, fr=self.fr, meta_data=self.meta_data,
+                 file_name=self.file_name)  # todo: check what the two file_name inputs mean.
+
+    def to_avi(self, file_name):
+        """Save the Timeseries in a .avi movie file using OpenCV."""
+        import cv2
+        codec = cv2.FOURCC('I', 'Y', 'U', 'V') if hasattr(cv2, 'FOURCC') else cv2.VideoWriter_fourcc(*'IYUV')
+        np.clip(self, np.percentile(self, 1), np.percentile(self, 99), self)
+        minn, maxx = np.min(self), np.max(self)
+        data = 255 * (self - minn) / (maxx - minn)
+        data = data.astype(np.uint8)
+        y, x = data[0].shape
+        vw = cv2.VideoWriter(file_name, codec, self.fr, (x, y), isColor=True)
+        for d in data:
+            vw.write(cv2.cvtColor(d, cv2.COLOR_GRAY2BGR))
+        vw.release()
+
+    def to_matlab(self, file_name):
+        """Save the Timeseries to a .mat file."""
+        from scipy.io import savemat
+        f_name = self.file_name if self.file_name[0] is not None else ''
+        savemat(file_name, {'input_arr': np.rollaxis(self, axis=0, start=3),
+                            'start_time': self.start_time,
+                            'fr': self.fr,
+                            'meta_data': [] if self.meta_data[0] is None else self.meta_data,
+                            'file_name': f_name
+                            }
+                )
+
+    def to_hdf(self, file_name):
+        """Save the Timeseries to an HDF5 (.h5, .hdf, .hdf5) file."""
+        import pickle
+        import h5py
+        with h5py.File(file_name, "w") as f:
+            dset = f.create_dataset("mov", data=np.asarray(self))
+            dset.attrs["fr"] = self.fr
+            dset.attrs["start_time"] = self.start_time
+            try:
+                dset.attrs["file_name"] = [a.encode('utf8') for a in self.file_name]
+            except:
+                print('No file name saved')
+            if self.meta_data[0] is not None:
+                print(self.meta_data)
+                dset.attrs["meta_data"] = pickle.dumps(self.meta_data)
+
+
 
 
 def concatenate(*args, **kwargs):
@@ -262,7 +241,7 @@ def concatenate(*args, **kwargs):
     frRef = None
     for arg in args:
         for m in arg:
-            if issubclass(type(m), timeseries):
+            if issubclass(type(m), Timeseries):
                 if frRef is None:
                     obj = m
                     frRef = obj.fr

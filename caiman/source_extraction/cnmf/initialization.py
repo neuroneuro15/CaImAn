@@ -59,7 +59,7 @@ def initialize_components(Y, K=30, gSig=[5, 5], gSiz=None, ssub=1, tsub=1, nIter
     Parameters:
     ----------
     Y: np.ndarray
-         d1 x d2 [x d3] x T movie, raw data.
+         d1 x d2 [x d3] x T Movie, raw data.
 
     K: [optional] int
         number of neurons to extract (default value: 30). Maximal number for method 'corr_pnr'.
@@ -375,7 +375,7 @@ def sparseNMF(Y_ds, nr, max_iter_snmf=500, alpha=10e2, sigma_smooth=(.5, .5, .5)
         smoothing along z,x, and y (.5,.5,.5)
 
     perc_baseline_snmf:
-        percentile to remove frmo movie before NMF
+        percentile to remove frmo Movie before NMF
 
     nb: int
         Number of background components    
@@ -620,7 +620,7 @@ def imblur(Y, sig=5, siz=11, nDimBlur=None, kernel=None, opencv=True):
     The parameters are specified in GreedyROI
 
     :param Y: np.ndarray
-         d1 x d2 [x d3] x T movie, raw data.
+         d1 x d2 [x d3] x T Movie, raw data.
 
     :param sig: [optional] list,tuple
         half size of neurons
@@ -1370,13 +1370,13 @@ def compute_W(Y, A, C, dims, radius, data_fits_in_memory=True):
     Parameters:
     ----------
     Y: np.ndarray (2D or 3D)
-        movie, raw data in 2D or 3D (pixels x time).
+        Movie, raw data in 2D or 3D (pixels x time).
     A: np.ndarray or sparse matrix
         spatial footprint of each neuron.
     C: np.ndarray
         calcium activity of each neuron.
     dims: tuple
-        x, y[, z] movie dimensions
+        x, y[, z] Movie dimensions
     radius: int
         radius of ring
     data_fits_in_memory: [optional] bool

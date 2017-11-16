@@ -595,7 +595,7 @@ for base_folder in base_folders:
 ##                    print 1/np.mean(np.diff(new_ts))
 ##                    tims.append(new_ts)
 ##                    
-##                mov=cb.movie(mov*rois[0][::-1].T,fr=1/np.mean(np.diff(new_ts)))
+##                mov=cb.Movie(mov*rois[0][::-1].T,fr=1/np.mean(np.diff(new_ts)))
 ##                x_max,y_max=np.max(np.nonzero(np.max(mov,0)),1)
 ##                x_min,y_min=np.min(np.nonzero(np.max(mov,0)),1)
 ##                mov=mov[:,x_min:x_max,y_min:y_max]                                
@@ -622,7 +622,7 @@ for base_folder in base_folders:
 ##                    
 ##                mtot.append(mov)   
 ##                trial_info.append(dt['trials'][idx_tr,:])
-##        #            cb.movie(mov,fr=1/np.mean(np.diff(new_ts)))
+##        #            cb.Movie(mov,fr=1/np.mean(np.diff(new_ts)))
 #
 ##%%
 ##%%
@@ -638,7 +638,7 @@ for base_folder in base_folders:
 ##for a,b in zip(sub_trig_names,sub_trig):
 ##    fnames.append(a+'.hdf5')
 ##
-##fraction_downsample=.333333333333333333333; # useful to downsample the movie across time. fraction_downsample=.1 measn downsampling by a factor of 10
+##fraction_downsample=.333333333333333333333; # useful to downsample the Movie across time. fraction_downsample=.1 measn downsampling by a factor of 10
 ##sub_trig[:2]=np.round(sub_trig[:2]*fraction_downsample)
 ##sub_trig[-1]=np.floor(sub_trig[-1]*fraction_downsample)
 ##sub_trig[-1]=np.cumsum(sub_trig[-1])
@@ -649,7 +649,7 @@ for base_folder in base_folders:
 ##%%
 ##if T != sub_trig[-1,-1]:
 ##    raise Exception('Triggers values do not match!')
-##%% how to take triggered aligned movie
+##%% how to take triggered aligned Movie
 #wvf=mmm.take(trg)
 ##%%
 #newm=m.take(trg,axis=0)
@@ -659,7 +659,7 @@ for base_folder in base_folders:
 ##%%v
 #Yr,d1,d2,T=cse.utilities.load_memmap(fname_new)
 #d,T=np.shape(Yr)
-#Y=np.reshape(Yr,(d1,d2,T),order='F') # 3D version of the movie 
+#Y=np.reshape(Yr,(d1,d2,T),order='F') # 3D version of the Movie
 #
 ##%%
 #
@@ -667,7 +667,7 @@ for base_folder in base_folders:
 #
 ##%%
 #mov = np.concatenate(mtot,axis=0)           
-#m1=cb.movie(mov,fr=1/np.mean(np.diff(new_ts)))
+#m1=cb.Movie(mov,fr=1/np.mean(np.diff(new_ts)))
 ##x_max,y_max=np.max(np.nonzero(np.max(m,0)),1)
 ##x_min,y_min=np.min(np.nonzero(np.max(m,0)),1)
 ##m1=m[:,x_min:x_max,y_min:y_max]

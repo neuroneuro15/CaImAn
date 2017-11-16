@@ -35,7 +35,7 @@ def bare_initialization(Y, init_batch = 1000, k = 1, method_init = 'greedy_roi',
     Quick and dirty initialization for OnACID, bypassing entirely CNMF
     Inputs:
     -------
-    Y               movie object or np.array
+    Y               Movie object or np.array
                     matrix of data
                     
     init_batch      int
@@ -98,7 +98,7 @@ def seeded_initialization(Y, Ain, dims = None, init_batch = 1000, gnb = 1, **kwa
     Initialization for OnACID based on a set of user given binary masks. 
     Inputs:
     -------
-    Y               movie object or np.array
+    Y               Movie object or np.array
                     matrix of data
     
     Ain             bool np.array
@@ -701,7 +701,7 @@ def initialize_movie_online(Y, K, gSig, rf, stride, base_name,
                      final_frate = 10, Npeaks = 10, single_thread = True, dview = None, n_processes = None):      
     
     """
-    Initialize movie using CNMF on minibatch. See CNMF parameters
+    Initialize Movie using CNMF on minibatch. See CNMF parameters
     """
    
     _, d1, d2 = Y.shape

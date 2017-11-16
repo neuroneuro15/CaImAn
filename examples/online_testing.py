@@ -25,15 +25,15 @@ a = cm.load('example_movies/demoMovie.tif')
 all_els = []
 for it in range(1):
     print(it)
-#    a = cm.movie(np.random.randn(*mns.shape).astype(np.float32))
-    Yr = cm.movie.to_2D(a).astype(np.float)
+#    a = cm.Movie(np.random.randn(*mns.shape).astype(np.float32))
+    Yr = cm.Movie.to_2D(a).astype(np.float)
 
     #%
 #    norm = lambda(x): np.exp(-x**2/2)/np.sqrt(2*np.pi)
     fitness, res, sd_r, md = compute_event_exceptionality(Yr.T)
     Yr_c = np.clip(-np.log(norm.sf(np.array((Yr - md) /
                                             sd_r, dtype=np.float))), 0, 1000)
-    mns = cm.movie(scipy.ndimage.convolve(np.reshape(
+    mns = cm.Movie(scipy.ndimage.convolve(np.reshape(
         Yr_c, [-1, 60, 80], order='F'), np.ones([5, 3, 3])))
     mns[mns < (38 * np.log10((mns.shape[0])))] = 0
     all_els.append(np.sum(mns > 0))
@@ -41,24 +41,24 @@ for it in range(1):
 
 
 #%%
-#m1 = cm.movie((np.array((Yr-md)/sd_r)).reshape([-1,60,80],order = 'F'))*(scipy.ndimage.convolve(mns>0,np.ones([5,3,3])))
-m1 = cm.movie((np.array((Yr - md) / sd_r)
+#m1 = cm.Movie((np.array((Yr-md)/sd_r)).reshape([-1,60,80],order = 'F'))*(scipy.ndimage.convolve(mns>0,np.ones([5,3,3])))
+m1 = cm.Movie((np.array((Yr - md) / sd_r)
                ).reshape([-1, 60, 80], order='F')) * (mns > 0)
 
 m1.save('example_movies/demoMovie_sparse.tif')
 #%%
 mov = Yr
 #%%
-mns = -cm.movie(np.reshape(res.clip(-1000, 0),
+mns = -cm.Movie(np.reshape(res.clip(-1000, 0),
                            [80, 60, -1]).transpose([2, 1, 0]))
 #mns[mns > 1000] = 1000
-mov = cm.movie.to_2D(mns)
+mov = cm.Movie.to_2D(mns)
 #%%
 noise = res[2]
 mode = cm.components_evaluation.mode_robust(Yr, 0)
-Yr_1 = (cm.movie.to_2D(a) - mode) / res[2]
+Yr_1 = (cm.Movie.to_2D(a) - mode) / res[2]
 mns_1 = (np.reshape(Yr_1, [-1, 80, 60], order='F'))
-mov = np.maximum(0, cm.movie.to_2D(mns_1))
+mov = np.maximum(0, cm.Movie.to_2D(mns_1))
 #%%
 
 

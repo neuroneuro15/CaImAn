@@ -69,7 +69,7 @@ d1, d2 = dims
 images = np.reshape(Yr.T, [T] + list(dims), order='F')
 # TODO: needinfo
 Y = np.reshape(Yr, dims + (T,), order='F')
-m_orig  = cm.movie(images)
+m_orig  = cm.Movie(images)
 #%%
 idx_exclude = np.arange(100) # neurons that are displayed
 idx_comps = np.setdiff1d(np.arange(A_gt.shape[-1]),idx_exclude)
@@ -103,7 +103,7 @@ else:
 #%%
 fitness,exceptionality,sd_r,md = cm.components_evaluation.compute_event_exceptionality(traces_gt[idx_exclude],robust_std=False,N=5,use_mode_fast=False)
 #%%
-m_res = m_orig - cm.movie(np.reshape(A_gt.tocsc()[:,idx_comps].dot(C_gt[idx_comps]) + b_gt.dot(f_gt),dims+(-1,),order = 'F').transpose([2,0,1]))
+m_res = m_orig - cm.Movie(np.reshape(A_gt.tocsc()[:, idx_comps].dot(C_gt[idx_comps]) + b_gt.dot(f_gt), dims + (-1,), order ='F').transpose([2, 0, 1]))
 #%%
 max_mov = m_res.max() 
 #%%

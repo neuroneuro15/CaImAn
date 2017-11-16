@@ -67,8 +67,8 @@ def extract_binary_masks_from_structural_channel(Y,min_area_size = 30, min_hole_
     
     Inputs:
     ------
-    Y:                  caiman movie object
-                        movie of the structural channel (assumed motion corrected)
+    Y:                  caiman Movie object
+                        Movie of the structural channel (assumed motion corrected)
     
     min_area_size:      int
                         ignore components with smaller size
