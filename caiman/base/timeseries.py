@@ -98,6 +98,18 @@ class Timeseries(np.ndarray):
         self.file_name = getattr(obj, 'file_name', None)
         self.meta_data = getattr(obj, 'meta_data', None)
 
+    @classmethod
+    def concatenate(cls, *series, axis=0):
+        """Concatenate multiple TimeSeries objects together."""
+        if not all(map(lambda s: isinstance(s, cls), series)):
+            raise ValueError("All series must be {} objects in order to concatenate them.".format(cls.__name__))
+        if len(set(ts.fr for ts in series)) > 1:
+            raise ValueError("Timeseries must all have matching framerates.")
+
+        file_names = [s.file_name for s in series]
+        meta_datas = [s.meta_data for s in series]
+        return cls(np.concatenate(*series, axis=axis), file_name=file_names, meta_data=meta_datas)
+
     def save(self, file_name, to32=True, order='F'):
         """
         Save the Timeseries in various formats, depending on the file_name's extenstion.
@@ -197,37 +209,6 @@ class Timeseries(np.ndarray):
                 dset.attrs["meta_data"] = pickle.dumps(self.meta_data)
 
 
-
-
-def concatenate(*args, **kwargs):
-    """
-    Concatenate movies
-
-    Parameters:
-    -----------
-    mov: XMovie object
-    """
-    #todo: todocument return
-
-    obj = []
-    frRef = None
-    for arg in args:
-        for m in arg:
-            if issubclass(type(m), Timeseries):
-                if frRef is None:
-                    obj = m
-                    frRef = obj.fr
-                else:
-                    obj.__dict__['file_name'].extend(
-                            [ls for ls in m.file_name])
-                    obj.__dict__['meta_data'].extend(
-                            [ls for ls in m.meta_data])
-                    if obj.fr != m.fr:
-                        raise ValueError('Frame rates of input vectors \
-                            do not match. You cannot concatenate movies with \
-                            different frame rates.')
-    try:                      
-        return obj.__class__(np.concatenate(*args, **kwargs), **obj.__dict__)
-    except:
-        print('no meta information passed')
-        return obj.__class__(np.concatenate(*args, **kwargs))
+def concatenate(*series, axis=0):
+    """Concatenate Timeseries objects together."""
+    return Timeseries.concatenate(*series, axis=axis)
