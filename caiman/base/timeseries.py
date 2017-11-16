@@ -75,29 +75,19 @@ class Timeseries(np.ndarray):
     def time(self):
         return np.linspace(self.start_time, 1 / self.fr * self.shape[0], self.shape[0])
 
-    def __array_prepare__(self, out_arr, context=None):
-        # todo: todocument
-        inputs=context[1]
-        frRef=None
-        startRef=None
-        for inp in inputs:
-            if type(inp) is Timeseries:
-                if frRef is None:
-                    frRef=inp.fr
-                else:
-                    if not (frRef-inp.fr) == 0:
-                        raise ValueError('Frame rates of input vectors do not match.'
-                                         ' You cannot perform operations on time series with different frame rates.')
-                if startRef is None:
-                    startRef=inp.start_time
-                else:
-                    if not (startRef-inp.start_time) == 0:
-                        warnings.warn('start_time of input vectors do not match: ignore if this is what desired.'
-                                      ,UserWarning)
+    def __array_prepare__(self, out_arr, context):
+        """Checks that frame rate value given makes sense."""
+        frame_rates, start_times = set(), set()
+        for input in context[1]:
+            if isinstance(input, self.__class__):
+                frame_rates.add(input.fr)
+                start_times.add(input.start_time)
+        if len(frame_rates) > 1:
+            raise ValueError("Frame rates of input vectors must all match each other.")
+        if len(start_times) > 1:
+            warnings.warn('start_time of input vectors do not match each other.', UserWarning)
 
-        # then just call the parent
-        return np.ndarray.__array_prepare__(self, out_arr, context)
-
+        super(self.__class__, self).__array_prepare__(out_arr, context)
 
     def __array_finalize__(self, obj):
         # see InfoArray.__array_finalize__ for comments
