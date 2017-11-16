@@ -25,8 +25,6 @@ import warnings
 import numpy as np
 
 
-
-
 class Timeseries(np.ndarray):
     """
     Class representing a time series.
@@ -63,35 +61,19 @@ class Timeseries(np.ndarray):
             start_time: time beginning Movie
 
             meta_data: dictionary including any custom meta data
-
-            Raise:
-            -----
-            Exception('You need to specify the frame rate')
             """
-        if fr is None:
-            raise Exception('You need to specify the frame rate')
 
         obj = np.asarray(input_arr).view(cls)
-        # add the new attribute to the created instance
-
         obj.start_time = np.double(start_time)
         obj.fr = np.double(fr)
-        if type(file_name) is list:
-            obj.file_name = file_name
-        else:
-            obj.file_name = [file_name]
-
-        if type(meta_data) is list:
-            obj.meta_data = meta_data
-        else:
-            obj.meta_data = [meta_data]
-
+        obj.file_name = file_name if isinstance(file_name, list) else [file_name]
+        obj.meta_data = meta_data if isinstance(meta_data, list) else [meta_data]
         return obj
 
 
     @property
     def time(self):
-        return np.linspace(self.start_time,1/self.fr*self.shape[0],self.shape[0])
+        return np.linspace(self.start_time, 1 / self.fr * self.shape[0], self.shape[0])
 
     def __array_prepare__(self, out_arr, context=None):
         # todo: todocument
