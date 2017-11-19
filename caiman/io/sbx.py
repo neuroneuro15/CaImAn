@@ -2,7 +2,7 @@ from os import path
 import numpy as np
 from scipy.io import loadmat, matlab
 
-def loadmat_sbx(filename):
+def sbxloadmat(filename):
     """
     this function should be called instead of direct spio.loadmat
 
@@ -44,7 +44,7 @@ def sbxread(filename, k=0, n_frames=np.inf):
         filename = filename[:-4]
 
     # Load info
-    info = loadmat_sbx(filename + '.mat')['info']
+    info = sbxloadmat(filename + '.mat')['info']
 
     # Defining number of channels/size factor
     if info['channels'] == 1:
@@ -91,7 +91,7 @@ def sbxreadskip(filename, skip):
         filename = filename[:-4]
 
     # Load info
-    info = loadmat_sbx(filename + '.mat')['info']
+    info = sbxloadmat(filename + '.mat')['info']
 
     # Defining number of channels/size factor
     if info['channels'] == 1:
@@ -143,7 +143,7 @@ def sbxshape(filename):
         filename = filename[:-4]
 
     # Load info
-    info = loadmat_sbx(filename + '.mat')['info']
+    info = sbxloadmat(filename + '.mat')['info']
 
     # Defining number of channels/size factor
     if info['channels'] == 1:
