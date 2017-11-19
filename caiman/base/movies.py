@@ -42,7 +42,6 @@ from . import timeseries
 from skimage.transform import warp, AffineTransform
 from skimage.feature import match_template
 
-from . import timeseries as ts
 from .io_sbx import sbxreadskip
 from .traces import trace
 
@@ -51,7 +50,7 @@ from ..utils import visualization
 from .. import summary_images as si
 from ..motion_correction import apply_shift_online,motion_correct_online
 
-class Movie(ts.Timeseries):
+class Movie(np.ndarray):
     """
     Class representing a Movie. This class subclasses Timeseries,
     that in turn subclasses ndarray
@@ -80,16 +79,47 @@ class Movie(ts.Timeseries):
 
     """
 
-    def __new__(cls, input_arr, **kwargs):
+    def __new__(cls, input_arr, fr=30, start_time=0, file_name=None, meta_data=None, **kwargs):
  #todo: todocument
         if (type(input_arr) is np.ndarray) or \
            (type(input_arr) is h5py._hl.dataset.Dataset) or\
            ('mmap' in str(type(input_arr))) or\
            ('tifffile' in str(type(input_arr))):
-            return super(Movie, cls).__new__(cls, input_arr, **kwargs)
+            obj = np.asarray(input_arr).view(cls)
+            obj.start_time = np.double(start_time)
+            obj.fr = np.double(fr)
+            obj.file_name = file_name if isinstance(file_name, list) else [file_name]
+            obj.meta_data = meta_data if isinstance(meta_data, list) else [meta_data]
+            return obj
         else:
             raise Exception('Input must be an ndarray, use load instead!')
 
+    def __array_prepare__(self, out_arr, context):
+        """Checks that frame rate value given makes sense."""
+        frame_rates, start_times = set(), set()
+        for input in context[1]:
+            if isinstance(input, self.__class__):
+                frame_rates.add(input.fr)
+                start_times.add(input.start_time)
+        if len(frame_rates) > 1:
+            raise ValueError("Frame rates of input vectors must all match each other.")
+        if len(start_times) > 1:
+            warnings.warn('start_time of input vectors do not match each other.', UserWarning)
+
+        super(self.__class__, self).__array_prepare__(out_arr, context)
+
+    def __array_finalize__(self, obj):
+        # see InfoArray.__array_finalize__ for comments
+        if obj is None: return
+
+        self.start_time = getattr(obj, 'start_time', None)
+        self.fr = getattr(obj, 'fr', None)
+        self.file_name = getattr(obj, 'file_name', None)
+        self.meta_data = getattr(obj, 'meta_data', None)
+
+    @property
+    def time(self):
+        return np.linspace(self.start_time, 1 / self.fr * self.shape[0], self.shape[0])
 
     def motion_correction_online(self,max_shift_w=25,max_shift_h=25,init_frames_template=100,
                                  show_movie=False,bilateral_blur=False,template=None,min_count=1000):
@@ -826,7 +856,7 @@ class Movie(ts.Timeseries):
                 if len(new_m) == 0:
                     new_m=m_tmp
                 else:
-                    new_m=timeseries.concatenate([new_m,m_tmp],axis=0)
+                    new_m = self.concatenate([new_m,m_tmp],axis=0)
 
             return new_m
         else:
@@ -1077,6 +1107,18 @@ class Movie(ts.Timeseries):
                 cv2.waitKey(100)
 
     @classmethod
+    def concatenate(cls, *series, axis=0):
+        """Concatenate multiple TimeSeries objects together."""
+        if not all(map(lambda s: isinstance(s, cls), series)):
+            raise ValueError("All series must be {} objects in order to concatenate them.".format(cls.__name__))
+        if len(set(ts.fr for ts in series)) > 1:
+            raise ValueError("Timeseries must all have matching framerates.")
+
+        file_names = [s.file_name for s in series]
+        meta_datas = [s.meta_data for s in series]
+        return cls(np.concatenate(*series, axis=axis), file_name=file_names, meta_data=meta_datas)
+
+    @classmethod
     def from_tiff(cls, file_name, fr=30, start_time=0, meta_data=None, subindices=None):
         """Loads Movie from a .tiff image file."""
         from skimage.external.tifffile import imread
@@ -1287,10 +1329,112 @@ class Movie(ts.Timeseries):
             m = m[:, top:(height - bottom), left:(width - right)]
 
             mov.append(m)
-        return ts.concatenate(mov, axis=0)
+        return concatenate(mov, axis=0)
+
+    def save(self, file_name, to32=True, order='F'):
+        """
+        Save the Timeseries in various formats, depending on the file_name's extenstion.
+
+        parameters:
+        ----------
+        file_name: str
+            name of file. Possible formats are tif, avi, npz and hdf5
+
+        to32: Bool
+            whether to transform to 32 bits
+
+        order: 'F' or 'C'
+            C or Fortran order
+
+        Raise:
+        -----
+        raise ValueError('Extension Unknown')
+
+        """
+        _, extension = os.path.splitext(file_name)
+        if 'tif' in extension:
+            self.to_tiff(file_name=file_name, to32=to32)
+        elif 'mat' in extension:
+            self.to_matlab(file_name=file_name)
+        elif 'npz' in extension:
+            self.to_npz(file_name=file_name)
+        elif 'hdf' in extension or extension == '.h5':
+            self.to_hdf(file_name=file_name)
+        elif 'avi' in extension:
+            self.to_avi(file_name=file_name)
+        else:
+            raise ValueError('Could Not Save to File: File Extension "{}" Not Supported.'.format(extension))
+
+    def to_tiff(self, file_name, to32=True):
+        """Save the Timeseries in a .tiff image file."""
+        try:
+            from tifffile import imsave
+        except ImportError:
+            warnings.warn('tifffile package not found, importing skimage instead for saving tiff files.')
+            from skimage.external.tifffile import imsave
+
+        if to32:
+            np.clip(self, np.percentile(self, 1), np.percentile(self, 99.99999), self)
+            minn, maxx = np.min(self), np.max(self)
+            data = 65536 * (self - minn) / (maxx - minn)
+            data = data.astype(np.int32)  # todo: Fix unused data variable.  What is supposed to happen here?
+            imsave(file_name, self.astype(np.float32))
+        else:
+            imsave(file_name, self)
+
+    def to_npz(self, file_name):
+        """Save the Timeseries in a NumPy .npz array file."""
+        np.savez(file_name, input_arr=self, start_time=self.start_time, fr=self.fr, meta_data=self.meta_data,
+                 file_name=self.file_name)  # todo: check what the two file_name inputs mean.
+
+    def to_avi(self, file_name):
+        """Save the Timeseries in a .avi movie file using OpenCV."""
+        import cv2
+        codec = cv2.FOURCC('I', 'Y', 'U', 'V') if hasattr(cv2, 'FOURCC') else cv2.VideoWriter_fourcc(*'IYUV')
+        np.clip(self, np.percentile(self, 1), np.percentile(self, 99), self)
+        minn, maxx = np.min(self), np.max(self)
+        data = 255 * (self - minn) / (maxx - minn)
+        data = data.astype(np.uint8)
+        y, x = data[0].shape
+        vw = cv2.VideoWriter(file_name, codec, self.fr, (x, y), isColor=True)
+        for d in data:
+            vw.write(cv2.cvtColor(d, cv2.COLOR_GRAY2BGR))
+        vw.release()
+
+    def to_matlab(self, file_name):
+        """Save the Timeseries to a .mat file."""
+        from scipy.io import savemat
+        f_name = self.file_name if self.file_name[0] is not None else ''
+        savemat(file_name, {'input_arr': np.rollaxis(self, axis=0, start=3),
+                            'start_time': self.start_time,
+                            'fr': self.fr,
+                            'meta_data': [] if self.meta_data[0] is None else self.meta_data,
+                            'file_name': f_name
+                            }
+                )
+
+    def to_hdf(self, file_name):
+        """Save the Timeseries to an HDF5 (.h5, .hdf, .hdf5) file."""
+        import pickle
+        import h5py
+        with h5py.File(file_name, "w") as f:
+            dset = f.create_dataset("mov", data=np.asarray(self))
+            dset.attrs["fr"] = self.fr
+            dset.attrs["start_time"] = self.start_time
+            try:
+                dset.attrs["file_name"] = [a.encode('utf8') for a in self.file_name]
+            except:
+                print('No file name saved')
+            if self.meta_data[0] is not None:
+                print(self.meta_data)
+                dset.attrs["meta_data"] = pickle.dumps(self.meta_data)
 
     def to_3d(self, *args, order='F', **kwargs):
         """Synonym for array.reshape()"""
         return self.reshape(*args, order=order, **kwargs)
 
 
+
+def concatenate(*series, axis=0):
+    """Concatenate Movies together."""
+    return Movie.concatenate(*series, axis=axis)
