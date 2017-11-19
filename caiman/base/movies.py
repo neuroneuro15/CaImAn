@@ -39,11 +39,10 @@ from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 import pylab as plt
 import h5py
-import pickle as cpk
+import pickle
 from scipy.io import loadmat
 from matplotlib import animation
 import pylab as pl
-from skimage.external.tifffile import imread
 from tqdm import tqdm
 from . import timeseries
 try:
@@ -56,6 +55,7 @@ from skimage.transform import warp, AffineTransform
 from skimage.feature import match_template
 
 from . import timeseries as ts
+from .io_sbx import sbxreadskip
 from .traces import trace
 
 from ..mmapping import load_memmap
@@ -1088,442 +1088,221 @@ class Movie(ts.Timeseries):
             for i in range(10):
                 cv2.waitKey(100)
 
+    @classmethod
+    def from_tiff(cls, file_name, fr=30, start_time=0, meta_data=None, subindices=None):
+        """Loads Movie from a .tiff image file."""
+        from skimage.external.tifffile import imread
+        input_arr = imread(file_name)
+
+        if subindices is not None:
+            if isinstance(subindices, list):
+                input_arr = input_arr[subindices[0], subindices[1], subindices[2]]
+            else:
+                input_arr = input_arr[subindices, :, :]
+        input_arr = np.squeeze(input_arr)
+
+        return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1],
+                     meta_data=meta_data)
+
+    @classmethod
+    def from_avi(cls, file_name, fr=30, start_time=0, meta_data=None):
+        """Loads Movie from a .avi video file."""
+        cap = cv2.VideoCapture(file_name)
+        use_cv2 = hasattr(cap, 'CAP_PROP_FRAME_COUNT')
+
+        length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) if use_cv2 else cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) if use_cv2 else cap.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) if use_cv2 else cap.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
+
+        input_arr = np.zeros((length, height, width), dtype=np.uint8)
+        for arr in input_arr:
+            _, frame = cap.read()
+            arr[:] = frame[:, :, 0]
+
+        # When everything done, release the capture
+        cap.release()
+        cv2.destroyAllWindows()
+
+        return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1], meta_data=meta_data)
+
+    @classmethod
+    def from_npy(cls, file_name, fr=30, start_time=0, in_memory=False, meta_data=None, subindices=None, shape=None):
+
+        input_arr = np.load(file_name) if in_memory else np.load(file_name, mmap_mode='r')
+        input_arr = input_arr[subindices] if subindices is not None else input_arr
+
+        if input_arr.ndim == 2:
+            if shape is not None:
+                d, T = np.shape(input_arr)
+                input_arr = np.transpose(np.reshape(input_arr, (shape[0], shape[1], T), order='F'), (2, 0, 1))
+            else:
+                input_arr = input_arr[np.newaxis, :, :]
+
+        return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1], meta_data=meta_data)
+
+    @classmethod
+    def from_matlab(cls, file_name, fr=30, start_time=0, meta_data=None, subindices=None):
+
+        input_arr = loadmat(file_name)['data']
+        input_arr = np.rollaxis(input_arr, 2, -3)
+        input_arr = input_arr[subindices] if subindices is not None else input_arr
+        return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1], meta_data=meta_data)
 
 
-def load(file_name,fr=30,start_time=0,meta_data=None,subindices=None,shape=None, var_name_hdf5 = 'mov', in_memory = False, is_behavior = False):
-    """
-    load Movie from file. SUpports a variety of formats. tif, hdf5, npy and memory mapped. Matlab is experimental.
+    @classmethod
+    def from_npz(cls, file_name):
+        with np.load(file_name) as input_arr:
+            return cls(input_arr, file_name=file_name)
 
-    Parameters:
-    -----------
-    file_name: string
-        name of file. Possible extensions are tif, avi, npy, (npz and hdf5 are usable only if saved by calblitz)
-    
-    fr: float
-        frame rate
-    
-    start_time: float
-        initial time for frame 1
-    
-    meta_data: dict
-        dictionary containing meta information about the Movie
-    
-    subindices: iterable indexes
-        for loading only portion of the Movie
-    
-    shape: tuple of two values
-        dimension of the Movie along x and y if loading from a two dimensional numpy array
-        
-    num_frames_sub_idx:     
-        when reading sbx format (experimental and unstable)
+    @classmethod
+    def from_hdf(cls, file_name, meta_data=None, subindices=None, var_name='mov'):
+        with h5py.File(file_name, "r") as f:
+            input_arr = f[var_name]
+            input_arr = input_arr[subindices] if subindices is not None else input_arr
 
-    var_name_hdf5: str
-        if loading from hdf5 name of the variable to load
-        
-    Returns:
-    -------
-    mov: calblitz.Movie
+            attrs = dict(f[var_name].attrs)
+            if meta_data in attrs:
+                attrs['meta_data'] = pickle.loads(attrs['meta_data'])
+            return cls(input_arr, **attrs)
 
-    Raise:
-    -----
-    Exception('Subindices not implemented')
+    @classmethod
+    def from_hdf_at(cls, file_name, fr=30, subindices=None):
+        with h5py.File(file_name, "r") as f:
+            input_arr = f['quietBlock']
+            input_arr = input_arr[subindices] if subindices is not None else input_arr
+            return cls(input_arr, fr=fr)
 
-    Exception('Subindices not implemented')
+    @classmethod
+    def from_h5(cls, file_name, fr=30, subindices=None, is_behavior=False, start_time=None, meta_data=None):
 
-    Exception("sima module unavailable")
+        with h5py.File(file_name, "r") as f:
+            if is_behavior:
+                kk = f.keys()
+                kk.sort(key=lambda x: np.int(x.split('_')[-1]))
+                input_arr = [np.array(f[trial]['mov']) for trial in kk]
+                input_arr = np.vstack(input_arr)
+                return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1],
+                             meta_data=meta_data)
+            else:
+                if 'imaging' in f.keys():
+                    if subindices is None:
+                        input_arr = np.array(f['imaging']).squeeze()
+                        if input_arr.ndim > 3:
+                            input_arr = input_arr[:, 0]
+                    else:
+                        input_arr = np.array(f['imaging'][subindices]).squeeze()
+                        if input_arr.ndim > 3:
+                            input_arr = input_arr[:, 0]
+                    input_arr = input_arr.astype(np.float32)
 
-    Exception('Unknown file type')
 
-    Exception('File not found!')
-    """
-    # case we load Movie from file
-    if os.path.exists(file_name):
+            return cls(input_arr, fr=fr, file_name=file_name)  # TODO: Finish this function!
+
+    @classmethod
+    def from_mmap(cls, file_name, fr=30, in_memory=False):
+
+        filename = os.path.split(file_name)[-1]
+        Yr, dims, T = load_memmap(os.path.join(os.path.split(file_name)[0], filename))
+        input_arr = np.reshape(Yr.T, [T] + list(dims), order='F')
+        input_arr = np.array(input_arr) if in_memory else input_arr
+
+        return Movie(input_arr, fr=fr)
+
+    @classmethod
+    def from_sbx(cls, file_name, fr=30, subindices=None):
+        input_arr = sbxreadskip(file_name[:-4])
+        skip = subindices.step if subindices else None
+        n_frames = None if subindices else np.inf
+        k = None if subindices else 0
+        return cls(input_arr, file_names=file_name, fr=fr, k=k, n_frames=n_frames, skip=skip)
+
+    @classmethod
+    def from_sima(cls, file_name, fr=30, subindices=None, frame_step=1000, start_time=None, meta_data=None):
+        import sima
+        dset = sima.ImagingDataset.load(file_name)
+        if subindices is None:
+            dset_shape = dset.sequences[0].shape
+            input_arr = np.empty((dset_shape[0], dset_shape[2], dset_shape[3]), dtype=np.float32)
+            for nframe in range(0, dset.sequences[0].shape[0], frame_step):
+                input_arr[nframe:nframe + frame_step] = np.array(dset.sequences[0][nframe:nframe + frame_step, 0, :, :, 0],
+                                                                 dtype=np.float32).squeeze()
+        else:
+            input_arr = np.array(dset.sequences[0])[subindices, :, :, :, :].squeeze()
+
+
+        return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1],
+                     meta_data=meta_data)
+
+
+    @classmethod
+    def load(cls, file_name, fr=30, start_time=0, meta_data=None, subindices=None, shape=None, var_name_hdf5='mov',
+             in_memory=False, is_behavior=False, frame_step_sima=1000):
 
         name, extension = os.path.splitext(file_name)[:2]
 
         if extension == '.tif' or extension == '.tiff':  # load avi file
-            if subindices is not None:
-                if type(subindices) is list:
-                    input_arr = imread(file_name)[subindices[0], subindices[1], subindices[2]]
-                else:
-                    input_arr = imread(file_name)[subindices, :, :]
-            else:
-                input_arr = imread(file_name)
-            input_arr = np.squeeze(input_arr)
-
+            return cls.from_tiff(file_name=file_name, fr=fr, start_time=start_time, subindices=subindices, meta_data=meta_data)
         elif extension == '.avi': # load avi file
-            if subindices is not None:
-                raise Exception('Subindices not implemented')
-            cap = cv2.VideoCapture(file_name)
-            try:
-                length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            except:
-                print('Roll back top opencv 2')
-                length = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
-                width  = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
-                height = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
-
-            input_arr=np.zeros((length, height,width),dtype=np.uint8)
-            counter=0
-            while True:
-                # Capture frame-by-frame
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                input_arr[counter]=frame[:,:,0]
-                counter=counter+1
-
-            # When everything done, release the capture
-            cap.release()
-            cv2.destroyAllWindows()  
-
+            return cls.from_avi(file_name=file_name, fr=fr, start_time=start_time, meta_data=meta_data)
         elif extension == '.npy': # load npy file
-            if fr is None:
-                fr = 30
-            if in_memory:
-                input_arr =  np.load(file_name)
-            else:
-                input_arr =  np.load(file_name,mmap_mode='r')
-                
-            if subindices is not None:
-                input_arr=input_arr[subindices]
-          
-            if input_arr.ndim==2:
-                if shape is not None:
-                    d,T=np.shape(input_arr)
-                    d1,d2=shape
-                    input_arr=np.transpose(np.reshape(input_arr,(d1,d2,T),order='F'),(2,0,1))
-                else:
-                    input_arr=input_arr[np.newaxis,:,:]
-
+            return cls.from_npy(file_name=file_name, fr=30, start_time=start_time, meta_data=meta_data, subindices=subindices, shape=shape)
         elif extension == '.mat': # load npy file
-            input_arr=loadmat(file_name)['data']
-            input_arr=np.rollaxis(input_arr,2,-3)
-            if subindices is not None:
-                input_arr=input_arr[subindices]
-
+            return cls.from_matlab(file_name=file_name, fr=fr, start_time=start_time, meta_data=meta_data, subindices=subindices)
         elif extension == '.npz': # load Movie from saved file
-            if subindices is not None:
-                raise Exception('Subindices not implemented')
-            with np.load(file_name) as f:
-                return Movie(**f)
-
+            return cls.from_npz(file_name=file_name)
         elif extension== '.hdf5':
-            
-            with h5py.File(file_name, "r") as f:
-                attrs=dict(f[var_name_hdf5].attrs)
-                if meta_data in attrs:
-                    attrs['meta_data']=cpk.loads(attrs['meta_data'])
-
-                if subindices is None:
-                    return Movie(f[var_name_hdf5], **attrs)
-                else:
-                    return Movie(f[var_name_hdf5][subindices], **attrs)
-                    
+            return cls.from_hdf(file_name=file_name, meta_data=meta_data, subindices=subindices, var_name=var_name_hdf5)
         elif extension== '.h5_at':
-             with h5py.File(file_name, "r") as f:
-                if subindices is None:
-                    return Movie(f['quietBlock'], fr=fr)
-                else:
-                    return Movie(f['quietBlock'][subindices], fr=fr)
-            
+            return cls.from_hdf_at(file_name=file_name, fr=fr, subindices=subindices)
         elif extension== '.h5':
-              if is_behavior:
-                  with h5py.File(file_name, "r") as f:
-                      kk = f.keys()
-                      kk.sort(key = lambda x: np.int(x.split('_')[-1]))
-                      input_arr = []
-                      for trial in kk:
-                          print('Loading ' + trial)
-                          input_arr.append(np.array(f[trial]['mov']))
-                          
-                      input_arr = np.vstack(input_arr)    
-                  
-              else:
-                  with h5py.File(file_name, "r") as f:
-                    if 'imaging' in f.keys():  
-                        if subindices is None:
-                            images = np.array(f['imaging']).squeeze()
-                            if images.ndim>3:
-                                images = images[:,0]
-                        else:
-                            images = np.array(f['imaging'][subindices]).squeeze()
-                            if images.ndim>3:
-                                images = images[:,0]
-                                
-                        return Movie(images.astype(np.float32))
-                    
+            return cls.from_h5(file_name=file_name, fr=fr, subindices=subindices, is_behavior=is_behavior)
         elif extension == '.mmap':
-
-            filename=os.path.split(file_name)[-1]
-            Yr, dims, T = load_memmap(os.path.join(os.path.split(file_name)[0],filename))
-            images = np.reshape(Yr.T, [T] + list(dims), order='F')
-            
-            if in_memory:
-                print('loading in memory')
-                images = np.array(images)
-            
-            print('mmap')
-            return Movie(images, fr=fr)
-
+            return cls.from_mmap(file_name=file_name, fr=fr, in_memory=in_memory)
         elif extension == '.sbx':
-            if subindices is not None:
-                return Movie(sbxreadskip(file_name[:-4], skip = subindices.step), fr=fr)
-            else:
-                print('sbx')
-                return Movie(sbxread(file_name[:-4], k = 0, n_frames = np.inf), fr=fr)
-
+            return cls.from_sbx(file_name=file_name, fr=fr, subindices=subindices)
         elif extension == '.sima':
-            if not HAS_SIMA:
-                raise Exception("sima module unavailable")
-
-            dataset = sima.ImagingDataset.load(file_name)
-            frame_step = 1000
-            if subindices is None:
-                input_arr = np.empty((
-                        dataset.sequences[0].shape[0],
-                        dataset.sequences[0].shape[2],
-                        dataset.sequences[0].shape[3]), dtype=np.float32)
-                for nframe in range(0, dataset.sequences[0].shape[0], frame_step):
-                    input_arr[nframe:nframe+frame_step] = np.array(dataset.sequences[0][
-                        nframe:nframe+frame_step, 0, :, :, 0]).astype(np.float32).squeeze()
-            else:
-                input_arr = np.array(dataset.sequences[0])[subindices, :, :, :, :].squeeze()
-
+            return cls.from_sima(file_name=file_name, fr=fr, subindices=subindices, frame_step=frame_step_sima, start_time=start_time, meta_data=meta_data)
         else:
-            raise Exception('Unknown file type')
-    else:
-        print('File is:')
-        print(file_name)
-        raise Exception('File not found!')
+            raise ValueError('Unknown file type: "{}"'.format(extension))
 
-    return Movie(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1], meta_data=meta_data)
+    @classmethod
+    def load_multiple(cls, file_list, fr=30, start_time=0, crop=(0, 0, 0, 0),
+                     meta_data=None, subindices=None, channel = None):
 
+        """ load movies from list of file names
 
-def load_movie_chain(file_list, fr=30, start_time=0,
-                     meta_data=None, subindices=None,
-                     bottom=0, top=0, left=0, right=0, channel = None):
-    """ load movies from list of file names
+        Parameters:
+        ----------
+        file_list: list
+           file names in string format
 
-    Parameters:
-    ----------
-    file_list: list 
-       file names in string format
-    
-    the other parameters as in load_movie except
+        the other parameters as in load_movie except
 
-    bottom, top, left, right: int
-        to load only portion of the field of view
-        
-    Returns:
-    --------
-    Movie: cm.Movie
-        Movie corresponding to the concatenation og the input files
-        
-    """
-    mov = []
-    for f in tqdm(file_list):
-        m = load(f, fr=fr, start_time=start_time,
-                 meta_data=meta_data, subindices=subindices, in_memory = True)
-        if channel is not None:
-            print(m.shape)
-            m = m[channel].squeeze()
-            print(m.shape)
-            
-            
-        if m.ndim == 2:
-            m = m[np.newaxis, :, :]
-        
-        tm, h, w = np.shape(m)
-        m = m[:, top:h-bottom, left:w-right]
-        mov.append(m)
-    return ts.concatenate(mov, axis=0)
+        bottom, top, left, right: int
+            to load only portion of the field of view
+
+        Returns:
+        --------
+        Movie: cm.Movie
+            Movie corresponding to the concatenation og the input files
+
+        """
+        mov = []
+        for f in tqdm(file_list):
+            m = cls.load(f, fr=fr, start_time=start_time,
+                     meta_data=meta_data, subindices=subindices, in_memory = True)
+            m = m[channel].squeeze() if channel is not None else m
+            m = m[np.newaxis, :, :] if m.ndim == 2 else m
+
+            tm, height, width = np.shape(m)
+            top, bottom, left, right = crop
+            m = m[:, top:(height - bottom), left:(width - right)]
+
+            mov.append(m)
+        return ts.concatenate(mov, axis=0)
+
+    def to_3d(self, *args, order='F', **kwargs):
+        """Synonym for array.reshape()"""
+        return self.reshape(*args, order=order, **kwargs)
 
 
-def loadmat_sbx(filename):
-    """
-    this function should be called instead of direct spio.loadmat
-
-    as it cures the problem of not properly recovering python dictionaries
-    from mat files. It calls the function check keys to cure all entries
-    which are still mat-objects
-    """
-    data_ = loadmat(filename, struct_as_record=False, squeeze_me=True)
-    return _check_keys(data_)
-
-def _check_keys(dict):
-    """
-    checks if entries in dictionary rare mat-objects. If yes todict is called to change them to nested dictionaries
-    """
-
-    for key in dict:
-        if isinstance(dict[key], scipy.io.matlab.mio5_params.mat_struct):
-            dict[key] = _todict(dict[key])
-
-    return dict
-
-def _todict(matobj):
-    """
-    A recursive function which constructs from matobjects nested dictionaries
-    """
-
-    dict = {}
-    for strg in matobj._fieldnames:
-        elem = matobj.__dict__[strg]
-        if isinstance(elem, scipy.io.matlab.mio5_params.mat_struct):
-            dict[strg] = _todict(elem)
-        else:
-            dict[strg] = elem
-    return dict
-
-def sbxread(filename,k = 0, n_frames=np.inf):
-    """
-    Input:
-    ------
-    filename: str
-        filename should be full path excluding .sbx
-    """
-    # Check if contains .sbx and if so just truncate
-    if '.sbx' in filename:
-        filename = filename[:-4]
-
-    # Load info
-    info = loadmat_sbx(filename + '.mat')['info']
-
-    # Defining number of channels/size factor
-    if info['channels'] == 1:
-        info['nChan'] = 2; factor = 1
-    elif info['channels'] == 2:
-        info['nChan'] = 1; factor = 2
-    elif info['channels'] == 3:
-        info['nChan'] = 1; factor = 2
-
-    # Determine number of frames in whole file
-    max_idx = os.path.getsize(filename + '.sbx')/info['recordsPerBuffer']/info['sz'][1]*factor/4-1
-
-    # Paramters
-    N = max_idx+1 #Last frame
-    N = np.minimum(max_idx,n_frames)
-
-    nSamples = info['sz'][1] * info['recordsPerBuffer'] * 2 * info['nChan']
-
-    # Open File
-    fo = open(filename + '.sbx')
-
-    # Note: SBX files store the values strangely, its necessary to subtract the values from the max int16 to get the correct ones
-    fo.seek(k*nSamples, 0)
-    ii16 = np.iinfo(np.uint16)
-    x = ii16.max - np.fromfile(fo, dtype = 'uint16',count = int(nSamples/2*N))
-    x = x.reshape((int(info['nChan']), int(info['sz'][1]), int(info['recordsPerBuffer']), int(N)), order = 'F')
-    x = x[0, :, :, :]
-    
-    return x.transpose([2,1,0])
-
-def sbxreadskip(filename,skip):
-    """
-    Input:
-     -----
-    filename: str
-         filename should be full path excluding .sbx
-    """
-    # Check if contains .sbx and if so just truncate
-    if '.sbx' in filename:
-        filename = filename[:-4]
-
-    # Load info
-    info = loadmat_sbx(filename + '.mat')['info']
-
-    # Defining number of channels/size factor
-    if info['channels'] == 1:
-        info['nChan'] = 2; factor = 1
-    elif info['channels'] == 2:
-        info['nChan'] = 1; factor = 2
-    elif info['channels'] == 3:
-        info['nChan'] = 1; factor = 2
-
-    # Determine number of frames in whole file
-    max_idx = os.path.getsize(filename + '.sbx')/info['recordsPerBuffer']/info['sz'][1]*factor/4-1
-
-    # Paramters
-    N = max_idx+1 #Last frame
-    nSamples = info['sz'][1] * info['recordsPerBuffer'] * 2 * info['nChan']
-
-    # Open File
-    fo = open(filename + '.sbx')
- 
-    # Note: SBX files store the values strangely, its necessary to subtract the values from the max int16 to get the correct ones
-    for k in range(0, N, skip):
-        fo.seek(k*nSamples, 0)
-        ii16 = np.iinfo(np.uint16)
-        tmp = ii16.max - np.fromfile(fo, dtype = 'uint16',count = int(nSamples/2*1))
-    
-        tmp = tmp.reshape((int(info['nChan']), int(info['sz'][1]), int(info['recordsPerBuffer']), int(1)), order = 'F')
-        if k is 0:
-                 x = tmp;
-        else:
-                x = np.concatenate((x, tmp), axis=3)
-
-    x = x[0, :, :, :]
-    
-    return x.transpose([2,1,0])
-
-
-def sbxshape(filename):
-    """
-    Input:
-     -----
-     filename should be full path excluding .sbx
-    """
-
-    # Check if contains .sbx and if so just truncate
-    if '.sbx' in filename:
-        filename = filename[:-4]
-
-    # Load info
-    info = loadmat_sbx(filename + '.mat')['info']
-
-    # Defining number of channels/size factor
-    if info['channels'] == 1:
-        info['nChan'] = 2; factor = 1
-    elif info['channels'] == 2:
-        info['nChan'] = 1; factor = 2
-    elif info['channels'] == 3:
-        info['nChan'] = 1; factor = 2
-
-    # Determine number of frames in whole file
-    max_idx = os.path.getsize(filename + '.sbx')/info['recordsPerBuffer']/info['sz'][1]*factor/4-1
-    N = max_idx+1 #Last frame
-    x = (int(info['sz'][1]), int(info['recordsPerBuffer']), int(N))
-    return x
-
-
-def to_3D(mov2D,shape,order='F'):
-    """
-    transform to 3D a vectorized Movie
-    """
-    return np.reshape(mov2D,shape,order=order)
-
-
-
-if __name__ == "__main__":
-    print((1))
-#    mov=Movie('/Users/agiovann/Dropbox/Preanalyzed Data/ExamplesDataAnalysis/Andrea/PC1/M_FLUO.tif',fr=15.62,start_time=0,meta_data={'zoom':2,'location':[100, 200, 300]})
-#    mov1=Movie('/Users/agiovann/Dropbox/Preanalyzed Data/ExamplesDataAnalysis/Andrea/PC1/M_FLUO.tif',fr=15.62,start_time=0,meta_data={'zoom':2,'location':[100, 200, 300]})
-##    newmov=ts.concatenate([mov,mov1])
-##    mov.save('./test.npz')
-##    mov=Movie.load('test.npz')
-#    max_shift=5;
-#    mov,template,shifts,xcorrs=mov.motion_correct(max_shift_h=max_shift,max_shift_w=max_shift,show_movie=0)
-#    max_shift=5;
-#    mov1,template1,shifts1,xcorrs1=mov1.motion_correct(max_shift_h=max_shift,max_shift_w=max_shift,show_movie=0,method='skimage')
-
-#    mov=mov.apply_shifts(shifts)
-#    mov=mov.crop(crop_top=max_shift,crop_bottom=max_shift,crop_left=max_shift,crop_right=max_shift)
-#    mov=mov.resize(fx=.25,fy=.25,fz=.2)
-#    mov=mov.computeDFF()
-#    mov=mov-np.min(mov)
-#    space_components,time_components=mov.NonnegativeMatrixFactorization();
-#    trs=mov.extract_traces_from_masks(1.*(space_components>0.4))
-#    trs=trs.computeDFF()
