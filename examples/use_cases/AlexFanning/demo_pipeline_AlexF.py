@@ -56,7 +56,7 @@ from caiman.components_evaluation import estimate_components_quality
 
 from caiman.components_evaluation import evaluate_components,evaluate_components_CNN
 
-from caiman.tests.comparison import comparison
+from tests.comparison import comparison
 from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
 #%%
 params_movie = {'fname': ['/mnt/ceph/neuro/ImagingData/AlexFanning/Concatenated0711d7b.tif'],

@@ -10,17 +10,16 @@
 #\author agiovann
 #toclean
 
-from __future__ import division
-from __future__ import print_function
-from builtins import zip
-from builtins import str
-from builtins import map
-from builtins import range
-from past.utils import old_div
-import cv2
-import glob
+    from __future__ import division
+    from __future__ import print_function
 
-try:
+    import glob
+    from builtins import range
+    from builtins import str
+
+    import cv2
+
+    try:
     cv2.setNumThreads(1)
 except:
     print('Open CV is naturally single threaded')
@@ -40,25 +39,14 @@ import numpy as np
 import os
 import time
 import pylab as pl
-import psutil
-import sys
-from ipyparallel import Client
-from skimage.external.tifffile import TiffFile
-import scipy
-import copy
+    import scipy
 
-from caiman.utils.utils import download_demo
-from caiman.rois import extract_binary_masks_blob
-from caiman.utils.visualization import plot_contours, view_patches_bar
+    from caiman.utils.visualization import plot_contours, view_patches_bar
 from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.motion_correction import MotionCorrect
 from caiman.components_evaluation import estimate_components_quality
 
-from caiman.components_evaluation import evaluate_components,evaluate_components_CNN
-
-from caiman.tests.comparison import comparison
-from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
-#%%
+    #%%
 params_movie = {'fname': ['/mnt/ceph/neuro/ImagingData/AlexFanning/Concatenated0711d7b.tif'],
                  'max_shifts': (3, 3),  # maximum allow rigid shift (2,2)
                  'niter_rig': 1,

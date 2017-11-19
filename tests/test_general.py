@@ -48,7 +48,7 @@ import copy
 from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.motion_correction import MotionCorrect
 from caiman.components_evaluation import estimate_components_quality
-from caiman.tests.comparison import comparison
+from tests.comparison import comparison
 
 
 # GLOBAL VAR

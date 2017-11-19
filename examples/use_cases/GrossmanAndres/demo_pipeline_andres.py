@@ -56,7 +56,7 @@ from caiman.components_evaluation import estimate_components_quality
 
 from caiman.components_evaluation import evaluate_components
 
-from caiman.tests.comparison import comparison
+from tests.comparison import comparison
 from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
 #%%
 # @params params_movie set parameters and create template by RIGID MOTION CORRECTION

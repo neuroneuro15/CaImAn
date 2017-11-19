@@ -17,12 +17,13 @@ caiman/tests/comparison/comparison.py
 
 from __future__ import division
 from __future__ import print_function
-from builtins import str
-from builtins import range
-import matplotlib
-from caiman.utils.utils import download_demo
-import cv2
+
 import glob
+from builtins import str
+
+import cv2
+
+from caiman.utils.utils import download_demo
 
 try:
     cv2.setNumThreads(1)
@@ -47,7 +48,7 @@ import copy
 from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.motion_correction import MotionCorrect
 from caiman.components_evaluation import estimate_components_quality
-from caiman.tests.comparison import comparison
+from tests.comparison import comparison
 
 
 #GLOBAL VAR
