@@ -37,18 +37,18 @@ from scipy.io import loadmat
 from matplotlib import animation
 import pylab as pl
 from tqdm import tqdm
-from . import timeseries
+from caiman.base import timeseries
 
 from skimage.transform import warp, AffineTransform
 from skimage.feature import match_template
 
-from .io_sbx import sbxreadskip
+from caiman.base.io_sbx import sbxreadskip
 from .traces import trace
 
-from ..mmapping import load_memmap
-from ..utils import visualization
-from .. import summary_images as si
-from ..motion_correction import apply_shift_online,motion_correct_online
+from caiman.mmapping import load_memmap
+from caiman.utils import visualization
+from caiman import summary_images as si
+from caiman.motion_correction import apply_shift_online,motion_correct_online
 
 class Movie(np.ndarray):
     """
