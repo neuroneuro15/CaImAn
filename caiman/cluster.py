@@ -37,17 +37,10 @@ from multiprocessing import Pool
 import multiprocessing
 
 
-def get_patches_from_image(img,shapes,overlaps):
+def get_patches_from_image(img, shapes, overlaps):
     #todo todocument
-    d1,d2 = np.shape(img)
-    rf =  np.divide(shapes,2)
-    _,coords_2d = extract_patch_coordinates(d1,d2,rf=rf,stride = overlaps)
-    imgs = np.empty(coords_2d.shape[:2],dtype = np.object)
-
-    for idx_0,count_0 in enumerate(coords_2d):
-        for idx_1,count_1 in enumerate(count_0):
-            imgs[idx_0,idx_1] = img[count_1[0],count_1[1]]
-
+    _, coords_2d = extract_patch_coordinates(*np.shape(img), rf=np.divide(shapes, 2), stride=overlaps)
+    imgs = img[coords_2d[:, 0], coords_2d[:, 1]].astype(np.object)
     return imgs, coords_2d
 
 
