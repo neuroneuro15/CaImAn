@@ -4,11 +4,8 @@
 
 @author: agiovann
 """
-from __future__ import division
-from __future__ import print_function
-from builtins import str
-from builtins import map
-from builtins import range
+from __future__ import division, print_function
+
 from past.utils import old_div
 from scipy.sparse import spdiags, coo_matrix  # ,csgraph
 import scipy

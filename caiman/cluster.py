@@ -20,10 +20,7 @@ See Also:
 # \date Created on Thu Oct 20 12:07:09 2016
 
 from __future__ import print_function
-from builtins import zip
-from builtins import str
-from builtins import map
-from builtins import range
+
 import subprocess
 import time
 import ipyparallel
@@ -38,7 +35,8 @@ import numpy as np
 from .mmapping import load_memmap
 from multiprocessing import Pool            
 import multiprocessing
-#%%
+
+
 def get_patches_from_image(img,shapes,overlaps):
     #todo todocument
     d1,d2 = np.shape(img)

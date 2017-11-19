@@ -15,13 +15,8 @@ See Also:
 # \copyright GNU General Public License v2.0
 # \date Created on Tue Jun 30 20:56:07 2015 , Updated on Fri Aug 19 17:30:11 2016
 
+from __future__ import division, print_function
 
-
-from __future__ import division
-from __future__ import print_function
-
-from builtins import str
-from builtins import range
 from past.utils import old_div
 import cv2
 import os
@@ -32,9 +27,7 @@ import sklearn
 import warnings
 import numpy as np
 import scipy as sp
-from sklearn.decomposition import NMF
-from sklearn.decomposition import incremental_pca , FastICA
-
+from sklearn.decomposition import NMF, incremental_pca , FastICA
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 import pylab as plt

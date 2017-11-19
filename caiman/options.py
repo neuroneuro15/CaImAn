@@ -17,8 +17,7 @@ See Also:
 #\copyright GNU General Public License v2.0
 #\date Created on Sat Sep 12 15:52:53 2015
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 import numpy as np
 import caiman as cm

@@ -17,13 +17,10 @@ See Also:
 
 
 from __future__ import division
-from builtins import range
 import numpy as np
 from scipy.ndimage.filters import convolve
 import cv2
 from caiman.source_extraction.cnmf.pre_processing import get_noise_fft, get_noise_fft_parallel
-import pdb
-#%%
 
 
 def max_correlation_image(Y, bin_size=1000, eight_neighbours=True, swap_dim=True):

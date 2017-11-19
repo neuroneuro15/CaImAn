@@ -4,16 +4,12 @@ Created on Thu Oct 20 11:33:35 2016
 
 @author: agiovann
 """
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
+
 from past.builtins import basestring
-from builtins import map
-from builtins import str
-from builtins import range
 from past.utils import old_div
 import numpy as np
 import os
-
 import caiman as cm
 
 try:

@@ -18,15 +18,12 @@ See Also:
 #\date Created on Tue Jun 30 21:01:17 2015
 
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 import shutil
 import tempfile
 
 import numpy as np
-from builtins import map
-from builtins import range
 from ...mmapping import load_memmap
 from past.builtins import basestring
 from past.utils import old_div

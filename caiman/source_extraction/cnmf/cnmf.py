@@ -21,11 +21,8 @@ See Also:
 #\copyright GNU General Public License v2.0
 #\date Created on Fri Aug 26 15:44:32 2016
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
-from builtins import str
-from builtins import object
 import numpy as np
 from .utilities import CNMFSetParms, update_order, normalize_AC, compute_residuals
 from .pre_processing import preprocess_data

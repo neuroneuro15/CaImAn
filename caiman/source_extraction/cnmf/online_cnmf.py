@@ -1,10 +1,5 @@
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 from past.builtins import basestring
-from builtins import zip
-from builtins import map
-from builtins import str
-from builtins import range
 from past.utils import old_div
 import numpy as np
 

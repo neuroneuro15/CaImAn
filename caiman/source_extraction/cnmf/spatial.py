@@ -4,14 +4,10 @@ Created on Wed Aug 05 20:38:27 2015
 # -*- coding: utf-8 -*-
 @author: agiovann
 """
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
+
 # noinspection PyCompatibility
 from past.builtins import basestring
-from builtins import zip
-from builtins import map
-from builtins import str
-from builtins import range
 from past.utils import old_div
 import numpy as np
 from scipy.sparse import coo_matrix, csc_matrix, csr_matrix

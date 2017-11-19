@@ -4,17 +4,12 @@ Created on Thu Oct 22 13:22:26 2015
 
 @author: agiovann
 """
-from __future__ import division
-from __future__ import print_function
-#%%
-from builtins import map
-from builtins import zip
-from builtins import str
-from builtins import range
+from __future__ import division, print_function
+
 from past.utils import old_div
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage import label,center_of_mass
-from skimage.morphology import remove_small_objects, opening, remove_small_holes, closing, dilation
+from skimage.morphology import remove_small_objects, opening, remove_small_holes, closing, dilation, watershed
 import scipy 
 import numpy as np
 import cv2
@@ -22,7 +17,6 @@ import time
 from scipy.optimize import linear_sum_assignment   
 import json
 from skimage.filters import sobel
-from skimage.morphology import watershed
 from scipy import ndimage as ndi
 from skimage.draw import polygon
 import pylab as pl

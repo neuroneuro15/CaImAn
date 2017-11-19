@@ -4,16 +4,17 @@ Created on Thu Oct 20 13:49:57 2016
 
 @author: agiovann
 """
-from __future__ import division
-from __future__ import print_function
-from builtins import range
+from __future__ import division, print_function
+
 from past.utils import old_div
+import numpy as np
+
 try:
     import numba
-except:
+except ImportError:
     print("numba not found")
 
-import numpy as np    
+
 
 #%%
 def mode_robust_fast(inputData,axis=None):

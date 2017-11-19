@@ -10,11 +10,8 @@ Created on Fri Aug 26 15:44:32 2016
  
 
 """
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
-from builtins import str
-from builtins import object
 from past.utils import old_div
 import numpy as np
 from .utilities import local_correlations, CNMFSetParms, order_components,evaluate_components

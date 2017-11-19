@@ -6,12 +6,8 @@ Created on Wed Mar 16 16:31:55 2016
 
 @author: agiovann
 """
+from __future__ import division, print_function
 
-from __future__ import division
-from __future__ import print_function
-#%%
-from builtins import zip
-from builtins import range
 from past.utils import old_div
 import caiman as cm
 import numpy as np

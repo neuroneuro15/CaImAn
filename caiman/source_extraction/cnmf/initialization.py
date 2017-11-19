@@ -13,9 +13,8 @@ liek ICA PCA, greedy roi
 #\date Created on Tue Jun 30 21:01:17 2015
 #\author: Eftychios A. Pnevmatikakis
 
-from __future__ import division
-from __future__ import print_function
-from builtins import range
+from __future__ import division, print_function
+
 from past.utils import old_div
 import numpy as np
 from sklearn.decomposition import NMF, FastICA

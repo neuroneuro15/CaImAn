@@ -25,9 +25,10 @@ import numpy as np
 import os
 from scipy.ndimage.filters import gaussian_filter
 try:
-    from urllib2 import urlopen as urlopen
-except:
-    from urllib.request import urlopen as urlopen
+    from urllib2 import urlopen
+except ImportError:
+    from urllib.request import urlopen
+
 try:  # python2
     import cPickle as pickle
 except ImportError:  # python3
