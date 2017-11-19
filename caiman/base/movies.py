@@ -45,11 +45,6 @@ from matplotlib import animation
 import pylab as pl
 from tqdm import tqdm
 from . import timeseries
-try:
-    import sima
-    HAS_SIMA = True
-except ImportError:
-    HAS_SIMA = False
 
 from skimage.transform import warp, AffineTransform
 from skimage.feature import match_template
