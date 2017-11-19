@@ -93,7 +93,7 @@ class trace(ts.Timeseries):
 
 
     def resample(self,fx=1,fy=1,fz=1,interpolation=cv2.INTER_AREA):  
-        raise Exception('Not Implemented. Look at Movie resize')
+        raise NotImplementedError("Not implemented yet.  For an alternative, check Movie.resize().")
 
 
     def plot(self, stacked=True, subtract_minimum=False, cmap=pl.cm.jet, **kwargs):
@@ -147,7 +147,7 @@ class trace(ts.Timeseries):
 
 
     def extract_epochs(self,trigs=None,tb=1,ta=1):
-        raise Exception('Not Implemented. Look at Movie resize')
+        raise NotImplementedError('extract_epochs not implemented yet. As an alternative, check at Movie.resize()')
 
 
 if __name__ == "__main__":

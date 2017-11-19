@@ -937,7 +937,7 @@ class Movie(ts.Timeseries):
         return self
 
     def resample(self):
-        print((1))
+        raise NotImplementedError
 
     def to_2D(self,order='F'):
         [T,d1,d2]=self.shape

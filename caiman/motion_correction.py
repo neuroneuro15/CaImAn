@@ -1239,8 +1239,7 @@ def register_translation(src_image, target_image, upsample_factor=1,
 
     # only 2D data makes sense right now
     if src_image.ndim != 2 and upsample_factor > 1:
-        raise NotImplementedError("Error: register_translation only supports "
-                                  "subpixel registration for 2D images")
+        raise NotImplementedError("Error: register_translation only supports subpixel registration for 2D images")
 
     # assume complex data is already in Fourier space
     if space.lower() == 'fourier':
