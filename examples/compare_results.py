@@ -28,7 +28,7 @@ from ipyparallel import Client
 import caiman as cm
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
+from caiman.rois import extract_binary_masks_blob
 from caiman.source_extraction import cnmf as cnmf
 
 
@@ -104,7 +104,7 @@ masks_cnmf=masks[idx_blob]
 #%%
 crd = plot_contours(A.tocsc()[:, idx_components], Cn, thr=0.9)
 #%%
-masks_ben=cm.base.rois.nf_read_roi_zip(ben_zip,dims)
+masks_ben= caiman.rois.nf_read_roi_zip(ben_zip, dims)
 if '.mat' in princeton_zip:
     aa = scipy.io.loadmat(princeton_zip) 
     try:
@@ -112,7 +112,7 @@ if '.mat' in princeton_zip:
     except:
         masks_princeton = aa['M'].transpose([2,0,1])*1.    
 else:
-    masks_princeton=cm.base.rois.nf_read_roi_zip(princeton_zip,dims)*1.
+    masks_princeton= caiman.rois.nf_read_roi_zip(princeton_zip, dims) * 1.
 #masks_ben_ci=cm.base.rois.nf_read_roi_zip(os.path.join(folder,ben_zip_ci),dims)
 
 ##%%
@@ -124,8 +124,8 @@ else:
 #images=np.array(images)
 Yr=np.array(Yr)
 #%%
-traces_ben = cm.base.rois.mask_to_2d(masks_ben).T.dot(Yr)
-traces_princeton = cm.base.rois.mask_to_2d(masks_princeton).T.dot(Yr)
+traces_ben = caiman.rois.mask_to_2d(masks_ben).T.dot(Yr)
+traces_princeton = caiman.rois.mask_to_2d(masks_princeton).T.dot(Yr)
 
 traces_ben=traces_ben-scipy.ndimage.percentile_filter(traces_ben,8,size=[1,old_div(np.shape(traces_ben)[-1],5)])
 traces_princeton=traces_princeton-scipy.ndimage.percentile_filter(traces_princeton,8,size=[1,old_div(np.shape(traces_princeton)[-1],5)])
@@ -166,21 +166,21 @@ masks_princeton=masks_princeton[fitness_princeton<thresh_noise]
 
 #%%
 pl.figure(figsize=(30,20))
-idx_tp_gt,idx_tp_comp, idx_fn, idx_fp_comp, performance =  cm.base.rois.nf_match_neurons_in_binary_masks(masks_ben,masks_cnmf,thresh_cost=.7, min_dist = 10, print_assignment= False,plot_results=True,Cn=Cn)
+idx_tp_gt,idx_tp_comp, idx_fn, idx_fp_comp, performance =  caiman.rois.nf_match_neurons_in_binary_masks(masks_ben, masks_cnmf, thresh_cost=.7, min_dist = 10, print_assignment= False, plot_results=True, Cn=Cn)
 masks_gt = masks_ben
 masks_comp = masks_cnmf
 comp_str = 'cnmf'
 pl.savefig('ben_cnmf.pdf')
 #%%
 pl.figure(figsize=(30,20))
-idx_tp_gt,idx_tp_comp, idx_fn, idx_fp_comp, performance =  cm.base.rois.nf_match_neurons_in_binary_masks(masks_ben,masks_princeton,thresh_cost=.7, min_dist = 10, print_assignment= False,plot_results=True,Cn=Cn)
+idx_tp_gt,idx_tp_comp, idx_fn, idx_fp_comp, performance =  caiman.rois.nf_match_neurons_in_binary_masks(masks_ben, masks_princeton, thresh_cost=.7, min_dist = 10, print_assignment= False, plot_results=True, Cn=Cn)
 masks_gt = masks_ben
 masks_comp = masks_princeton
 comp_str = 'manual'
 pl.savefig('ben_princeton.pdf')
 #%%
 pl.figure(figsize=(30,20))
-idx_tp_gt,idx_tp_comp, idx_fn, idx_fp_comp, performance =  cm.base.rois.nf_match_neurons_in_binary_masks(masks_princeton,masks_cnmf,thresh_cost=.7, min_dist = 10, print_assignment= False,plot_results=True,Cn=Cn)
+idx_tp_gt,idx_tp_comp, idx_fn, idx_fp_comp, performance =  caiman.rois.nf_match_neurons_in_binary_masks(masks_princeton, masks_cnmf, thresh_cost=.7, min_dist = 10, print_assignment= False, plot_results=True, Cn=Cn)
 masks_gt = masks_princeton
 masks_comp = masks_cnmf
 comp_str = 'cnmf'

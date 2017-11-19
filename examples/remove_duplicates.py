@@ -5,9 +5,10 @@ Created on Wed Jun 28 15:27:24 2017
 @author: epnevmatikakis
 """
 
-import numpy as np
-import caiman as cm
 import os
+
+import caiman as cm
+
 #%%
 
 foldernames  = ['/mnt/ceph/neuro/labeling/J115_2015-12-09_L01_ELS',
@@ -29,7 +30,7 @@ foldernames = ['/mnt/ceph/neuro/labeling/FINAL_NO_USED_FOR_CONSENSUS/neurofinder
 #%%
 
 import glob
-from caiman.base.rois import detect_duplicates, nf_merge_roi_zip, nf_read_roi_zip
+from caiman.rois import detect_duplicates, nf_merge_roi_zip, nf_read_roi_zip
 from shutil import copyfile
 #%%
 for fldname in foldernames:

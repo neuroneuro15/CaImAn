@@ -43,7 +43,7 @@ import scipy
 import copy
 
 from caiman.utils.utils import download_demo
-from caiman.base.rois import extract_binary_masks_blob
+from caiman.rois import extract_binary_masks_blob
 from caiman.utils.visualization import plot_contours, view_patches_bar
 from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.motion_correction import MotionCorrect
@@ -55,7 +55,7 @@ from caiman.tests.comparison import comparison
 from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
 
 import glob
-from caiman.base.rois import com
+from caiman.rois import com
 #from keras.preprocessing.image import ImageDataGenerator
 from caiman.utils.image_preprocessing_keras import ImageDataGenerator
 from sklearn.preprocessing import normalize

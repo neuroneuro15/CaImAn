@@ -12,13 +12,10 @@
 
 from __future__ import division
 from __future__ import print_function
-from builtins import zip
-from builtins import str
-from builtins import map
+
 from builtins import range
-from past.utils import old_div
+
 import cv2
-import glob
 
 try:
     cv2.setNumThreads(1)
@@ -40,24 +37,10 @@ import numpy as np
 import os
 import time
 import pylab as pl
-import psutil
-import sys
-from ipyparallel import Client
-from skimage.external.tifffile import TiffFile
-import scipy
-import copy
 
 from caiman.utils.utils import download_demo
-from caiman.base.rois import extract_binary_masks_blob
-from caiman.utils.visualization import plot_contours, view_patches_bar
-from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.motion_correction import MotionCorrect
-from caiman.components_evaluation import estimate_components_quality
 
-from caiman.components_evaluation import evaluate_components,evaluate_components_CNN
-
-from caiman.tests.comparison import comparison
-from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
 #%%
 params_movie = {'fname': ['example_movies/msCam13.tif'],
                'niter_rig': 1,

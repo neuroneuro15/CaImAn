@@ -23,7 +23,7 @@ from past.utils import old_div
 import numpy as np
 from scipy.sparse import spdiags, issparse, csc_matrix
 from .initialization import greedyROI
-from ...base.rois import com
+from caiman.rois import com
 import pylab as pl
 import scipy
 from ...mmapping import parallel_dot_product

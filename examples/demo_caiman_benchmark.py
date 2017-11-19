@@ -10,10 +10,12 @@ and https://github.com/agiovann/Constrained_NMF
 """
 from __future__ import division
 from __future__ import print_function
-#%%
-from builtins import str
+
 from builtins import range
+from builtins import str
+
 from past.utils import old_div
+
 try:
     if __IPYTHON__:
         # this is used for debugging purposes only. allows to reload classes when changed
@@ -40,7 +42,7 @@ pl.ion()
 import caiman as cm
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob_parallel
+from caiman.rois import extract_binary_masks_blob_parallel
 from caiman.source_extraction import cnmf as cnmf
 from caiman.mmapping import save_tif_to_mmap_online
 from caiman.motion_correction import motion_correct_online,motion_correct_online_multifile

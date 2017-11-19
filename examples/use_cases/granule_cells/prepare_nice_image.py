@@ -44,7 +44,7 @@ from ipyparallel import Client
 import caiman as cm
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
+from caiman.rois import extract_binary_masks_blob
 from caiman.source_extraction import cnmf as cnmf
 #%%
 #backend='SLURM'
@@ -248,8 +248,8 @@ min_radius = gSig[0] - 2
 #    minCircularity=0.5, minInertiaRatio=0.2, minConvexity=.7)
 
 #% LOOK FOR BLOB LIKE STRUCTURES!
-masks_ws, is_blob, is_non_blob = cm.base.rois.extract_binary_masks_blob_parallel(A.tocsc(), min_radius, dims, num_std_threshold=1,
-    minCircularity=0.1, minInertiaRatio=0.1, minConvexity=.1,dview=dview)    
+masks_ws, is_blob, is_non_blob = caiman.rois.extract_binary_masks_blob_parallel(A.tocsc(), min_radius, dims, num_std_threshold=1,
+                                                                                minCircularity=0.1, minInertiaRatio=0.1, minConvexity=.1, dview=dview)
 
 idx_blobs=np.where(is_blob)[0]
 idx_non_blobs=np.where(is_non_blob)[0]     

@@ -11,13 +11,12 @@ Created on Fri Aug 25 14:49:36 2017
 """
 from __future__ import division
 from __future__ import print_function
-from builtins import zip
-from builtins import str
-from builtins import map
-from builtins import range
-from past.utils import old_div
-import cv2
+
 import glob
+from builtins import range
+from builtins import str
+
+import cv2
 
 try:
     cv2.setNumThreads(1)
@@ -39,24 +38,12 @@ import numpy as np
 import os
 import time
 import pylab as pl
-import psutil
-import sys
-from ipyparallel import Client
-from skimage.external.tifffile import TiffFile
 import scipy
-import copy
 
-from caiman.utils.utils import download_demo
-from caiman.base.rois import extract_binary_masks_blob
 from caiman.utils.visualization import plot_contours, view_patches_bar
 from caiman.source_extraction.cnmf import cnmf as cnmf
-from caiman.motion_correction import MotionCorrect
 from caiman.components_evaluation import estimate_components_quality
 from caiman.cluster import setup_cluster
-from caiman.components_evaluation import evaluate_components
-
-from caiman.tests.comparison import comparison
-from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
 
 #%%
 params_movie = {'fname': '/mnt/ceph/neuro/labeling/neurofinder.03.00.test/images/final_map/Yr_d1_498_d2_467_d3_1_order_C_frames_2250_.mmap',
@@ -747,7 +734,7 @@ with np.load(gt_file, encoding = 'latin1') as ld:
     except:
         fname_new = fname_new[()]        
     if all_matches:
-        roi_all_match = cm.base.rois.nf_read_roi_zip(glob.glob('/'.join(os.path.split(fname_new)[0].split('/')[:-2]+['regions/*nd_matches.zip']))[0],dims)
+        roi_all_match = caiman.rois.nf_read_roi_zip(glob.glob('/'.join(os.path.split(fname_new)[0].split('/')[:-2] + ['regions/*nd_matches.zip']))[0], dims)
 #        roi_1_match = cm.base.rois.nf_read_roi_zip('/mnt/ceph/neuro/labeling/neurofinder.02.00/regions/intermediate_regions/ben_active_regions_nd_natalia_active_regions_nd__sonia_active_regions_nd__lindsey_active_regions_nd_1_mismatches.zip',dims)
 #        roi_all_match = roi_1_match#np.concatenate([roi_all_match, roi_1_match],axis = 0)
         A_gt_thr = roi_all_match.transpose([1,2,0]).reshape((np.prod(dims),-1),order = 'F')
@@ -868,9 +855,9 @@ if plot_results:
 #                                                                              A_thr[:,idx_components].reshape([dims[0],dims[1],-1],order = 'F').transpose([2,0,1])*1.,thresh_cost=.7, min_dist = 10,
 #                                                                              print_assignment= False,plot_results=plot_results,Cn=Cn, labels = ['GT','Offline'])  
 
-tp_gt, tp_comp, fn_gt, fp_comp, performance_cons_off =  cm.base.rois.nf_match_neurons_in_binary_masks(A_gt_thr[:,:].reshape([dims[0],dims[1],-1],order = 'F').transpose([2,0,1])*1.,
-                                                                              A_thr[:,idx_components].reshape([dims[0],dims[1],-1],order = 'F').transpose([2,0,1])*1.,thresh_cost=.7, min_dist = 10,
-                                                                              print_assignment= False,plot_results=plot_results,Cn=Cn, labels = ['GT','Offline'])
+tp_gt, tp_comp, fn_gt, fp_comp, performance_cons_off =  caiman.rois.nf_match_neurons_in_binary_masks(A_gt_thr[:, :].reshape([dims[0], dims[1], -1], order ='F').transpose([2, 0, 1]) * 1.,
+                                                                              A_thr[:,idx_components].reshape([dims[0],dims[1],-1],order = 'F').transpose([2,0,1]) * 1., thresh_cost=.7, min_dist = 10,
+                                                                                                     print_assignment= False, plot_results=plot_results, Cn=Cn, labels = ['GT','Offline'])
 
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Arial',

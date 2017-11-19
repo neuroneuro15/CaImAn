@@ -33,7 +33,7 @@ pl.ion()
 import caiman as cm
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
+from caiman.rois import extract_binary_masks_blob
 from caiman.source_extraction import cnmf as cnmf
 from caiman.motion_correction import motion_correct_online
 from caiman.cluster import apply_to_patch

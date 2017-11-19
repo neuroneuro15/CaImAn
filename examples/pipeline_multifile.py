@@ -44,7 +44,7 @@ from caiman.motion_correction import tile_and_correct, motion_correction_piecewi
 from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
+from caiman.rois import extract_binary_masks_blob
 
 
 #%%

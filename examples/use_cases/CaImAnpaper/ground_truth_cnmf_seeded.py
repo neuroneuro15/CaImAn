@@ -14,13 +14,10 @@ Prepare ground truth built by matching with the results of CNMF
 """
 from __future__ import division
 from __future__ import print_function
-from builtins import zip
+
 from builtins import str
-from builtins import map
-from builtins import range
-from past.utils import old_div
+
 import cv2
-import glob
 
 try:
     cv2.setNumThreads(1)
@@ -40,26 +37,11 @@ except NameError:
 import caiman as cm
 import numpy as np
 import os
-import time
 import pylab as pl
-import psutil
-import sys
-from ipyparallel import Client
-from skimage.external.tifffile import TiffFile
 import scipy
-import copy
 
-from caiman.utils.utils import download_demo
-from caiman.base.rois import extract_binary_masks_blob
 from caiman.utils.visualization import plot_contours, view_patches_bar
 from caiman.source_extraction.cnmf import cnmf as cnmf
-from caiman.motion_correction import MotionCorrect
-from caiman.components_evaluation import estimate_components_quality
-
-from caiman.components_evaluation import evaluate_components
-
-from caiman.tests.comparison import comparison
-from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
 
 #%% neurofinder.03.00.test
 params_movie = {'fname': ['/mnt/ceph/neuro/labeling/neurofinder.03.00.test/images/final_map/Yr_d1_498_d2_467_d3_1_order_C_frames_2250_.mmap'],
@@ -415,8 +397,8 @@ print(roi_cons.shape)
 pl.imshow(roi_cons.sum(0))
 #%% compare CNMF sedded with ground truth
 pl.figure(figsize=(30,20))
-tp_gt, tp_comp, fn_gt, fp_comp, performance_cons_off =  cm.base.rois.nf_match_neurons_in_binary_masks(roi_cons,A_thr[:,:].reshape([dims[0],dims[1],-1],order = 'F').transpose([2,0,1])*1.,thresh_cost=.7, min_dist = 10,
-                                                                              print_assignment= False,plot_results=False,Cn=Cn, labels = ['GT','Offline'])
+tp_gt, tp_comp, fn_gt, fp_comp, performance_cons_off =  caiman.rois.nf_match_neurons_in_binary_masks(roi_cons, A_thr[:, :].reshape([dims[0], dims[1], -1], order ='F').transpose([2, 0, 1]) * 1., thresh_cost=.7, min_dist = 10,
+                                                                                                     print_assignment= False, plot_results=False, Cn=Cn, labels = ['GT','Offline'])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',

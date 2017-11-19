@@ -37,7 +37,7 @@ import caiman as cm
 from caiman.source_extraction import cnmf as cnmf
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours
-from caiman.base.rois import extract_binary_masks_blob
+from caiman.rois import extract_binary_masks_blob
 #%%
 fname='/mnt/ceph/neuro/labeling/k37_20160109_AM_150um_65mW_zoom2p2_00001_1-16/images/k37_20160109_AM_150um_65mW_zoom2p2_00001_00001.tif'
 #fname='/run/media/agiovann/ANDREA/k26_v1_176um_target_pursuit_002_013.tif'

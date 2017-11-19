@@ -36,7 +36,7 @@ import caiman as cm
 from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
+from caiman.rois import extract_binary_masks_blob
 
 #%%
 c,dview,n_processes = cm.cluster.setup_cluster(backend = 'local',n_processes = None,single_thread = True)

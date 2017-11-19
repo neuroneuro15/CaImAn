@@ -9,8 +9,6 @@ For explanation consult CaImAn documentation and
 
 """
 from __future__ import print_function
-from builtins import str
-from builtins import range
 
 try:
     if __IPYTHON__:
@@ -22,25 +20,14 @@ except NameError:
     print('Not IPYTHON')
     pass
 
-import sys
 import numpy as np
-import psutil
-import glob
-import os
-import scipy
-from ipyparallel import Client
 # mpl.use('Qt5Agg')
 import pylab as pl
 pl.ion()
 #%
 import caiman as cm
-from caiman.source_extraction.cnmf import cnmf as cnmf
-from caiman.components_evaluation import evaluate_components
-from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
 from caiman.behavior import behavior
 #%%
-from scipy.sparse import coo_matrix
 
 n_components = 3
 m = cm.load('./test.tif')

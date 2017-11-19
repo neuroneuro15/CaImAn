@@ -6,13 +6,14 @@ Created on Mon Nov 21 15:53:15 2016
 """
 from __future__ import division
 from __future__ import print_function
-#%%
-from builtins import zip
-from builtins import str
+
 from builtins import map
 from builtins import range
-from past.utils import old_div
+from builtins import str
+
 import cv2
+from past.utils import old_div
+
 try:
     cv2.setNumThreads(1)
 except:
@@ -29,7 +30,6 @@ except NameError:
     print('Not IPYTHON')
     pass
 
-import caiman as cm
 import numpy as np
 import time
 import pylab as pl
@@ -44,7 +44,7 @@ import caiman as cm
 from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
+
 
 #%% in parallel
 def tile_and_correct_wrapper(params):

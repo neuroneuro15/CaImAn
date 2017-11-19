@@ -8,11 +8,11 @@ Created on Mon Apr 24 09:54:35 2017
 #%%
 from __future__ import division
 from __future__ import print_function
-from builtins import zip
-from builtins import str
-from builtins import map
+
 from builtins import range
-from past.utils import old_div
+from builtins import str
+from builtins import zip
+
 import cv2
 
 try:
@@ -29,16 +29,14 @@ try:
 except NameError:
     print('Not IPYTHON')
     pass
-from caiman.base.rois import nf_read_roi_zip
-import os
+from caiman.rois import nf_read_roi_zip
 import numpy as np
 import pylab as pl
 import caiman as cm
 import scipy
 from caiman.source_extraction.cnmf import cnmf as cnmf
-from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
+
 #%%
 c,dview,n_processes = cm.cluster.setup_cluster(backend = 'local',n_processes = None,single_thread = False)
 #%%
@@ -219,8 +217,8 @@ print(roi_ds.shape)
 plot_results = False
 #%%
 pl.figure(figsize=(30,20))
-tp_gt, tp_comp, fn_gt, fp_comp, performance_cons_off =  cm.base.rois.nf_match_neurons_in_binary_masks(roi_cons,A_off_thr[:,:].reshape([dims_off[0],dims_off[1],-1],order = 'F').transpose([2,0,1])*1.,thresh_cost=.7, min_dist = 10,
-                                                                              print_assignment= False,plot_results=plot_results ,Cn=Cn, labels = ['Cons','Offline'])
+tp_gt, tp_comp, fn_gt, fp_comp, performance_cons_off =  caiman.rois.nf_match_neurons_in_binary_masks(roi_cons, A_off_thr[:, :].reshape([dims_off[0], dims_off[1], -1], order ='F').transpose([2, 0, 1]) * 1., thresh_cost=.7, min_dist = 10,
+                                                                                                     print_assignment= False, plot_results=plot_results, Cn=Cn, labels = ['Cons','Offline'])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',
@@ -229,8 +227,8 @@ pl.rc('font', **font)
 
 #%%
 pl.figure(figsize=(30,20))
-tp_gt, tp_comp, fn_gt, fp_comp, performance_rs_on =  cm.base.rois.nf_match_neurons_in_binary_masks(roi_rs,A_on_thr[:,:].reshape([dims_on[0],dims_on[1],-1],order = 'F').transpose([2,0,1])*1.,thresh_cost=.7, min_dist = 10,
-                                                                              print_assignment= False,plot_results=plot_results ,Cn=Cn, labels = ['RS','Online'])
+tp_gt, tp_comp, fn_gt, fp_comp, performance_rs_on =  caiman.rois.nf_match_neurons_in_binary_masks(roi_rs, A_on_thr[:, :].reshape([dims_on[0], dims_on[1], -1], order ='F').transpose([2, 0, 1]) * 1., thresh_cost=.7, min_dist = 10,
+                                                                                                  print_assignment= False, plot_results=plot_results, Cn=Cn, labels = ['RS','Online'])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',
@@ -238,8 +236,8 @@ font = {'family' : 'Myriad Pro',
 pl.rc('font', **font)
 #%%
 pl.figure(figsize=(30,20))
-_,_, _, _, performance_rs_off =  cm.base.rois.nf_match_neurons_in_binary_masks(roi_rs,A_off_thr[:,:].reshape([dims_off[0],dims_off[1],-1],order = 'F').transpose([2,0,1])*1.,
-                                                                               thresh_cost=.7, min_dist = 10, print_assignment= False ,plot_results=plot_results ,Cn=Cn, labels = ['RS','offline'])
+_,_, _, _, performance_rs_off =  caiman.rois.nf_match_neurons_in_binary_masks(roi_rs, A_off_thr[:, :].reshape([dims_off[0], dims_off[1], -1], order ='F').transpose([2, 0, 1]) * 1.,
+                                                                              thresh_cost=.7, min_dist = 10, print_assignment= False, plot_results=plot_results, Cn=Cn, labels = ['RS','offline'])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',
@@ -248,8 +246,8 @@ pl.rc('font', **font)
 
 #%%
 pl.figure(figsize=(30,20))
-tp_gt, tp_comp, fn_gt, fp_comp, performance_ds_on =  cm.base.rois.nf_match_neurons_in_binary_masks(roi_ds,A_on_thr[:,:].reshape([dims_on[0],dims_on[1],-1],order = 'F').transpose([2,0,1])*1.,thresh_cost=.7, min_dist = 10,
-                                                                              print_assignment= False,plot_results=plot_results ,Cn=Cn, labels = ['DS','Online'])
+tp_gt, tp_comp, fn_gt, fp_comp, performance_ds_on =  caiman.rois.nf_match_neurons_in_binary_masks(roi_ds, A_on_thr[:, :].reshape([dims_on[0], dims_on[1], -1], order ='F').transpose([2, 0, 1]) * 1., thresh_cost=.7, min_dist = 10,
+                                                                                                  print_assignment= False, plot_results=plot_results, Cn=Cn, labels = ['DS','Online'])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',
@@ -267,8 +265,8 @@ pl.rc('font', **font)
 
 #%%
 pl.figure(figsize=(30,20))
-_,_, _, _, performance_rcons_nf =  cm.base.rois.nf_match_neurons_in_binary_masks(roi_cons,roi_nf,
-                                                                               thresh_cost=.7, min_dist = 10, print_assignment= False,plot_results=plot_results ,Cn=Cn, labels = ['Cons','NeuroF'])
+_,_, _, _, performance_rcons_nf =  caiman.rois.nf_match_neurons_in_binary_masks(roi_cons, roi_nf,
+                                                                                thresh_cost=.7, min_dist = 10, print_assignment= False, plot_results=plot_results, Cn=Cn, labels = ['Cons','NeuroF'])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',
@@ -278,8 +276,8 @@ pl.rc('font', **font)
 
 #%%
 pl.figure(figsize=(30,20))
-_,_, _, _, performance_rs_bs =  cm.base.rois.nf_match_neurons_in_binary_masks(roi_rs,roi_bs,
-                                                                               thresh_cost=.7, min_dist = 10, print_assignment= False,plot_results=plot_results ,Cn=Cn, labels = ['RS','BS'])
+_,_, _, _, performance_rs_bs =  caiman.rois.nf_match_neurons_in_binary_masks(roi_rs, roi_bs,
+                                                                             thresh_cost=.7, min_dist = 10, print_assignment= False, plot_results=plot_results, Cn=Cn, labels = ['RS','BS'])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',
@@ -305,8 +303,8 @@ pl.rc('font', **font)
 #pl.rc('font', **font)
 #%%
 pl.figure(figsize=(30,20))
-_,_, _, _, performance_bs_on =  cm.base.rois.nf_match_neurons_in_binary_masks(roi_cons,A_on_thr[:,:].reshape([dims_on[0],dims_on[1],-1],order = 'F').transpose([2,0,1])*1.,thresh_cost=.7, min_dist = 10,
-                                                                              print_assignment= False,plot_results=plot_results ,Cn=Cn, labels = ['Consensus','Online'])
+_,_, _, _, performance_bs_on =  caiman.rois.nf_match_neurons_in_binary_masks(roi_cons, A_on_thr[:, :].reshape([dims_on[0], dims_on[1], -1], order ='F').transpose([2, 0, 1]) * 1., thresh_cost=.7, min_dist = 10,
+                                                                             print_assignment= False, plot_results=plot_results, Cn=Cn, labels = ['Consensus','Online'])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',
@@ -314,8 +312,8 @@ font = {'family' : 'Myriad Pro',
 pl.rc('font', **font)
 #%%
 pl.figure(figsize=(30,20))
-_,_, _, _, performance_bs_on =  cm.base.rois.nf_match_neurons_in_binary_masks(roi_bs,A_on_thr[:,:].reshape([dims_on[0],dims_on[1],-1],order = 'F').transpose([2,0,1])*1.,thresh_cost=.7, min_dist = 10,
-                                                                              print_assignment= False,plot_results=plot_results ,Cn=Cn, labels = ['BS','Online'])
+_,_, _, _, performance_bs_on =  caiman.rois.nf_match_neurons_in_binary_masks(roi_bs, A_on_thr[:, :].reshape([dims_on[0], dims_on[1], -1], order ='F').transpose([2, 0, 1]) * 1., thresh_cost=.7, min_dist = 10,
+                                                                             print_assignment= False, plot_results=plot_results, Cn=Cn, labels = ['BS','Online'])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',
@@ -323,8 +321,8 @@ font = {'family' : 'Myriad Pro',
 pl.rc('font', **font)
 #%%
 pl.figure(figsize=(30,20))
-_,_, _, _, performance_bs_off =  cm.base.rois.nf_match_neurons_in_binary_masks(roi_bs,A_off_thr[:,:].reshape([dims_off[0],dims_off[1],-1],order = 'F').transpose([2,0,1])*1.,
-                                                                               thresh_cost=.7, min_dist = 10, print_assignment= False,plot_results=True,Cn=Cn, labels = ['BS','offline'])
+_,_, _, _, performance_bs_off =  caiman.rois.nf_match_neurons_in_binary_masks(roi_bs, A_off_thr[:, :].reshape([dims_off[0], dims_off[1], -1], order ='F').transpose([2, 0, 1]) * 1.,
+                                                                              thresh_cost=.7, min_dist = 10, print_assignment= False, plot_results=True, Cn=Cn, labels = ['BS','offline'])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',
@@ -332,7 +330,7 @@ font = {'family' : 'Myriad Pro',
 pl.rc('font', **font)
 #%%
 pl.figure(figsize=(30,20))
-idx_tp_gt,idx_tp_comp, idx_fn, idx_fp_comp, performance_off_on =  cm.base.rois.nf_match_neurons_in_binary_masks(A_off_thr[:,:].reshape([dims_off[0],dims_off[1],-1],order = 'F').transpose([2,0,1])*1.,A_on_thr[:,:].reshape([dims_on[0],dims_on[1],-1],order = 'F').transpose([2,0,1])*1.,thresh_cost=.7, min_dist = 10, print_assignment= False,plot_results=True,Cn=Cn, labels = ['online','offline'])
+idx_tp_gt,idx_tp_comp, idx_fn, idx_fp_comp, performance_off_on =  caiman.rois.nf_match_neurons_in_binary_masks(A_off_thr[:, :].reshape([dims_off[0], dims_off[1], -1], order ='F').transpose([2, 0, 1]) * 1., A_on_thr[:, :].reshape([dims_on[0], dims_on[1], -1], order ='F').transpose([2, 0, 1]) * 1., thresh_cost=.7, min_dist = 10, print_assignment= False, plot_results=True, Cn=Cn, labels = ['online', 'offline'])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',

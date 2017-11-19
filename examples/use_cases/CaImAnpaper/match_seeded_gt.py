@@ -12,17 +12,15 @@
 """
 
 """
-from __future__ import division
-from __future__ import print_function
-from builtins import zip
-from builtins import str
-from builtins import map
-from builtins import range
-from past.utils import old_div
-import cv2
-import glob
+    from __future__ import division
+    from __future__ import print_function
 
-try:
+    from builtins import range
+    from builtins import str
+
+    import cv2
+
+    try:
     cv2.setNumThreads(1)
 except:
     print('Open CV is naturally single threaded')
@@ -42,26 +40,13 @@ import numpy as np
 import os
 import time
 import pylab as pl
-import psutil
-import sys
-from ipyparallel import Client
-from skimage.external.tifffile import TiffFile
-import scipy
-import copy
+    import scipy
 
-from caiman.utils.utils import download_demo
-from caiman.base.rois import extract_binary_masks_blob
-from caiman.utils.visualization import plot_contours, view_patches_bar
+    from caiman.utils.visualization import plot_contours, view_patches_bar
 from caiman.source_extraction.cnmf import cnmf as cnmf
-from caiman.motion_correction import MotionCorrect
-from caiman.components_evaluation import estimate_components_quality
+    from caiman.components_evaluation import estimate_components_quality
 
-from caiman.components_evaluation import evaluate_components
-
-from caiman.tests.comparison import comparison
-from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
-
-#%%
+    #%%
 params_movie = {'fname': '/mnt/ceph/neuro/labeling/neurofinder.03.00.test/images/final_map/Yr_d1_498_d2_467_d3_1_order_C_frames_2250_.mmap',
                  'p': 1,  # order of the autoregressive system
                  'merge_thresh': 0.8,  # merging threshold, max correlation allow
@@ -411,9 +396,9 @@ dist_C = normalize(C_gt[idx_components_gt],axis = 1).dot(normalize(C[:],axis = 1
 dist_A = dist_A*(dist_A>0)
 
 pl.figure(figsize=(30,20))
-tp_gt, tp_comp, fn_gt, fp_comp, performance_cons_off =  cm.base.rois.nf_match_neurons_in_binary_masks(A_gt.toarray()[:,idx_components_gt].reshape([dims[0],dims[1],-1],order = 'F').transpose([2,0,1]),
-                                                                              A.toarray()[:,:].reshape([dims[0],dims[1],-1],order = 'F').transpose([2,0,1]),thresh_cost=.7, min_dist = 10,
-                                                                              print_assignment= False,plot_results=True,Cn=Cn, labels = ['GT','Offline'], D = [1 - dist_A*(dist_C>.8)])
+tp_gt, tp_comp, fn_gt, fp_comp, performance_cons_off =  caiman.rois.nf_match_neurons_in_binary_masks(A_gt.toarray()[:, idx_components_gt].reshape([dims[0], dims[1], -1], order ='F').transpose([2, 0, 1]),
+                                                                              A.toarray()[:,:].reshape([dims[0],dims[1],-1],order = 'F').transpose([2,0,1]), thresh_cost=.7, min_dist = 10,
+                                                                                                     print_assignment= False, plot_results=True, Cn=Cn, labels = ['GT','Offline'], D = [1 - dist_A*(dist_C>.8)])
 pl.rcParams['pdf.fonttype'] = 42
 font = {'family' : 'Myriad Pro',
         'weight' : 'regular',

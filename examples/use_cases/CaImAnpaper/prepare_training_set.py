@@ -8,13 +8,11 @@ Created on Wed Aug 23 18:08:25 2017
 
 from __future__ import division
 from __future__ import print_function
-from builtins import zip
+
 from builtins import str
-from builtins import map
-from builtins import range
-from past.utils import old_div
+from builtins import zip
+
 import cv2
-import glob
 
 try:
     cv2.setNumThreads(1)
@@ -34,29 +32,11 @@ except NameError:
 import caiman as cm
 import numpy as np
 import os
-import time
 import pylab as pl
-import psutil
-import sys
-from ipyparallel import Client
-from skimage.external.tifffile import TiffFile
 import scipy
-import copy
 
-from caiman.utils.utils import download_demo
-from caiman.base.rois import extract_binary_masks_blob
-from caiman.utils.visualization import plot_contours, view_patches_bar
-from caiman.source_extraction.cnmf import cnmf as cnmf
-from caiman.motion_correction import MotionCorrect
-from caiman.components_evaluation import estimate_components_quality
 from skimage.util.montage import montage2d
-from caiman.components_evaluation import evaluate_components
 
-from caiman.tests.comparison import comparison
-from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
-
-import glob
-from caiman.base.rois import com
 #from keras.preprocessing.image import ImageDataGenerator
 from sklearn.preprocessing import normalize
 #%% file name
@@ -101,9 +81,9 @@ for dc in inputs[:]:
     dist_A = dist_A*(dist_A>0)
     
     pl.figure(figsize=(30,20))
-    tp_gt, tp_comp, fn_gt, fp_comp, performance_cons_off =  cm.base.rois.nf_match_neurons_in_binary_masks(A_gt.toarray()[:,idx_components_gt].reshape([dims[0],dims[1],-1],order = 'F').transpose([2,0,1]),
-                                                                                  A.toarray()[:,:].reshape([dims[0],dims[1],-1],order = 'F').transpose([2,0,1]),thresh_cost=.7, min_dist = 10,
-                                                                                  print_assignment= False,plot_results=False,Cn=Cn, labels = ['GT','Offline'], D = [1 - dist_A*(dist_C>.8)])
+    tp_gt, tp_comp, fn_gt, fp_comp, performance_cons_off =  caiman.rois.nf_match_neurons_in_binary_masks(A_gt.toarray()[:, idx_components_gt].reshape([dims[0], dims[1], -1], order ='F').transpose([2, 0, 1]),
+                                                                                  A.toarray()[:,:].reshape([dims[0],dims[1],-1],order = 'F').transpose([2,0,1]), thresh_cost=.7, min_dist = 10,
+                                                                                                         print_assignment= False, plot_results=False, Cn=Cn, labels = ['GT','Offline'], D = [1 - dist_A*(dist_C>.8)])
     pl.rcParams['pdf.fonttype'] = 42
     font = {'family' : 'Myriad Pro',
             'weight' : 'regular',

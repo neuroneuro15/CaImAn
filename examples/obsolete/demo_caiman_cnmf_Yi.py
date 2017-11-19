@@ -9,9 +9,10 @@ and https://github.com/agiovann/Constrained_NMF
 
 """
 from __future__ import print_function
-#%%
-from builtins import str
+
 from builtins import range
+from builtins import str
+
 try:
     if __IPYTHON__:
         # this is used for debugging purposes only. allows to reload classes when changed
@@ -37,7 +38,6 @@ pl.ion()
 import caiman as cm
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
 from caiman.source_extraction import cnmf as cnmf
 #%%
 pl.close('all')
@@ -214,8 +214,8 @@ min_radius = gSig[0]
 #    minCircularity=0.5, minInertiaRatio=0.2, minConvexity=.7)
 
 #% LOOK FOR BLOB LIKE STRUCTURES!
-masks_ws, is_blob, is_non_blob = cm.base.rois.extract_binary_masks_blob_parallel(A.tocsc(), min_radius, dims, num_std_threshold=1,
-    minCircularity=0.5, minInertiaRatio=0.2, minConvexity=.7,dview=dview)    
+masks_ws, is_blob, is_non_blob = caiman.rois.extract_binary_masks_blob_parallel(A.tocsc(), min_radius, dims, num_std_threshold=1,
+                                                                                minCircularity=0.5, minInertiaRatio=0.2, minConvexity=.7, dview=dview)
 
 idx_blobs=np.where(is_blob)[0]
 idx_non_blobs=np.where(is_non_blob)[0]     
@@ -269,19 +269,9 @@ except NameError:
     print('Not IPYTHON')
     pass
 
-import sys
 import numpy as np
-import psutil
-import glob
-import os
 import scipy
-from ipyparallel import Client
 import caiman as cm
-from caiman.components_evaluation import evaluate_components
-from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
-from caiman.source_extraction import cnmf as cnmf
-
 
 import pylab as pl
 pl.ion()    

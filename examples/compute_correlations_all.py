@@ -7,13 +7,11 @@ Created on Fri Jun  2 16:27:17 2017
 """
 from __future__ import division
 from __future__ import print_function
-from builtins import zip
-from builtins import str
-from builtins import map
+
 from builtins import range
-from past.utils import old_div
+
 import cv2
-import glob
+
 try:
     cv2.setNumThreads(1)
 except:
@@ -30,26 +28,12 @@ except NameError:
     print('Not IPYTHON')
     pass
 
-import caiman as cm
 import numpy as np
 import os
-import glob
-import time
 import pylab as pl
-import psutil
-import sys
-from ipyparallel import Client
-from skimage.external.tifffile import TiffFile
-import scipy
 
-
-from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
-from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.motion_correction import MotionCorrect
-from caiman.components_evaluation import evaluate_components
-from caiman.utils.visualization import plot_contours, view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
-from caiman.utils.utils import download_demo
+
 #%%
 
 fls_1 = ['neurofinder.00.00',

@@ -6,12 +6,13 @@ Created on Mon Nov 21 15:53:15 2016
 """
 from __future__ import division
 from __future__ import print_function
-from builtins import zip
-from builtins import str
-from builtins import map
+
 from builtins import range
-from past.utils import old_div
+from builtins import str
+from builtins import zip
+
 import cv2
+
 try:
     cv2.setNumThreads(1)
 except:
@@ -34,18 +35,13 @@ import os
 import glob
 import time
 import pylab as pl
-import psutil
-import sys
-from ipyparallel import Client
-from skimage.external.tifffile import TiffFile
 import scipy
 #%%
-from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
+from caiman.motion_correction import tile_and_correct
 from caiman.source_extraction.cnmf import cnmf as cnmf
 from caiman.motion_correction import MotionCorrect
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours, view_patches_bar
-from caiman.base.rois import extract_binary_masks_blob
 from caiman.utils.utils import download_demo
 #%%
 #m = cm.load('example_movies/demoMovie.tif')

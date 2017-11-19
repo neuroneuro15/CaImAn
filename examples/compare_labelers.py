@@ -10,11 +10,7 @@ Compare the performance of different labelers
 #%%
 from __future__ import division
 from __future__ import print_function
-from builtins import zip
-from builtins import str
-from builtins import map
-from builtins import range
-from past.utils import old_div
+
 import cv2
 
 try:
@@ -31,12 +27,12 @@ try:
 except NameError:
     print('Not IPYTHON')
     pass
-from caiman.base.rois import nf_read_roi_zip
+from caiman.rois import nf_read_roi_zip
 import os
 import numpy as np
 import pylab as pl
 import caiman as cm
-from caiman.motion_correction import MotionCorrect
+
 #%%
 #files = {'/mnt/ceph/neuro/FromLabelers/To_be_labelled/Packer/',
 #'/mnt/ceph/neuro/FromLabelers/To_be_labelled/Yuste/',
@@ -138,7 +134,7 @@ for count,par in enumerate(params):
 
         labels = [rrgg.replace('regions','').replace('/','').replace('.zip','') for rrgg in region_pairs]
 #        pl.figure(figsize=(30,20))
-        idx_tp_gt,idx_tp_comp, idx_fn, idx_fp_comp, performance =  cm.base.rois.nf_match_neurons_in_binary_masks(roi_nat,roi_lin,thresh_cost=.7, min_dist = 10, print_assignment= False,plot_results=plot_movie,Cn=c_img,labels = labels)
+        idx_tp_gt,idx_tp_comp, idx_fn, idx_fp_comp, performance =  caiman.rois.nf_match_neurons_in_binary_masks(roi_nat, roi_lin, thresh_cost=.7, min_dist = 10, print_assignment= False, plot_results=plot_movie, Cn=c_img, labels = labels)
         result[region_pairs]={'GTidx':idx_tp_gt,'COMP_idx':idx_tp_comp, 'idx_fn':idx_fn, 'idx_fp_comp':idx_fp_comp, 'performance':performance}
         fig_name = (par[0]+'-' +region_pairs[0]+ '_' + region_pairs[1]).replace('/','_').replace('regions.zip','-').replace('.','_')+'.pdf'
         if plot_movie:
