@@ -3,7 +3,7 @@
 
 This file contains
 
-We put arrays o   qwn disk as raw bytes, extending along the first dimension.
+We put arrays on disk as raw bytes, extending along the first dimension.
 Alongside each array x we ensure the value x.dtype which stores the string
 Description h
 
@@ -49,7 +49,8 @@ def get_patches_from_image(img,shapes,overlaps):
             imgs[idx_0,idx_1] = img[count_1[0],count_1[1]]
 
     return imgs, coords_2d
-#%%
+
+
 def extract_patch_coordinates_old(d1,d2,rf=(7,7),stride = (2,2)):
     """
     Function that partition the FOV in patches
@@ -90,7 +91,8 @@ def extract_patch_coordinates_old(d1,d2,rf=(7,7),stride = (2,2)):
             coords_flat.append(coords_.flatten())
 
     return coords_flat,coords_2d
-#%%
+
+
 def extract_patch_coordinates(dims, rf, stride, border_pix = 0):
     """
     Function that partition the FOV in patches
@@ -157,7 +159,6 @@ def extract_patch_coordinates(dims, rf, stride, border_pix = 0):
     return map(np.sort, coords_flat), shapes
 
 
-#%%
 def apply_to_patch(mmap_file, shape, dview, rf , stride , function, *args, **kwargs):
     """
     apply function to patches in parallel or not
@@ -234,7 +235,8 @@ def apply_to_patch(mmap_file, shape, dview, rf , stride , function, *args, **kwa
 
         file_res = list(map(function_place_holder, args_in))
     return file_res, idx_flat, shape_grid
-#%%
+
+
 def function_place_holder(args_in):
     #todo: todocument
 
@@ -255,7 +257,7 @@ def function_place_holder(args_in):
 
     return res_fun
 
-#%%
+
 def start_server(slurm_script=None, ipcluster="ipcluster", ncpus = None):
     """
     programmatically start the ipyparallel server
@@ -303,7 +305,6 @@ def start_server(slurm_script=None, ipcluster="ipcluster", ncpus = None):
         sys.stdout.write(" done\n")
 
 
-#%%
 def shell_source(script):
     """Sometime you want to emulate the action of "source"
 
@@ -318,7 +319,6 @@ def shell_source(script):
             env[lsp[0]] = lsp[1]
     os.environ.update(env)
     pipe.stdout.close()
-#%%
 
 
 def stop_server(ipcluster='ipcluster',pdir=None,profile=None, dview = None):
@@ -390,7 +390,8 @@ def stop_server(ipcluster='ipcluster',pdir=None,profile=None, dview = None):
             proc.stderr.close()
 
     sys.stdout.write(" done\n")
-#%%
+
+
 def setup_cluster(backend = 'multiprocessing',n_processes = None,single_thread = False):
     """ Restart if necessary the pipyparallel cluster, and manages the case of SLURM
 
@@ -441,46 +442,45 @@ def setup_cluster(backend = 'multiprocessing',n_processes = None,single_thread =
     return c,dview,n_processes
 
 
-# %%
-"""
-def extract_rois_patch(file_name,d1,d2,rf=5,stride = 5):
 
-    #todo: todocument
-
-    idx_flat,idx_2d=extract_patch_coordinates(d1, d2, rf=rf,stride = stride)
-    perctl=95
-    n_components=2
-    tol=1e-6
-    max_iter=5000
-    args_in=[]
-    for id_f,id_2d in zip(idx_flat[:],idx_2d[:]):
-        args_in.append((file_name, id_f,id_2d, perctl,n_components,tol,max_iter))
-    st=time.time()
-    print((len(idx_flat)))
-    try:
-        c = Client()
-        dview=c[:]
-        file_res = dview.map_sync(nmf_patches, args_in)
-    except:
-            file_res = list(map(nmf_patches, args_in))
-    finally:
-        dview.results.clear()
-        c.purge_results('all')
-        c.purge_everything()
-        c.close()
-
-    print((time.time()-st))
-
-    A1=lil_matrix((d1*d2,len(file_res)))
-    C1=[]
-    A2=lil_matrix((d1*d2,len(file_res)))
-    C2=[]
-    for count,f in enumerate(file_res):
-        idx_,flt,ca,d=f
-        A1[idx_,count]=flt[:,0][:,np.newaxis]
-        A2[idx_,count]=flt[:,1][:,np.newaxis]
-        C1.append(ca[0,:])
-        C2.append(ca[1,:])
-
-    return A1,A2,C1,C2
-"""
+#
+# def extract_rois_patch(file_name,d1,d2,rf=5,stride = 5):
+#
+#     #todo: todocument
+#
+#     idx_flat,idx_2d=extract_patch_coordinates(d1, d2, rf=rf,stride = stride)
+#     perctl=95
+#     n_components=2
+#     tol=1e-6
+#     max_iter=5000
+#     args_in=[]
+#     for id_f,id_2d in zip(idx_flat[:],idx_2d[:]):
+#         args_in.append((file_name, id_f,id_2d, perctl,n_components,tol,max_iter))
+#     st=time.time()
+#     print((len(idx_flat)))
+#     try:
+#         c = Client()
+#         dview=c[:]
+#         file_res = dview.map_sync(nmf_patches, args_in)
+#     except:
+#             file_res = list(map(nmf_patches, args_in))
+#     finally:
+#         dview.results.clear()
+#         c.purge_results('all')
+#         c.purge_everything()
+#         c.close()
+#
+#     print((time.time()-st))
+#
+#     A1=lil_matrix((d1*d2,len(file_res)))
+#     C1=[]
+#     A2=lil_matrix((d1*d2,len(file_res)))
+#     C2=[]
+#     for count,f in enumerate(file_res):
+#         idx_,flt,ca,d=f
+#         A1[idx_,count]=flt[:,0][:,np.newaxis]
+#         A2[idx_,count]=flt[:,1][:,np.newaxis]
+#         C1.append(ca[0,:])
+#         C2.append(ca[1,:])
+#
+#     return A1,A2,C1,C2
