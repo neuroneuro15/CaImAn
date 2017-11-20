@@ -100,7 +100,7 @@ def extract_patch_coordinates(dims, rf, stride, border_pix = 0):
     return map(np.sort, coords_flat), shapes
 
 
-def apply_to_patch(mmap_file, shape, dview, rf , stride , function, *args, **kwargs):
+def apply_to_patch(mmap_file, shape, dview, rf, stride, function, *args_in, **kwargs):
     """
     apply function to patches in parallel or not
 
@@ -132,49 +132,26 @@ def apply_to_patch(mmap_file, shape, dview, rf , stride , function, *args, **kwa
     Exception('Something went wrong')
 
     """
-    (T,d1,d2)=shape
-    d=d1*d2
+    T, d1, d2 = shape
+    rf1, rf2 = (rf, rf) if np.isscalar(rf) else rf
+    stride1, stride2 = (stride, stride) if np.isscalar(stride) else stride
 
-    if not np.isscalar(rf):
-        rf1,rf2=rf
-    else:
-        rf1=rf
-        rf2=rf
+    idx_flat, idx_2d = extract_patch_coordinates(dims=(d1, d2), rf=(rf1, rf2), stride=(stride1, stride2))
 
-    if not np.isscalar(stride):
-        stride1,stride2=stride
-    else:
-        stride1=stride
-        stride2=stride
+    # todo: simplify shape_grid assignment.  This series of conditionals is a bit confusing.
+    shape_grid = tuple(np.ceil((d1 * 1. / (rf1 * 2 - stride1), d2 * 1. / (rf2 * 2 - stride2))).astype(np.int))
+    if d1 <= rf1 * 2:
+        shape_grid = (1, shape_grid[1])
+    if d2 <= rf2 * 2:
+        shape_grid = (shape_grid[0], 1)
 
-    idx_flat,idx_2d=extract_patch_coordinates(d1, d2, rf=(rf1,rf2), stride = (stride1,stride2))
-
-    shape_grid = tuple(np.ceil((d1*1./(rf1*2-stride1),d2*1./(rf2*2-stride2))).astype(np.int))
-    if d1 <= rf1*2:
-        shape_grid = (1,shape_grid[1])
-    if d2 <= rf2*2:
-        shape_grid = (shape_grid[0],1)
-
-    print(shape_grid)
-
-    args_in=[]
-
-    for id_f,id_2d in zip(idx_flat[:],idx_2d[:]):
-
-        args_in.append((mmap_file.filename, id_f,id_2d, function, args, kwargs))
-    print((len(idx_flat)))
+    args_in = [(mmap_file.filename, id_f, id_2d, function, args_in, kwargs) for id_f, id_2d in zip(idx_flat[:], idx_2d[:])]
     if dview is not None:
-        try:
-            file_res = dview.map_sync(function_place_holder, args_in)
-            dview.results.clear()
-
-        except:
-            raise Exception('Something went wrong')
-        finally:
-            print('You may think that it went well but reality is harsh')
+        file_res = dview.map_sync(function_place_holder, args_in)
+        dview.results.clear()
     else:
-
         file_res = list(map(function_place_holder, args_in))
+
     return file_res, idx_flat, shape_grid
 
 
