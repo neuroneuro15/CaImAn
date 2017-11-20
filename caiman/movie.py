@@ -96,14 +96,9 @@ class Movie(np.ndarray):
 
     def __array_prepare__(self, out_arr, context):
         """Checks that frame rate value given makes sense."""
-        frame_rates, start_times = set(), set()
-        for input in context[1]:
-            if isinstance(input, self.__class__):
-                frame_rates.add(input.fr)
-                start_times.add(input.start_time)
-        if len(frame_rates) > 1:
+        if len(set(input.fr for input in context[1] if isinstance(input, self.__class__))) > 1:
             raise ValueError("Frame rates of input vectors must all match each other.")
-        if len(start_times) > 1:
+        if len(set(input.start_time for input in context[1] if isinstance(input, self.__class__))) > 1:
             warnings.warn('start_time of input vectors do not match each other.', UserWarning)
 
         super(self.__class__, self).__array_prepare__(out_arr, context)
