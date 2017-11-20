@@ -30,12 +30,12 @@ import scipy as sp
 from sklearn.decomposition import NMF, incremental_pca , FastICA
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
-import pylab as plt
+import matplotlib.pyplot as plt
 import h5py
 import pickle
 from scipy.io import loadmat
 from matplotlib import animation
-import pylab as pl
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 from caiman.base import timeseries
 
@@ -796,15 +796,15 @@ class Movie(np.ndarray):
                 rho = si.local_correlations(np.array(self[mv*frames_per_chunk:(mv+1)*frames_per_chunk]),
                                             eight_neighbours=eight_neighbours, swap_dim=swap_dim)
                 Cn = np.maximum(Cn,rho)    
-                pl.imshow(Cn,cmap='gray')  
-                pl.pause(.1)
+                plt.imshow(Cn,cmap='gray')
+                plt.pause(.1)
             
             print('number of chunks:' + str(n_chunks-1) + ' frames: ' + str([(n_chunks-1)*frames_per_chunk,T]))
             rho = si.local_correlations(np.array(self[(n_chunks-1)*frames_per_chunk:]), eight_neighbours=eight_neighbours,
                                         swap_dim=swap_dim)
             Cn = np.maximum(Cn,rho)    
-            pl.imshow(Cn,cmap='gray')  
-            pl.pause(.1)
+            plt.imshow(Cn,cmap='gray')
+            plt.pause(.1)
             
 
         return Cn
@@ -1002,7 +1002,7 @@ class Movie(np.ndarray):
         d=d1*d2
         return np.reshape(self,(T,d),order=order)
 
-    def zproject(self,method='mean',cmap=pl.cm.gray,aspect='auto',**kwargs):
+    def zproject(self,method='mean',cmap=plt.cm.gray,aspect='auto',**kwargs):
         """
         Compute and plot projection across time:
 
@@ -1027,7 +1027,7 @@ class Movie(np.ndarray):
             zp=np.std(self,axis=0)
         else:
             raise Exception('Method not implemented')
-        pl.imshow(zp,cmap=cmap,aspect=aspect,**kwargs)
+        plt.imshow(zp,cmap=cmap,aspect=aspect,**kwargs)
         return zp
 
     def local_correlations_movie(self,window=10):
@@ -1036,7 +1036,7 @@ class Movie(np.ndarray):
             eight_neighbours=True)[np.newaxis, :, :] for j in range(T-window)], axis=0), fr=self.fr)
 
 
-    def plot_trace(self, stacked=True, subtract_minimum=False, cmap=pl.cm.jet, **kwargs):
+    def plot_trace(self, stacked=True, subtract_minimum=False, cmap=plt.cm.jet, **kwargs):
         """Plot the data as a trace (Note: experimental method, may not work quite right yet.)
 
         author: ben deverett
@@ -1050,7 +1050,7 @@ class Movie(np.ndarray):
             subtract minimum from each individual trace
 
         cmap : matplotlib.LinearSegmentedColormap
-            color map for display. Options are found in pl.colormaps(), and are accessed as pl.cm.my_favourite_map
+            color map for display. Options are found in plt.colormaps(), and are accessed as plt.cm.my_favourite_map
 
         kwargs : dict
             any arguments accepted by matplotlib.plot
@@ -1064,7 +1064,7 @@ class Movie(np.ndarray):
         if len(d.shape)>1:
             n = d.shape[1]
 
-        ax = pl.gca()
+        ax = plt.gca()
 
         colors = cmap(np.linspace(0, 1, n))
         ax.set_color_cycle(colors)
@@ -1082,7 +1082,7 @@ class Movie(np.ndarray):
         ax2.set_yticklabels([str(i) for i in range(n)], weight='bold')
         [l.set_color(c) for l,c in zip(ax2.get_yticklabels(), colors)]
 
-        pl.gcf().canvas.draw()
+        plt.gcf().canvas.draw()
         return ax
 
 
@@ -1105,13 +1105,13 @@ class Movie(np.ndarray):
          Exception('Unknown backend!')
         """
         # todo: todocument
-        if backend is 'pylab':
+        if backend is 'matplotlib':
             print('*** WARNING *** SPEED MIGHT BE LOW. USE opencv backend if available')
 
         gain*=1.
         maxmov=np.nanmax(self)
 
-        if backend is 'pylab':
+        if backend is 'matplotlib':
             plt.ion()
             fig = plt.figure( 1 )
             ax = fig.add_subplot( 111 )
@@ -1161,7 +1161,7 @@ class Movie(np.ndarray):
                         break
 
                 
-                elif backend is 'pylab':
+                elif backend is 'matplotlib':
 
                     im.set_data((offset+frame)*gain/maxmov)
                     ax.set_title( str( iddxx ) )

@@ -43,7 +43,7 @@ from __future__ import division, print_function
 from past.builtins import basestring
 from past.utils import old_div
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 import cv2 
 
 import collections
@@ -232,8 +232,8 @@ class MotionCorrect(object):
              print('generating template by rigid motion correction')
              self = self.motion_correct_rigid()   
              self.total_template_els = self.total_template_rig.copy()
-#             pl.imshow(self.total_template_els)        
-#             pl.pause(1)
+#             plt.imshow(self.total_template_els)
+#             plt.pause(1)
         else:
              self.total_template_els = template
             
@@ -246,8 +246,8 @@ class MotionCorrect(object):
                 num_splits_to_process = num_splits_to_process, num_iter = num_iter, template =  self.total_template_els,
                 shifts_opencv = self.shifts_opencv, save_movie = save_movie, nonneg_movie = self.nonneg_movie, gSig_filt=self.gSig_filt)
             if show_template:
-                pl.imshow(new_template_els)
-                pl.pause(.5)
+                plt.imshow(new_template_els)
+                plt.pause(.5)
             if np.isnan(np.sum(new_template_els)):
                 raise Exception('Template contains NaNs, something went wrong. Reconsider the parameters')
                 
@@ -486,9 +486,9 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
                     template = np.median(buffer_templates,0)
 
                 if show_template:
-                    pl.cla()
-                    pl.imshow(template,cmap='gray',vmin=250,vmax=350,interpolation='none')
-                    pl.pause(.001)
+                    plt.cla()
+                    plt.imshow(template,cmap='gray',vmin=250,vmax=350,interpolation='none')
+                    plt.pause(.001)
 
                 print(('Relative change in template:' + str(
                     old_div(np.sum(np.abs(template-template_old)),np.sum(np.abs(template))))))
@@ -1802,20 +1802,20 @@ def compute_metrics_motion_correction(fname,final_size_x,final_size_y, swap_dim,
         flow = cv2.calcOpticalFlowFarneback(tmpl,fr,None,pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
         
         if play_flow:
-            pl.subplot(1,3,1)    
-            pl.cla()    
-            pl.imshow(fr,vmin = 0, vmax = 300, cmap = 'gray' )       
-            pl.title('Movie')
-            pl.subplot(1,3,3)    
-            pl.cla()    
-            pl.imshow(flow[:,:,1],vmin=vmin,vmax=vmax)       
-            pl.title('y_flow')
+            plt.subplot(1,3,1)
+            plt.cla()
+            plt.imshow(fr,vmin = 0, vmax = 300, cmap = 'gray' )
+            plt.title('Movie')
+            plt.subplot(1,3,3)
+            plt.cla()
+            plt.imshow(flow[:,:,1],vmin=vmin,vmax=vmax)
+            plt.title('y_flow')
             
-            pl.subplot(1,3,2)    
-            pl.cla()    
-            pl.imshow(flow[:,:,0],vmin=vmin,vmax=vmax)       
-            pl.title('x_flow')
-            pl.pause(.05)
+            plt.subplot(1,3,2)
+            plt.cla()
+            plt.imshow(flow[:,:,0],vmin=vmin,vmax=vmax)
+            plt.title('x_flow')
+            plt.pause(.05)
             
             
         n = np.linalg.norm(flow)

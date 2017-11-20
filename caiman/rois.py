@@ -19,7 +19,7 @@ import json
 from skimage.filters import sobel
 from scipy import ndimage as ndi
 from skimage.draw import polygon
-import pylab as pl
+import matplotlib.pyplot as plt
 import zipfile
 import tempfile
 import shutil
@@ -247,30 +247,30 @@ def nf_match_neurons_in_binary_masks(masks_gt,masks_comp,thresh_cost=.7, min_dis
 
     if plot_results:
         try : #Plotting function
-            pl.rcParams['pdf.fonttype'] = 42
+            plt.rcParams['pdf.fonttype'] = 42
             font = {'family' : 'Myriad Pro',
                     'weight' : 'regular',
                     'size'   : 10}
-            pl.rc('font', **font)
+            plt.rc('font', **font)
             lp,hp = np.nanpercentile(Cn,[5,95])
-            pl.subplot(1,2,1)
-            pl.imshow(Cn,vmin=lp,vmax=hp, cmap = cmap)
-            [pl.contour(norm_nrg(mm),levels=[level],colors='w',linewidths=1) for mm in masks_comp[idx_tp_comp]]
-            [pl.contour(norm_nrg(mm),levels=[level],colors='r',linewidths=1) for mm in masks_gt[idx_tp_gt]] 
+            plt.subplot(1,2,1)
+            plt.imshow(Cn,vmin=lp,vmax=hp, cmap = cmap)
+            [plt.contour(norm_nrg(mm),levels=[level],colors='w',linewidths=1) for mm in masks_comp[idx_tp_comp]]
+            [plt.contour(norm_nrg(mm),levels=[level],colors='r',linewidths=1) for mm in masks_gt[idx_tp_gt]]
             if labels is None:
-                pl.title('MATCHES')
+                plt.title('MATCHES')
             else:
-                pl.title('MATCHES: '+labels[1]+'(w), ' + labels[0] + '(r)')
-            pl.axis('off')
-            pl.subplot(1,2,2)
-            pl.imshow(Cn,vmin=lp,vmax=hp, cmap = cmap)
-            [pl.contour(norm_nrg(mm),levels=[level],colors='w',linewidths=1) for mm in masks_comp[idx_fp_comp]] 
-            [pl.contour(norm_nrg(mm),levels=[level],colors='r',linewidths=1) for mm in masks_gt[idx_fn_gt]] 
+                plt.title('MATCHES: '+labels[1]+'(w), ' + labels[0] + '(r)')
+            plt.axis('off')
+            plt.subplot(1,2,2)
+            plt.imshow(Cn,vmin=lp,vmax=hp, cmap = cmap)
+            [plt.contour(norm_nrg(mm),levels=[level],colors='w',linewidths=1) for mm in masks_comp[idx_fp_comp]]
+            [plt.contour(norm_nrg(mm),levels=[level],colors='r',linewidths=1) for mm in masks_gt[idx_fn_gt]]
             if labels is None:
-                pl.title('FALSE POSITIVE (w), FALSE NEGATIVE (r)')
+                plt.title('FALSE POSITIVE (w), FALSE NEGATIVE (r)')
             else:
-                pl.title(labels[1]+'(w), ' + labels[0] + '(r)')
-            pl.axis('off')
+                plt.title(labels[1]+'(w), ' + labels[0] + '(r)')
+            plt.axis('off')
         except Exception as e:
             print("not able to plot precision recall usually because we are on travis")
             print(e)
@@ -983,17 +983,17 @@ def detect_duplicates(file_name,dist_thr = 0.1, FOV = (512,512)):
 #         center=center_of_mass(sp_comp)
 #         roi=cell_magic_wand(sp_comp,center,min_radius, max_radius, roughness=roughness, zoom_factor=zoom_factor, center_range=center_range)
 #     print sp_comp.shape,roi.shape
-#     pl.subplot(1,2,1)
-#     pl.cla()
+#     plt.subplot(1,2,1)
+#     plt.cla()
 #     if sp_comp.ndim > 2:
-#         pl.imshow(sp_comp[0])
+#         plt.imshow(sp_comp[0])
 #     else:
-#         pl.imshow(sp_comp)
-#     pl.subplot(1,2,2)
-#     pl.cla()    
-#     pl.imshow(roi)
-##     pl.plot(center[1],center[0],'k.')     
-#     pl.pause(.3)
+#         plt.imshow(sp_comp)
+#     plt.subplot(1,2,2)
+#     plt.cla()
+#     plt.imshow(roi)
+##     plt.plot(center[1],center[0],'k.')
+#     plt.pause(.3)
 #     print 'Roi Size:' + str(np.sum(roi)) 
 #     return roi
 ##%%     

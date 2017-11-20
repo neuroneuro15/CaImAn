@@ -529,9 +529,9 @@ def update_num_components(t, sv, Ab, Cf, Yres_buf, Y_buf, rho_buf,
 # np.corrcoef(Ain[indeces_good].toarray().squeeze(),np.mean(Yres[indeces_good,:],-1))[0,1]
 
         # if rval > rval_thr:
-            #            pl.cla()
+            #            plt.cla()
             #            _ = cm.utils.visualization.plot_contours(Ain, sv.reshape(dims), thr=0.95)
-            #            pl.pause(0.01)
+            #            plt.pause(0.01)
 
             useOASIS = False  # whether to use faster OASIS for cell detection
             if Ab_dense is None:
@@ -552,7 +552,7 @@ def update_num_components(t, sv, Ab, Cf, Yres_buf, Y_buf, rho_buf,
                     vb[slices] = imblur(vb[slices], sig=gSig, siz=gSiz, nDimBlur=2)
                     sv_ -= (vb.ravel()**2) * cin.dot(cin)
 
-#                    pl.imshow(np.reshape(sv,dims));pl.pause(0.001)
+#                    plt.imshow(np.reshape(sv,dims));plt.pause(0.001)
                     # print('Overlap at step' + str(t) + ' ' + str(cc))
                     break
 
@@ -713,10 +713,10 @@ def initialize_movie_online(Y, K, gSig, rf, stride, base_name,
     images = np.reshape(Yr.T, [T] + list(dims), order='F')
     Y = np.reshape(Yr, dims + (T,), order='F')
     Cn2 = cm.local_correlations(Y)
-#    pl.imshow(Cn2)
+#    plt.imshow(Cn2)
     #%
     #% RUN ALGORITHM ON PATCHES
-#    pl.close('all')
+#    plt.close('all')
     cnm_init = cm.source_extraction.cnmf.CNMF(n_processes, method_init='greedy_roi', k=K, gSig=gSig, merge_thresh=merge_thresh,
                         p=0, dview=dview, Ain=None, rf=rf, stride=stride, method_deconvolution='oasis', skip_refinement=False,
                         normalize_init=False, options_local_NMF=None,

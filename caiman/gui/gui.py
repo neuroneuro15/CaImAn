@@ -1,7 +1,7 @@
 #%%
 from builtins import zip
 import numpy as np
-import matplotlib.pyplot as pl
+import matplotlib.pyplot as plt
 from matplotlib import animation
 from matplotlib.widgets import Slider, Button, RadioButtons
 import matplotlib.gridspec as gridspec
@@ -39,7 +39,7 @@ class GUI(animation.TimedAnimation):
 
     """
     #todo: todocument *14
-    def __init__(self, mov, roi, traces, images={}, cmap=pl.cm.viridis, **kwargs):
+    def __init__(self, mov, roi, traces, images={}, cmap=plt.cm.viridis, **kwargs):
         """
             Parameters:
             ---------
@@ -68,7 +68,7 @@ class GUI(animation.TimedAnimation):
 
         # figure setup
         self.cmap = cmap
-        self.fig = pl.figure()
+        self.fig = plt.figure()
         NR,NC = 128,32
         gs = gridspec.GridSpec(nrows=NR, ncols=NC)
         gs.update(wspace=0.1, hspace=0.1, left=.04, right=.96, top=.98, bottom=.02)

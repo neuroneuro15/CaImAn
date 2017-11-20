@@ -11,7 +11,7 @@ from __future__ import division, print_function
 from past.utils import old_div
 import caiman as cm
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 from scipy.io import loadmat
 import cv2
 from sklearn.decomposition import NMF,PCA,DictionaryLearning
@@ -41,14 +41,14 @@ def select_roi(img,n_rois=1):
 
     masks=[]
     for _ in range(n_rois):
-        fig=pl.figure()
-        pl.imshow(img,cmap=pl.cm.gray)
+        fig=plt.figure()
+        plt.imshow(img,cmap=plt.cm.gray)
         pts = fig.ginput(0, timeout=0)
         mask = np.zeros(np.shape(img), dtype=np.int32)
         pts = np.asarray(pts, dtype=np.int32)
         cv2.fillConvexPoly(mask, pts, (1,1,1), lineType=cv2.LINE_AA)
         masks.append(mask)
-        pl.close()
+        plt.close()
 
     return masks
 
@@ -334,15 +334,15 @@ def extract_components(mov_tot,n_components=6,normalize_std=True,max_iter_DL=-30
 
 def plot_components(sp_filt,t_trace):
     # todo: todocument
-    pl.figure()
+    plt.figure()
     count=0
     for comp,tr in zip(sp_filt,t_trace):
         count+=1    
-        pl.subplot(6,2,count)
-        pl.imshow(comp)
+        plt.subplot(6,2,count)
+        plt.imshow(comp)
         count+=1            
-        pl.subplot(6,2,count)
-        pl.plot(tr)
+        plt.subplot(6,2,count)
+        plt.plot(tr)
 
 
 #%%
@@ -388,8 +388,8 @@ def main():
     sp_filt,t_trace,norm_fact=extract_components(mov_tot)
     plot_components(sp_filt,t_trace)
     id_comp=1
-    pl.plot(old_div(np.sum(np.reshape(sp_filt[id_comp]>1,[d1,d2])*mov_tot[1],axis=(1,2)),np.sum(sp_filt[id_comp]>1)))
-    pl.plot(t_trace[id_comp][:,1]) 
+    plt.plot(old_div(np.sum(np.reshape(sp_filt[id_comp]>1,[d1,d2])*mov_tot[1],axis=(1,2)),np.sum(sp_filt[id_comp]>1)))
+    plt.plot(t_trace[id_comp][:,1])
 
 
 
