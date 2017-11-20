@@ -46,9 +46,7 @@ def get_patches_from_image(img, shapes, overlaps):
 
 def extract_patch_coordinates(dims, rf, stride, border_pix = 0):
     """
-    Function that partition the FOV in patches
-
-    and return the indexed in 2D and 1D (flatten, order='F') formats
+    Partitions the FOV in patches and return the indexed in 2D and 1D (flatten, order='F') formats.
 
     Parameters:
     ----------
@@ -61,21 +59,21 @@ def extract_patch_coordinates(dims, rf, stride, border_pix = 0):
     stride: tuple of int
         degree of overlap of the patches
     """
+    if border_pix > 2:
+        raise ValueError("border_pix must be set to 0 for 3D data since border removal is not implemented")
+
     dims_large = dims
-    dims = np.array(dims)-border_pix*2
-    
-    coords_flat = []
-    shapes = []
-    iters = [list(range(rf[i], dims[i] - rf[i], 2 * rf[i] - stride[i])) + [dims[i] - rf[i]]
-             for i in range(len(dims))]
-    
+    dims = np.array(dims) - border_pix * 2
+    iters = [list(range(r, d - r + 1, 2 * r - s)) for r, d, s in zip(rf, dims, stride)]
+
+    shapes, coords_flat = [], []
     coords = np.empty(list(map(len, iters)) + [len(dims)], dtype=np.object)
-    for count_0, xx in enumerate(iters[0]):
+    for ii, xx in enumerate(iters[0]):
         coords_x = np.arange(xx - rf[0], xx + rf[0] + 1)
         coords_x = coords_x[(coords_x >= 0) & (coords_x < dims[0])]      
         coords_x += border_pix
         
-        for count_1, yy in enumerate(iters[1]):
+        for jj, yy in enumerate(iters[1]):
             coords_y = np.arange(yy - rf[1], yy + rf[1] + 1)
             coords_y = coords_y[(coords_y >= 0) & (coords_y < dims[1])]
             coords_y += border_pix
@@ -83,29 +81,21 @@ def extract_patch_coordinates(dims, rf, stride, border_pix = 0):
             if len(dims) == 2:
                 idxs = np.meshgrid(coords_x, coords_y)
                 
-                coords[count_0, count_1] = idxs
+                coords[ii, jj] = idxs
                 shapes.append(idxs[0].shape[::-1])
+                coords_flat.append(np.ravel_multi_index(idxs, dims_large, order='F').flatten())
 
-                coords_ = np.ravel_multi_index(idxs, dims_large, order='F')
-                coords_flat.append(coords_.flatten())
             else:  # 3D data
-            
-                if border_pix > 0:
-                    raise Exception('The parameter border pix must be set to 0 for 3D data since border removal is not implemented')
-                    
-                for count_2, zz in enumerate(iters[2]):
+                for kk, zz in enumerate(iters[2]):
                     coords_z = np.arange(zz - rf[2], zz + rf[2] + 1)
                     coords_z = coords_z[(coords_z >= 0) & (coords_z < dims[2])]
+
                     idxs = np.meshgrid(coords_x, coords_y, coords_z)
+
                     shps = idxs[0].shape
                     shapes.append([shps[1],shps[0],shps[2]])
-                    coords[count_0, count_1, count_2] = idxs
-                    coords_ = np.ravel_multi_index(idxs, dims, order='F')
-                    coords_flat.append(coords_.flatten())
-
-    for i, c in enumerate(coords_flat):
-        assert(len(c) == np.prod(shapes[i]))
-
+                    coords[ii, jj, kk] = idxs
+                    coords_flat.append(np.ravel_multi_index(idxs, dims, order='F').flatten())
 
     return map(np.sort, coords_flat), shapes
 
