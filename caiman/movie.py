@@ -140,7 +140,7 @@ class Movie(np.ndarray):
         minval = np.ndarray(1)
         minval[0] = np.nanmin(tmp)
         return Movie(input_arr = minval)
-            
+
     def motion_correct(self,
                        max_shift_w=5,
                        max_shift_h=5,
@@ -184,7 +184,7 @@ class Movie(np.ndarray):
         if template is None:  # if template is not provided it is created
             if num_frames_template is None:
                 num_frames_template = old_div(10e7,(self.shape[1]*self.shape[2]))
-                
+
             frames_to_skip = int(np.maximum(1, old_div(self.shape[0],num_frames_template)))
 
             # sometimes it is convenient to only consider a subset of the
@@ -231,8 +231,8 @@ class Movie(np.ndarray):
 
         Returns:
         -------
-        img: 
-            median image   
+        img:
+            median image
 
         """
         T,d1,d2=np.shape(self)
@@ -268,9 +268,9 @@ class Movie(np.ndarray):
         if min_val < - 0.1:
             print(min_val)
             warnings.warn('** Pixels averages are too negative. Removing 1 percentile. **')
-            self=self-min_val 
+            self=self-min_val
         else:
-            min_val=0                          
+            min_val=0
 
         if type(self[0, 0, 0]) is not np.float32:
             warnings.warn('Casting the array to float 32')
@@ -654,7 +654,7 @@ class Movie(np.ndarray):
         A_ = f_ica.mixing_
         A=np.dot(A_,whitesig)
         mask=np.reshape(A.T,(d1,d2,pca_comp)).transpose([2,0,1])
-        
+
         return mask
 
 
@@ -686,21 +686,21 @@ class Movie(np.ndarray):
         if T<=3000:
             Cn = si.local_correlations(np.array(self), eight_neighbours=eight_neighbours, swap_dim=swap_dim)
         else:
-            
+
             n_chunks = T//frames_per_chunk
             for jj,mv in tqdm(enumerate(range(n_chunks-1))):
                 rho = si.local_correlations(np.array(self[mv*frames_per_chunk:(mv+1)*frames_per_chunk]),
                                             eight_neighbours=eight_neighbours, swap_dim=swap_dim)
-                Cn = np.maximum(Cn,rho)    
+                Cn = np.maximum(Cn,rho)
                 plt.imshow(Cn,cmap='gray')
                 plt.pause(.1)
 
             rho = si.local_correlations(np.array(self[(n_chunks-1)*frames_per_chunk:]), eight_neighbours=eight_neighbours,
                                         swap_dim=swap_dim)
-            Cn = np.maximum(Cn,rho)    
+            Cn = np.maximum(Cn,rho)
             plt.imshow(Cn,cmap='gray')
             plt.pause(.1)
-            
+
 
         return Cn
 
@@ -758,12 +758,12 @@ class Movie(np.ndarray):
         T,h,w=self.shape
         Y=np.reshape(self,(T,h*w))
         if masks.ndim == 2:
-            masks = masks[None,:,:] 
-            
+            masks = masks[None,:,:]
+
         nA,_,_=masks.shape
 
         A=np.reshape(masks,(nA,h*w))
-        
+
         pixelsA=np.sum(A,axis=1)
         A=old_div(A,pixelsA[:,None]) # obtain average over ROI
         traces=trace(np.dot(A,np.transpose(Y)).T,**self.__dict__)
@@ -776,11 +776,11 @@ class Movie(np.ndarray):
         elm=d*T
         max_els=2**31-1
         if elm > max_els:
-            chunk_size=old_div((max_els),d)   
+            chunk_size=old_div((max_els),d)
             new_m=[]
             print('Resizing in chunks because of opencv bug')
             for chunk in range(0,T,chunk_size):
-                print([chunk,np.minimum(chunk+chunk_size,T)])                
+                print([chunk,np.minimum(chunk+chunk_size,T)])
                 m_tmp=self[chunk:np.minimum(chunk+chunk_size,T)].copy()
                 m_tmp=m_tmp.resize(fx=fx,fy=fy,fz=fz,interpolation=interpolation)
                 if len(new_m) == 0:
@@ -809,7 +809,7 @@ class Movie(np.ndarray):
                 self.fr=self.fr*fz
 
         return self
-    
+
     def guided_filter_blur_2D(self,guide_filter,radius=5, eps=0):
         """
         performs guided filtering on each frame. See opencv documentation of cv2.ximgproc.guidedFilter
@@ -962,113 +962,31 @@ class Movie(np.ndarray):
         plt.gcf().canvas.draw()
         return ax
 
+    def play_notebook(self, speed=1., gain=1.):
+        """Returns matplotlib figure with animation of Movie."""
 
+        fig = plt.figure()
+        im = plt.imshow(self[0], interpolation='None', cmap=plt.cm.gray)
+        plt.axis('off')
 
-    def play(self,gain=1,fr=None,magnification=1,offset=0,interpolation=cv2.INTER_LINEAR,
-             backend='opencv',do_loop=False, bord_px = None):
-        """
-        Play the Movie using opencv
+        anim = animation.FuncAnimation(fig, lambda frame: (im.set_data(frame * gain),), frames=self, interval=1, blit=True)
+        visualization.display_animation(anim, fps= int(self.fr * speed))
+        return fig
 
-        Parameters:
-        ----------
-        gain: adjust  Movie brightness
+    def play_opencv(self, speed=1., gain=1.):
+        """Create OpenCV window and begin playing Movie.  Press Q key to quit and close window."""
 
-        frate : playing speed if different from original (inter frame interval in seconds)
-
-        backend: 'pylab' or 'opencv', the latter much faster
-
-        Raise:
-        -----
-         Exception('Unknown backend!')
-        """
-        # todo: todocument
-        if backend is 'matplotlib':
-            print('*** WARNING *** SPEED MIGHT BE LOW. USE opencv backend if available')
-
-        gain*=1.
-        maxmov=np.nanmax(self)
-
-        if backend is 'matplotlib':
-            plt.ion()
-            fig = plt.figure( 1 )
-            ax = fig.add_subplot( 111 )
-            ax.set_title("Play Movie")
-            im = ax.imshow( (offset+self[0])*gain/maxmov ,cmap=plt.cm.gray,vmin=0,vmax=1,interpolation='none') # Blank starting image
-            fig.show()
-            im.axes.figure.canvas.draw()
-            plt.pause(1)
-
-        if backend is 'notebook':
-            # First set up the figure, the axis, and the plot element we want to animate
-            fig = plt.figure()
-            im = plt.imshow(self[0],interpolation='None',cmap=plt.cm.gray)
-            plt.axis('off')
-            def animate(i):
-                im.set_data(self[i])
-                return im,
-
-            # call the animator.  blit=True means only re-draw the parts that have changed.
-            anim = animation.FuncAnimation(fig, animate,
-                                           frames=self.shape[0], interval=1, blit=True)
-
-            # call our new function to display the animation
-            return visualization.display_animation(anim, fps=fr)
-
-
-        if fr==None:
-            fr=self.fr
-
-        looping=True
-        terminated=False
-
-        while looping:
-
-            for iddxx,frame in enumerate(self):
-                if bord_px is not None and np.sum(bord_px) > 0:
-                    frame = frame[bord_px:-bord_px, bord_px:-bord_px]
-                    
-                if backend is 'opencv':
-                    if magnification != 1:
-                        frame = cv2.resize(frame,None,fx=magnification, fy=magnification, interpolation = interpolation)
-
-                    cv2.imshow('frame',(offset+frame)*gain/maxmov)
-                    if cv2.waitKey(int(1./fr*1000)) & 0xFF == ord('q'):
-                        looping=False
-                        terminated=True
-                        break
-
-                
-                elif backend is 'matplotlib':
-
-                    im.set_data((offset+frame)*gain/maxmov)
-                    ax.set_title( str( iddxx ) )
-                    plt.axis('off')
-                    fig.canvas.draw()
-                    plt.pause(1./fr*.5)
-                    ev=plt.waitforbuttonpress(1./fr*.5)
-                    if ev is not None:
-                        plt.close()
-                        break
-
-                elif backend is 'notebook':
-                    print('Animated via MP4')
-                    break
-
-                else:
-                    raise Exception('Unknown backend!')
-
-            if terminated:
+        gain = float(gain)
+        maxmov = np.nanmax(self)
+        for frame in self:
+            cv2.imshow('frame', frame * gain / maxmov)
+            if cv2.waitKey(int(speed / self.fr * 1000)) & 0xFF == ord('q'):
                 break
 
-            if do_loop:
-                looping=True
-
-
-        if backend is 'opencv':
+        cv2.waitKey(100)
+        cv2.destroyAllWindows()
+        for i in range(10):
             cv2.waitKey(100)
-            cv2.destroyAllWindows()
-            for i in range(10):
-                cv2.waitKey(100)
 
     @classmethod
     def concatenate(cls, *series, axis=0):
