@@ -125,6 +125,7 @@ class Movie(np.ndarray):
     def apply_shifts_online(self,xy_shifts,save_base_name=None):
         # todo: todocument
 
+
         if save_base_name is None:
             return Movie(apply_shift_online(self, xy_shifts, save_base_name=save_base_name), fr=self.fr)
         else:
@@ -1002,39 +1003,23 @@ class Movie(np.ndarray):
         d=d1*d2
         return np.reshape(self,(T,d),order=order)
 
-    def zproject(self,method='mean',cmap=plt.cm.gray,aspect='auto',**kwargs):
-        """
-        Compute and plot projection across time:
-
-        Parameters:
-        ------------
-        method: String
-            'mean','median','std'
-
-        **kwargs: dict
-            arguments to imagesc
-
-        Raise:
-        ------
-        Exception('Method not implemented')
-        """
-        # todo: todocument
-        if method is 'mean':
-            zp=np.mean(self,axis=0)
-        elif method is 'median':
-            zp=np.median(self,axis=0)
-        elif method is 'std':
-            zp=np.std(self,axis=0)
-        else:
-            raise Exception('Method not implemented')
-        plt.imshow(zp,cmap=cmap,aspect=aspect,**kwargs)
-        return zp
-
     def local_correlations_movie(self,window=10):
         T,_,_=self.shape
         return Movie(np.concatenate([self[j:j + window, :, :].local_correlations(
             eight_neighbours=True)[np.newaxis, :, :] for j in range(T-window)], axis=0), fr=self.fr)
 
+    def plot_aggregation(self, method='mean', **plot_kwargs):
+        """
+        Compute and plot projection across time:
+
+        Parameters:
+        ------------
+        method: String, name of numpy aggregation function to use. (Ex: 'mean','median','std')
+
+        **kwargs: Matplotlib arguments to the 'imshow' plotting function.
+        """
+        agg_data = getattr(np, method)(self, axis=0)
+        plt.imshow(agg_data, **plot_kwargs)
 
     def plot_trace(self, stacked=True, subtract_minimum=False, cmap=plt.cm.jet, **kwargs):
         """Plot the data as a trace (Note: experimental method, may not work quite right yet.)

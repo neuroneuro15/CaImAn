@@ -401,7 +401,7 @@ denoised.play(gain=10, offset=0, fr=100, magnification=5)
 #%% show background(s)
 BB  = cm.Movie(b.reshape(dims + (-1,), order ='F').transpose(2, 0, 1))
 BB.play(gain=2, offset=0, fr=2, magnification=4)
-BB.zproject()
+BB.plot_aggregation()
 
 #%% *************************************************************************************************************************#%%
 
