@@ -37,7 +37,7 @@ if preprocess:
     Yr,shifts,xcorrs,template=Yr.motion_correct(max_shift_w=10, max_shift_h=10,  method='opencv') 
     max_h,max_w= np.max(shifts,axis=0)
     min_h,min_w= np.min(shifts,axis=0)
-    Yr=Yr.crop(crop_top=max_h,crop_bottom=-min_h+1,crop_left=max_w,crop_right=-min_w,crop_begin=0,crop_end=0)
+    Yr=Yr.crop(top=max_h, bottom=-min_h + 1, left=max_w, right=-min_w, begin=0, end=0)
     Yr.save('demo_mc.hdf5')        
     Yr = np.transpose(Yr,(1,2,0)) 
     d1,d2,T=Yr.shape

@@ -211,7 +211,7 @@ class Movie(np.ndarray):
         if remove_blanks:
             max_h,max_w= np.max(shifts,axis=0)
             min_h,min_w= np.min(shifts,axis=0)
-            self=self.crop(crop_top=max_h,crop_bottom=-min_h+1,crop_left=max_w,crop_right=-min_w,crop_begin=0,crop_end=0)
+            self=self.crop(top=max_h, bottom=-min_h + 1, left=max_w, right=-min_w, begin=0, end=0)
 
 
         return self,shifts,xcorrs,template
@@ -406,11 +406,10 @@ class Movie(np.ndarray):
 
         return self
 
-    def crop(self,crop_top=0,crop_bottom=0,crop_left=0,crop_right=0,crop_begin=0,crop_end=0):
-        """ Crop Movie
-        """
-        t,h,w=self.shape
-        return self[crop_begin:t-crop_end,crop_top:h-crop_bottom,crop_left:w-crop_right]
+    def crop(self, top=0, bottom=0, left=0, right=0, begin=0, end=0):
+        """Returns cropped Movie."""
+        t, h, w = self.shape
+        return self[begin:(t - end), top:(h - bottom), left:(w - right)]
 
     def computeDFF(self,secsWindow=5,quantilMin=8,method='only_baseline',order='F'):
         """
