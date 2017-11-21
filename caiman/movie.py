@@ -1003,6 +1003,10 @@ class Movie(np.ndarray):
         d=d1*d2
         return np.reshape(self,(T,d),order=order)
 
+    def to_3d(self, *args, order='F', **kwargs):
+        """Synonym for array.reshape()"""
+        return self.reshape(*args, order=order, **kwargs)
+
     def local_correlations_movie(self,window=10):
         T,_,_=self.shape
         return Movie(np.concatenate([self[j:j + window, :, :].local_correlations(
@@ -1501,9 +1505,6 @@ class Movie(np.ndarray):
                 print(self.meta_data)
                 dset.attrs["meta_data"] = pickle.dumps(self.meta_data)
 
-    def to_3d(self, *args, order='F', **kwargs):
-        """Synonym for array.reshape()"""
-        return self.reshape(*args, order=order, **kwargs)
 
 
 
