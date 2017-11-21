@@ -26,6 +26,7 @@ import scipy
 import sklearn
 import warnings
 import numpy as np
+from numpy.lib.stride_tricks import as_strided
 import scipy as sp
 from sklearn.decomposition import NMF, incremental_pca , FastICA
 from sklearn.cluster import KMeans
@@ -410,7 +411,7 @@ class Movie(np.ndarray):
         t, h, w = self.shape
         return self[begin:(t - end), top:(h - bottom), left:(w - right)]
 
-    def computeDFF(self,secsWindow=5,quantilMin=8,method='only_baseline',order='F'):
+    def computeDFF(self, secsWindow=5, quantilMin=8, method='delta_f_over_f'):
         """
         compute the DFF of the Movie or remove baseline
 
@@ -435,48 +436,33 @@ class Movie(np.ndarray):
         -----
         Exception('Unknown method')
         """
+        if not method.lower() in ['only_baseline', 'delta_f_over_f', 'delta_f_over_sqrt_f']:
+            raise ValueError("Unrecognized method argument: {}".format(method))
 
-        print("computing minimum ..."); sys.stdout.flush()
-        if np.min(self)<=0 and method != 'only_baseline':
+        if np.min(self) <= 0 and method != 'only_baseline':
             raise ValueError("All pixels must be positive")
-        
-        numFrames,linePerFrame,pixPerLine=np.shape(self)
-        downsampfact=int(secsWindow*self.fr);
-        print(downsampfact)
-        elm_missing=int(np.ceil(numFrames*1.0/downsampfact)*downsampfact-numFrames)
-        padbefore=int(np.floor(old_div(elm_missing,2.0)))
-        padafter=int(np.ceil(old_div(elm_missing,2.0)))
 
-        print(('Inizial Size Image:' + np.str(np.shape(self)))); sys.stdout.flush()
-        mov_out=Movie(np.pad(self.astype(np.float32), ((padbefore, padafter), (0, 0), (0, 0)), mode='reflect'), **self.__dict__)
-        #mov_out[:padbefore] = mov_out[padbefore+1]
-        #mov_out[-padafter:] = mov_out[-padafter-1]
-        numFramesNew,linePerFrame,pixPerLine=np.shape(mov_out)
+        # compute running baseline
+        window = int(secsWindow * self.fr)
+        window = window + 1 if window % 2 else window  # just make it even to simplify algorithm.
+        half_window = window // 2
 
-        #% compute baseline quickly
-        print("binning data ..."); sys.stdout.flush()
-        movBL=np.reshape(mov_out.copy(),(downsampfact,int(old_div(numFramesNew,downsampfact)),linePerFrame,pixPerLine),order=order);
-        movBL=np.percentile(movBL,quantilMin,axis=0);
-        print("interpolating data ..."); sys.stdout.flush()
-        print((movBL.shape))
-        movBL=scipy.ndimage.zoom(np.array(movBL,dtype=np.float32),[downsampfact ,1, 1],order=1, mode='constant', cval=0.0, prefilter=False)
-#        movBL = Movie(movBL).resize(1,1,downsampfact, interpolation = 4)
-        
+        padded_array = np.pad(self, ((half_window, half_window), (0, 0), (0, 0)), mode='reflect')
 
+        t, w, h = padded_array.shape
+        stride = self.nbytes // 8
+        rolling_array = as_strided(padded_array, shape=(window, t + half_window, w, h), strides=(stride, stride))
+        baseline = np.percentile(rolling_array, quantilMin, axis=0)
+        baseline = baseline[(half_window - 1):-(half_window - 1), :, :]
 
-        #% compute DF/F
+        # Compute signal
+        out_array = self - baseline
+        if method == 'delta_f_over_f':
+            out_array /= baseline
         if method == 'delta_f_over_sqrt_f':
-            mov_out = old_div((mov_out-movBL),np.sqrt(movBL))
-        elif method == 'delta_f_over_f':
-            mov_out = old_div((mov_out-movBL),movBL)
-        elif method  =='only_baseline':
-            mov_out = (mov_out-movBL)
-        else:
-            raise Exception('Unknown method')
+            out_array /= np.sqrt(baseline)
 
-        mov_out=mov_out[padbefore:len(movBL)-padafter,:,:];
-        print(('Final Size Movie:' +  np.str(self.shape)))
-        return mov_out, Movie(movBL, fr=self.fr, start_time=self.start_time, meta_data=self.meta_data, file_name=self.file_name)
+        return self.__class__(out_array, **self.__dict__)
 
     def computeDFF_trace(self,window_sec=5,minQuantile=20):
         """
