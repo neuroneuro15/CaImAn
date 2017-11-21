@@ -294,9 +294,7 @@ class Movie(np.ndarray):
         shifts=[]   # store the amount of shift in each frame
         xcorrs=[]
 
-        for i,frame in enumerate(self):
-            if i%100==99:
-                print(("Frame %i"%(i+1)))
+        for i,frame in tqdm(enumerate(self)):
             if method == 'opencv':
                 res = cv2.matchTemplate(frame,template,cv2.TM_CCORR_NORMED)
                 top_left = cv2.minMaxLoc(res)[3]
@@ -690,15 +688,13 @@ class Movie(np.ndarray):
         else:
             
             n_chunks = T//frames_per_chunk
-            for jj,mv in enumerate(range(n_chunks-1)):
-                print('number of chunks:' + str(jj) + ' frames: ' + str([mv*frames_per_chunk,(mv+1)*frames_per_chunk]))
+            for jj,mv in tqdm(enumerate(range(n_chunks-1))):
                 rho = si.local_correlations(np.array(self[mv*frames_per_chunk:(mv+1)*frames_per_chunk]),
                                             eight_neighbours=eight_neighbours, swap_dim=swap_dim)
                 Cn = np.maximum(Cn,rho)    
                 plt.imshow(Cn,cmap='gray')
                 plt.pause(.1)
-            
-            print('number of chunks:' + str(n_chunks-1) + ' frames: ' + str([(n_chunks-1)*frames_per_chunk,T]))
+
             rho = si.local_correlations(np.array(self[(n_chunks-1)*frames_per_chunk:]), eight_neighbours=eight_neighbours,
                                         swap_dim=swap_dim)
             Cn = np.maximum(Cn,rho)    
@@ -818,9 +814,7 @@ class Movie(np.ndarray):
         """
         performs guided filtering on each frame. See opencv documentation of cv2.ximgproc.guidedFilter
         """
-        for idx,fr in enumerate(self):
-            if idx%1000==0:
-                print(idx)
+        for idx,fr in tqdm(enumerate(self)):
             self[idx] =  cv2.ximgproc.guidedFilter(guide_filter,fr,radius=radius,eps=eps)
 
         return self
@@ -833,9 +827,7 @@ class Movie(np.ndarray):
             warnings.warn('Casting the array to float 32')
             self=np.asanyarray(self,dtype=np.float32)
 
-        for idx,fr in enumerate(self):
-            if idx%1000==0:
-                print(idx)
+        for idx,fr in tqdm(enumerate(self)):
             self[idx] =   cv2.bilateralFilter(fr,diameter,sigmaColor,sigmaSpace)
 
         return self
@@ -859,8 +851,7 @@ class Movie(np.ndarray):
             blurred Movie
         """
 
-        for idx,fr in enumerate(self):
-            print(idx)
+        for idx,fr in tqdm(enumerate(self)):
             self[idx] = cv2.GaussianBlur(fr,ksize=(kernel_size_x,kernel_size_y),sigmaX=kernel_std_x,sigmaY=kernel_std_y,
                                          borderType=borderType)
 
@@ -887,8 +878,7 @@ class Movie(np.ndarray):
             blurred Movie
         """
 
-        for idx,fr in enumerate(self):
-            print(idx)
+        for idx,fr in tqdm(enumerate(self)):
             self[idx] = cv2.medianBlur(fr,ksize=kernel_size)
 
         return self
