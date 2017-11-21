@@ -162,7 +162,7 @@ Desktop.ini
 tests/comparison/tests/
 !tests/comparison/tests/example/*
 !tests/comparison/tests/tosend/*
-!tests/comparison/groundtruth.npz
+!data/groundtruth.npz
 /dev
 
 #htmls
