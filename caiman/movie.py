@@ -193,12 +193,12 @@ class Movie(np.ndarray):
             submov = self[::frames_to_skip, :].copy()
             templ = submov.bin_median() # create template with portion of Movie
             shifts,xcorrs=submov.extract_shifts(max_shift_w=max_shift_w, max_shift_h=max_shift_h, template=templ, method=method)
-            submov.apply_shifts(shifts,interpolation=interpolation,method=method)
+            submov.apply_shifts(shifts, interpolation=interpolation, package=method)
             template=submov.bin_median()
             del submov
             m=self.copy()
             shifts,xcorrs=m.extract_shifts(max_shift_w=max_shift_w, max_shift_h=max_shift_h, template=template, method=method)
-            m=m.apply_shifts(shifts,interpolation=interpolation,method=method)
+            m=m.apply_shifts(shifts, interpolation=interpolation, package=method)
             template=(m.bin_median())
             del m
         else:
@@ -206,7 +206,7 @@ class Movie(np.ndarray):
 
         # now use the good template to correct
         shifts,xcorrs=self.extract_shifts(max_shift_w=max_shift_w, max_shift_h=max_shift_h, template=template, method=method)
-        self=self.apply_shifts(shifts,interpolation=interpolation,method=method)
+        self=self.apply_shifts(shifts, interpolation=interpolation, package=method)
 
         if remove_blanks:
             max_h,max_w= np.max(shifts,axis=0)
@@ -332,15 +332,15 @@ class Movie(np.ndarray):
 
         return (shifts,xcorrs)
 
-    def apply_shifts(self, shifts,interpolation='linear',method='opencv',remove_blanks=False):
+    def apply_shifts(self, shifts, interpolation='linear', package='opencv'):
         """
-        Apply precomputed shifts to a Movie, using subpixels adjustment (cv2.INTER_CUBIC function)
+        Apply precomputed shifts to a Movie in-place, using subpixels adjustment (cv2.INTER_CUBIC function)
 
         Parameters:
         ------------
         shifts: array of tuples representing x and y shifts for each frame
 
-        interpolation: 'linear', 'cubic', 'nearest' or cvs.INTER_XXX
+        interpolation: 'linear', 'cubic', 'nearest' or 'lanczos4'
 
         Returns:
         -------
@@ -352,72 +352,26 @@ class Movie(np.ndarray):
 
         Exception('Method not defined')
         """
-        if type(self[0, 0, 0]) is not np.float32:
-            warnings.warn('Casting the array to float 32')
-            self = np.asanyarray(self, dtype=np.float32)
-
-        if interpolation == 'cubic':
-            if method == 'opencv':
-                interpolation=cv2.INTER_CUBIC
-            else:
-                interpolation=3
-            print('cubic interpolation')
-
-        elif interpolation == 'nearest':
-            if method == 'opencv':
-                interpolation=cv2.INTER_NEAREST
-            else:
-                interpolation=0
-            print('nearest interpolation')
-
-        elif interpolation == 'linear':
-            if method=='opencv':
-                interpolation=cv2.INTER_LINEAR
-            else:
-                interpolation=1
-            print('linear interpolation')
-        elif interpolation == 'area':
-            if method=='opencv':
-                interpolation=cv2.INTER_AREA
-            else:
-                raise Exception('Method not defined')
-            print('area interpolation')
-        elif interpolation == 'lanczos4':
-            if method=='opencv':
-                interpolation=cv2.INTER_LANCZOS4
-            else:
-                interpolation=4
-            print('lanczos/biquartic interpolation')
+        if package.lower() == 'opencv':
+            interp_enum = getattr(cv2, 'INTER_{}'.format(interpolation))
+        elif package.lower() == 'skimage':
+            interp_enum = {'nearest': 0, 'linear': 1, 'cubic': 3, 'lanczos4': 4}[interpolation]
         else:
-            raise Exception('Interpolation method not available')
+            raise ValueError("'package' argument must be 'opencv' or 'skimage'.")
 
+        if len(shifts) != self.shape[0]:
+            raise ValueError("'shifts' argument must have same length as number of frames in movie.")
 
-        t,h,w=self.shape
-        for i,frame in enumerate(self):
-            if i%100==99:
-                print(("Frame %i"%(i+1)));
-
-            sh_x_n, sh_y_n = shifts[i]
-            
-            if method == 'opencv':
-                M = np.float32([[1,0,sh_y_n],[0,1,sh_x_n]])
-                min_,max_ = np.min(frame),np.max(frame)
-                self[i] = np.clip(cv2.warpAffine(frame,M,(w,h),flags=interpolation,borderMode = cv2.BORDER_REFLECT),min_,max_)
-
-            elif method == 'skimage':
-
-                tform = AffineTransform(translation=(-sh_y_n,-sh_x_n))
-                self[i] = warp(frame, tform,preserve_range=True,order=interpolation, borderMode = cv2.BORDER_REFLECT)
-
-            else:
-                raise Exception('Unknown shift  application method')
-
-        if remove_blanks:
-            max_h,max_w= np.max(shifts,axis=0)
-            min_h,min_w= np.min(shifts,axis=0)
-            self=self.crop(crop_top=max_h,crop_bottom=-min_h+1,crop_left=max_w,crop_right=-min_w,crop_begin=0,crop_end=0)
-
-        return self
+        t, h, w = self.shape
+        shift_mat = np.array([[1, 0, 0], [0, 1, 0]], dtype=np.float32)
+        for i, (frame, (shift_y, shift_x)) in tqdm(enumerate(zip(self, shifts))):
+            if package == 'opencv':
+                shift_mat[:, 2] = shift_x, shift_y
+                self[i] = cv2.warpAffine(frame, shift_mat, (w, h), flags=interp_enum, borderMode=cv2.BORDER_REFLECT)
+                self[i] = np.clip(self[i], np.min(frame), np.max(frame))
+            elif package == 'skimage':
+                tform = AffineTransform(translation=(-shift_x, -shift_y))
+                self[i] = warp(frame, tform, preserve_range=True, order=interp_enum, mode='reflect')
 
     def debleach(self):
         """ Debleach by fiting a model to the median intensity.
