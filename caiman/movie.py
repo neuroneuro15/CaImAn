@@ -464,46 +464,6 @@ class Movie(np.ndarray):
 
         return self.__class__(out_array, **self.__dict__)
 
-    def computeDFF_trace(self,window_sec=5,minQuantile=20):
-        """
-        compute the DFF of the Movie
-
-        In order to compute the baseline frames are binned according to the window length parameter
-        and then the intermediate values are interpolated.
-
-        Parameters:
-        ----------
-        secsWindow: length of the windows used to compute the quantile
-
-        quantilMin : value of the quantile
-
-        Raise:
-        -----
-        ValueError("All traces must be positive")
-
-        ValueError("The window must be shorter than the total length")
-        """
-        if np.min(self)<=0:
-            raise ValueError("All traces must be positive")
-
-        T,num_neurons=self.shape
-        window=int(window_sec*self.fr)
-        print(window)
-        if window >= T:
-            raise ValueError("The window must be shorter than the total length")
-
-        tracesDFF=[]
-        for tr in self.T:
-            print((tr.shape))
-            traceBL=[np.percentile(tr[i:i+window],minQuantile) for i in range(1,len(tr)-window)]
-            missing=np.percentile(tr[-window:],minQuantile);
-            missing=np.repeat(missing,window+1)
-            traceBL=np.concatenate((traceBL,missing))
-            tracesDFF.append(old_div((tr-traceBL),traceBL))
-
-        return self.__class__(np.asarray(tracesDFF).T,**self.__dict__)
-
-
     def NonnegativeMatrixFactorization(self,n_components=30, init='nndsvd', beta=1,tol=5e-7, sparseness='components',**kwargs):
         """
         See documentation for scikit-learn NMF
