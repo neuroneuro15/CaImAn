@@ -38,8 +38,6 @@ from matplotlib import animation
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from caiman.base import timeseries
-
-from skimage.transform import warp, AffineTransform
 from skimage.feature import match_template
 
 from caiman.base.io_sbx import sbxreadskip
@@ -356,6 +354,7 @@ class Movie(np.ndarray):
             interp_enum = getattr(cv2, 'INTER_{}'.format(interpolation))
         elif package.lower() == 'skimage':
             interp_enum = {'nearest': 0, 'linear': 1, 'cubic': 3, 'lanczos4': 4}[interpolation]
+            from skimage.transform import warp, AffineTransform
         else:
             raise ValueError("'package' argument must be 'opencv' or 'skimage'.")
 
@@ -365,11 +364,11 @@ class Movie(np.ndarray):
         t, h, w = self.shape
         shift_mat = np.array([[1, 0, 0], [0, 1, 0]], dtype=np.float32)
         for i, (frame, (shift_y, shift_x)) in tqdm(enumerate(zip(self, shifts))):
-            if package == 'opencv':
+            if package.lower() == 'opencv':
                 shift_mat[:, 2] = shift_x, shift_y
                 self[i] = cv2.warpAffine(frame, shift_mat, (w, h), flags=interp_enum, borderMode=cv2.BORDER_REFLECT)
                 self[i] = np.clip(self[i], np.min(frame), np.max(frame))
-            elif package == 'skimage':
+            elif package.lower() == 'skimage':
                 tform = AffineTransform(translation=(-shift_x, -shift_y))
                 self[i] = warp(frame, tform, preserve_range=True, order=interp_enum, mode='reflect')
 
