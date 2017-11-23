@@ -121,15 +121,6 @@ class Movie(np.ndarray):
                                      init_frames_template=init_frames_template,show_movie=show_movie,
                                      bilateral_blur=bilateral_blur,template=template,min_count=min_count)
 
-    def apply_shifts_online(self,xy_shifts,save_base_name=None):
-        # todo: todocument
-
-
-        if save_base_name is None:
-            return Movie(apply_shift_online(self, xy_shifts, save_base_name=save_base_name), fr=self.fr)
-        else:
-            return apply_shift_online(self,xy_shifts,save_base_name=save_base_name)
-
     def calc_min(self):
         # todo: todocument
 
