@@ -121,17 +121,6 @@ class Movie(np.ndarray):
                                      init_frames_template=init_frames_template,show_movie=show_movie,
                                      bilateral_blur=bilateral_blur,template=template,min_count=min_count)
 
-    def calc_min(self):
-        # todo: todocument
-
-        tmp = []
-        bins = np.linspace(0, self.shape[0], 10).round(0)
-        for i in range(9):
-            tmp.append(np.nanmin(self[np.int(bins[i]):np.int(bins[i+1]), :, :]).tolist() + 1)
-        minval = np.ndarray(1)
-        minval[0] = np.nanmin(tmp)
-        return Movie(input_arr = minval)
-
     def motion_correct(self,
                        max_shift_w=5,
                        max_shift_h=5,
