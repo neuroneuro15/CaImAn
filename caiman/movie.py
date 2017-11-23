@@ -196,29 +196,10 @@ class Movie(np.ndarray):
         return self,shifts,xcorrs,template
 
 
-    def bin_median(self,window=10):
-        """ compute median of 3D array in along axis o by binning values
-
-        Parameters:
-        ----------
-
-        mat: ndarray
-            input 3D matrix, time along first dimension
-
-        window: int
-            number of frames in a bin
-
-
-        Returns:
-        -------
-        img:
-            median image
-
-        """
-        T,d1,d2=np.shape(self)
-        num_windows=np.int(old_div(T,window))
-        num_frames=num_windows*window
-        return np.median(np.mean(np.reshape(self[:num_frames],(window,num_windows,d1,d2)),axis=0),axis=0)
+    def bin_median(self):
+        """ Return the median image as an array."""
+        warnings.warn("Movie.bin_median() deprecated. Use numpy.median(movie) instead.", DeprecationWarning)
+        return np.nanmedian(self, axis=0)
 
 
     def extract_shifts(self, max_shift_w=5,max_shift_h=5, template=None, method='opencv'):
