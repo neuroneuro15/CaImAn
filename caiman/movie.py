@@ -578,12 +578,10 @@ class Movie(np.ndarray):
         return ind_frames
 
     def IPCA_denoise(self, components = 50, batch = 1000):
-        """
-        Create a denoise version of the Movie only using the first 'components' components
-        """
+        """Returns a denoised version of the Movie only using the first 'components' components"""
         _, _, clean_vectors = self.IPCA(components, batch)
-        self = self.__class__(np.reshape(np.float32(clean_vectors.T), np.shape(self)),**self.__dict__)
-        return self
+        mov = self.__class__(np.reshape(np.float32(clean_vectors.T), np.shape(self)),**self.__dict__)
+        return mov
 
     def IPCA_io(self, n_components=50, fun='logcosh', max_iter=1000, tol=1e-20):
         """ DO NOT USE STILL UNDER DEVELOPMENT"""
