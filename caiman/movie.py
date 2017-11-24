@@ -128,6 +128,47 @@ class Movie(np.ndarray):
         """Synonym for array.reshape()"""
         return self.reshape(*args, order=order, **kwargs)
 
+    def resize(self,fx=1,fy=1,fz=1,interpolation=cv2.INTER_AREA):
+        # todo: todocument
+        T,d1,d2 =self.shape
+        d=d1*d2
+        elm=d*T
+        max_els=2**31-1
+        if elm > max_els:
+            chunk_size=old_div((max_els),d)
+            new_m=[]
+            print('Resizing in chunks because of opencv bug')
+            for chunk in range(0,T,chunk_size):
+                print([chunk,np.minimum(chunk+chunk_size,T)])
+                m_tmp=self[chunk:np.minimum(chunk+chunk_size,T)].copy()
+                m_tmp=m_tmp.resize(fx=fx,fy=fy,fz=fz,interpolation=interpolation)
+                if len(new_m) == 0:
+                    new_m=m_tmp
+                else:
+                    new_m = self.concatenate([new_m,m_tmp],axis=0)
+
+            return new_m
+        else:
+            if fx!=1 or fy!=1:
+                print("reshaping along x and y")
+                t,h,w=self.shape
+                newshape=(int(w*fy),int(h*fx))
+                mov=[]
+                print(newshape)
+                for frame in self:
+                    mov.append(cv2.resize(frame,newshape,fx=fx,fy=fy,interpolation=interpolation))
+                self=Movie(np.asarray(mov), **self.__dict__)
+            if fz!=1:
+                print("reshaping along z")
+                t,h,w=self.shape
+                self=np.reshape(self,(t,h*w))
+                mov=cv2.resize(self,(h*w,int(fz*t)),fx=1,fy=fz,interpolation=interpolation)
+                mov=np.reshape(mov,(np.maximum(1,int(fz*t)),h,w))
+                self=Movie(mov, **self.__dict__)
+                self.fr=self.fr*fz
+
+        return self
+
     @classmethod
     def concatenate(cls, *series, axis=0):
         """Concatenate multiple TimeSeries objects together."""
@@ -697,47 +738,6 @@ class Movie(np.ndarray):
         A=old_div(A,pixelsA[:,None]) # obtain average over ROI
         traces=trace(np.dot(A,np.transpose(Y)).T,**self.__dict__)
         return traces
-
-    def resize(self,fx=1,fy=1,fz=1,interpolation=cv2.INTER_AREA):
-        # todo: todocument
-        T,d1,d2 =self.shape
-        d=d1*d2
-        elm=d*T
-        max_els=2**31-1
-        if elm > max_els:
-            chunk_size=old_div((max_els),d)
-            new_m=[]
-            print('Resizing in chunks because of opencv bug')
-            for chunk in range(0,T,chunk_size):
-                print([chunk,np.minimum(chunk+chunk_size,T)])
-                m_tmp=self[chunk:np.minimum(chunk+chunk_size,T)].copy()
-                m_tmp=m_tmp.resize(fx=fx,fy=fy,fz=fz,interpolation=interpolation)
-                if len(new_m) == 0:
-                    new_m=m_tmp
-                else:
-                    new_m = self.concatenate([new_m,m_tmp],axis=0)
-
-            return new_m
-        else:
-            if fx!=1 or fy!=1:
-                print("reshaping along x and y")
-                t,h,w=self.shape
-                newshape=(int(w*fy),int(h*fx))
-                mov=[]
-                print(newshape)
-                for frame in self:
-                    mov.append(cv2.resize(frame,newshape,fx=fx,fy=fy,interpolation=interpolation))
-                self=Movie(np.asarray(mov), **self.__dict__)
-            if fz!=1:
-                print("reshaping along z")
-                t,h,w=self.shape
-                self=np.reshape(self,(t,h*w))
-                mov=cv2.resize(self,(h*w,int(fz*t)),fx=1,fy=fz,interpolation=interpolation)
-                mov=np.reshape(mov,(np.maximum(1,int(fz*t)),h,w))
-                self=Movie(mov, **self.__dict__)
-                self.fr=self.fr*fz
-
-        return self
 
     def guided_filter_blur_2D(self,guide_filter,radius=5, eps=0):
         """
