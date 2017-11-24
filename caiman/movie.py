@@ -20,15 +20,12 @@ from __future__ import division, print_function
 from past.utils import old_div
 import cv2
 import os
-import scipy.ndimage
-import scipy
 from scipy import optimize
-import sklearn
 import warnings
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
 from sklearn import decomposition
-from sklearn.decomposition import NMF , FastICA
+from sklearn.decomposition import NMF, FastICA
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 import h5py
@@ -153,18 +150,18 @@ class Movie(np.ndarray):
         mov.fr = self.fr * fz
         return mov
 
+    def bin_median(self):
+        """ Return the median image as an array."""
+        warnings.warn("Movie.bin_median() deprecated. Use numpy.median(movie) instead.", DeprecationWarning)
+        return np.nanmedian(self, axis=0)
+
     def motion_correction_online(self,max_shift_w=25,max_shift_h=25,init_frames_template=100,
                                  show_movie=False,bilateral_blur=False,template=None,min_count=1000):
         return motion_correct_online(self,max_shift_w=max_shift_w,max_shift_h=max_shift_h,
                                      init_frames_template=init_frames_template,show_movie=show_movie,
                                      bilateral_blur=bilateral_blur,template=template,min_count=min_count)
 
-    def motion_correct(self,
-                       max_shift_w=5,
-                       max_shift_h=5,
-                       num_frames_template=None,
-                       template=None,
-                       method='opencv',
+    def motion_correct(self, max_shift_w=5, max_shift_h=5, num_frames_template=None, template=None, method='opencv',
                        remove_blanks=False,interpolation='cubic'):
 
         """
@@ -232,11 +229,6 @@ class Movie(np.ndarray):
 
 
         return self,shifts,xcorrs,template
-
-    def bin_median(self):
-        """ Return the median image as an array."""
-        warnings.warn("Movie.bin_median() deprecated. Use numpy.median(movie) instead.", DeprecationWarning)
-        return np.nanmedian(self, axis=0)
 
     def extract_shifts(self, max_shift_w=5, max_shift_h=5, template=None, method='opencv'):
         """
@@ -602,24 +594,24 @@ class Movie(np.ndarray):
         """ DO NOT USE STILL UNDER DEVELOPMENT"""
         raise NotImplementedError()
 
-        pca_comp=n_components;
-        [T,d1,d2]=self.shape
-        M=np.reshape(self,(T,d1*d2))
-        [U,S,V] = scipy.sparse.linalg.svds(M,pca_comp)
-        S=np.diag(S);
-#        whiteningMatrix = np.dot(scipy.linalg.inv(np.sqrt(S)),U.T)
-#        dewhiteningMatrix = np.dot(U,np.sqrt(S))
-        whiteningMatrix = np.dot(scipy.linalg.inv(S),U.T)
-        dewhiteningMatrix = np.dot(U,S)
-        whitesig =  np.dot(whiteningMatrix,M)
-        wsigmask=np.reshape(whitesig.T,(d1,d2,pca_comp));
-        f_ica=sklearn.decomposition.FastICA(whiten=False, fun=fun, max_iter=max_iter, tol=tol)
-        S_ = f_ica.fit_transform(whitesig.T)
-        A_ = f_ica.mixing_
-        A=np.dot(A_,whitesig)
-        mask=np.reshape(A.T,(d1,d2,pca_comp)).transpose([2,0,1])
-
-        return mask
+#         pca_comp=n_components;
+#         [T,d1,d2]=self.shape
+#         M=np.reshape(self,(T,d1*d2))
+#         [U,S,V] = scipy.sparse.linalg.svds(M,pca_comp)
+#         S=np.diag(S);
+# #        whiteningMatrix = np.dot(scipy.linalg.inv(np.sqrt(S)),U.T)
+# #        dewhiteningMatrix = np.dot(U,np.sqrt(S))
+#         whiteningMatrix = np.dot(scipy.linalg.inv(S),U.T)
+#         dewhiteningMatrix = np.dot(U,S)
+#         whitesig =  np.dot(whiteningMatrix,M)
+#         wsigmask=np.reshape(whitesig.T,(d1,d2,pca_comp));
+#         f_ica=sklearn.decomposition.FastICA(whiten=False, fun=fun, max_iter=max_iter, tol=tol)
+#         S_ = f_ica.fit_transform(whitesig.T)
+#         A_ = f_ica.mixing_
+#         A=np.dot(A_,whitesig)
+#         mask=np.reshape(A.T,(d1,d2,pca_comp)).transpose([2,0,1])
+#
+#         return mask
 
     def local_correlations(self, eight_neighbours=False, swap_dim=True, frames_per_chunk=1500):
         """Computes the correlation image for the input dataset Y
