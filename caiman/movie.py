@@ -44,7 +44,7 @@ from .traces import trace
 
 from caiman.mmapping import load_memmap
 from caiman.utils import visualization
-from caiman import summary_images as si
+from caiman.summary_images import local_correlations
 from caiman.motion_correction import motion_correct_online
 
 
@@ -608,7 +608,7 @@ class Movie(np.ndarray):
 
         return mask
 
-    def local_correlations(self,eight_neighbours=False,swap_dim=True, frames_per_chunk = 1500):
+    def local_correlations(self, eight_neighbours=False, swap_dim=True, frames_per_chunk=1500):
         """Computes the correlation image for the input dataset Y
 
             Parameters:
@@ -631,28 +631,7 @@ class Movie(np.ndarray):
             rho: d1 x d2 [x d3] matrix, cross-correlation with adjacent pixels
 
         """
-        T = self.shape[0]
-        Cn = np.zeros(self.shape[1:])
-        if T<=3000:
-            Cn = si.local_correlations(np.array(self), eight_neighbours=eight_neighbours, swap_dim=swap_dim)
-        else:
-
-            n_chunks = T//frames_per_chunk
-            for jj,mv in tqdm(enumerate(range(n_chunks-1))):
-                rho = si.local_correlations(np.array(self[mv*frames_per_chunk:(mv+1)*frames_per_chunk]),
-                                            eight_neighbours=eight_neighbours, swap_dim=swap_dim)
-                Cn = np.maximum(Cn,rho)
-                plt.imshow(Cn,cmap='gray')
-                plt.pause(.1)
-
-            rho = si.local_correlations(np.array(self[(n_chunks-1)*frames_per_chunk:]), eight_neighbours=eight_neighbours,
-                                        swap_dim=swap_dim)
-            Cn = np.maximum(Cn,rho)
-            plt.imshow(Cn,cmap='gray')
-            plt.pause(.1)
-
-
-        return Cn
+        return local_correlations(self, eight_neighbours=eight_neighbours, swap_dim=swap_dim)
 
     def partition_FOV_KMeans(self,tradeoff_weight=.5,fx=.25,fy=.25,n_clusters=4,max_iter=500):
         """
