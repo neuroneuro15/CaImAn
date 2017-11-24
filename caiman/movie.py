@@ -433,7 +433,34 @@ class Movie(np.ndarray):
 
         return space_components, time_components
 
-    def NMF_online(self, n_components=30, method='nnsc', lambda1=100, iterations=-5, model=None, **kwargs):
+    def NMF_online(self, n_components=30, iterations=-5, **kwargs):
+        """ Method performing online matrix factorization and using the spams
+
+        (http://spams-devel.gforge.inria.fr/doc-python/html/index.html) package from Inria.
+        Implements bith the nmf and nnsc methods
+
+        Parameters:
+        ----------
+        n_components: int
+
+        iterations: see http://spams-devel.gforge.inria.fr/doc-python/html/index.html
+
+        **kwargs: more arguments to be passed to nmf or nnsc
+
+        Return:
+        -------
+        time_comps
+
+        space_comps
+        """
+        import spams
+
+        X = self.reshape((self.shape[0], -1), order='F')
+        time_comps, V = spams.nmf(X, return_lasso=True, K=n_components, numThreads=4, iter=iterations, **kwargs)
+        space_comps = np.array(np.reshape(mm.todense(), self.shape[1:], order='F' for mm in V)
+        return time_comps, space_comps
+
+    def NNSC_online(self, n_components=30, lambda1=100, iterations=-5, model=None, **kwargs):
         """ Method performing online matrix factorization and using the spams
 
         (http://spams-devel.gforge.inria.fr/doc-python/html/index.html) package from Inria.
@@ -449,8 +476,6 @@ class Movie(np.ndarray):
 
         iterations: see http://spams-devel.gforge.inria.fr/doc-python/html/index.html
 
-        batchsize: see http://spams-devel.gforge.inria.fr/doc-python/html/index.html
-
         model: see http://spams-devel.gforge.inria.fr/doc-python/html/index.html
 
         **kwargs: more arguments to be passed to nmf or nnsc
@@ -461,30 +486,12 @@ class Movie(np.ndarray):
 
         space_comps
         """
-        try:
-            import spams
-        except:
-            print("You need to install the SPAMS package")
-            raise
+        import spams
 
-        T,d1,d2=np.shape(self)
-        d=d1*d2
-        X=np.asfortranarray(np.reshape(self,[T,d],order='F'))
-
-        if method == 'nmf':
-            (time_comps,V) = spams.nmf(X,return_lasso= True ,K = n_components,numThreads=4,iter = iterations,**kwargs)
-
-        elif method == 'nnsc':
-            (time_comps,V) = spams.nnsc(X,return_lasso=True,K=n_components, lambda1 = lambda1,iter = iterations, model = model, **kwargs)
-        else:
-            raise Exception('Method unknown')
-
-        space_comps=[]
-
-        for idx,mm in enumerate(V):
-            space_comps.append(np.reshape(mm.todense(),(d1,d2),order='F'))
-
-        return time_comps,np.array(space_comps)
+        X = self.reshape(self.shape[0], -1, order='F')
+        time_comps, V = spams.nnsc(X, return_lasso=True, K=n_components, lambda1=lambda1, iter=iterations, model=model, **kwargs)
+        space_comps = np.array(np.reshape(mm.todense(), self.shape[1:], order='F' for mm in V)
+        return time_comps, space_comps
 
 
     def IPCA(self, components = 50, batch =1000):
