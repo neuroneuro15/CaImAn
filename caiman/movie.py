@@ -497,7 +497,7 @@ class Movie(np.ndarray):
 
     def IPCA(self, components=50, batch=1000):
         """
-        Iterative Principal Component analysis, see sklearn.decomposition.incremental_pca
+        Iterative Principal Component analysis for SVD approximation (see sklearn.decomposition.incremental_pca)
         Parameters:
         ------------
         components (default 50) = number of independent components to return
@@ -512,10 +512,8 @@ class Movie(np.ndarray):
 
         proj_frame_vectors:the reduced version of the Movie vectors using only the principal component projection
         """
-        frames = self.reshape(-1, self.shape[0])
-
-        # run IPCA to approxiate the SVD
         ipca_f = decomposition.incremental_pca(n_components=components, batch_size=batch)
+        frames = self.reshape(-1, self.shape[0])
         ipca_f.fit(frames)
 
         # construct the reduced version of the Movie vectors using only the principal component projection
