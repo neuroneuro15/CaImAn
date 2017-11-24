@@ -20,17 +20,14 @@ from __future__ import division, print_function
 from past.utils import old_div
 import cv2
 import os
-from scipy import optimize
+import pickle
 import warnings
+import h5py
+from scipy import optimize
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
-from sklearn import decomposition
-from sklearn.decomposition import NMF, FastICA
-from sklearn.cluster import KMeans
-from sklearn.metrics.pairwise import euclidean_distances
-import h5py
-import pickle
-from scipy.io import loadmat
+from sklearn import decomposition, cluster, metrics
+from scipy import io
 from matplotlib import animation
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -433,7 +430,7 @@ class Movie(np.ndarray):
         Y = Y - np.percentile(Y, 1)
         Y = np.clip(Y, 0, np.Inf)
 
-        estimator = NMF(n_components=n_components, init=init, beta=beta,tol=tol, sparseness=sparseness, **kwargs)
+        estimator = decomposition.NMF(n_components=n_components, init=init, beta=beta,tol=tol, sparseness=sparseness, **kwargs)
         time_components = estimator.fit_transform(Y)
         space_components = np.reshape(estimator.components_, (n_components, h, w))
 
@@ -571,7 +568,7 @@ class Movie(np.ndarray):
 
         eigenstuff = np.concatenate([n_eigenframes, n_eigenseries])
 
-        ica = FastICA(n_components=componentsICA, fun=ICAfun,**kwargs)
+        ica = decomposition.FastICA(n_components=componentsICA, fun=ICAfun,**kwargs)
         joint_ics = ica.fit_transform(eigenstuff)
 
         # extract the independent frames
@@ -670,9 +667,9 @@ class Movie(np.ndarray):
 
         idxA,idxB =  np.meshgrid(list(range(w)),list(range(h)))
         coordmat=np.vstack((idxA.flatten(),idxB.flatten()))
-        distanceMatrix=euclidean_distances(coordmat.T)
+        distanceMatrix = metrics.pairwise.euclidean_distances(coordmat.T)
         distanceMatrix=old_div(distanceMatrix,np.max(distanceMatrix))
-        estim=KMeans(n_clusters=n_clusters,max_iter=max_iter)
+        estim = cluster.KMeans(n_clusters=n_clusters,max_iter=max_iter)
         kk=estim.fit(tradeoff_weight*mcoef-(1-tradeoff_weight)*distanceMatrix)
         labs=kk.labels_
         fovs=np.reshape(labs,(h,w))
@@ -924,7 +921,7 @@ class Movie(np.ndarray):
     @classmethod
     def from_matlab(cls, file_name, fr=30, start_time=0, meta_data=None, subindices=None):
 
-        input_arr = loadmat(file_name)['data']
+        input_arr = io.loadmat(file_name)['data']
         input_arr = np.rollaxis(input_arr, 2, -3)
         input_arr = input_arr[subindices] if subindices is not None else input_arr
         return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1], meta_data=meta_data)
