@@ -127,6 +127,18 @@ class Movie(np.ndarray):
         """Synonym for array.reshape()"""
         return self.reshape(*args, order=order, **kwargs)
 
+    @classmethod
+    def concatenate(cls, *series, axis=0):
+        """Concatenate multiple TimeSeries objects together."""
+        if not all(map(lambda s: isinstance(s, cls), series)):
+            raise ValueError("All series must be {} objects in order to concatenate them.".format(cls.__name__))
+        if len(set(ts.fr for ts in series)) > 1:
+            raise ValueError("Timeseries must all have matching framerates.")
+
+        file_names = [s.file_name for s in series]
+        meta_datas = [s.meta_data for s in series]
+        return cls(np.concatenate(*series, axis=axis), file_name=file_names, meta_data=meta_datas)
+
     def motion_correction_online(self,max_shift_w=25,max_shift_h=25,init_frames_template=100,
                                  show_movie=False,bilateral_blur=False,template=None,min_count=1000):
         return motion_correct_online(self,max_shift_w=max_shift_w,max_shift_h=max_shift_h,
@@ -913,18 +925,6 @@ class Movie(np.ndarray):
         cv2.destroyAllWindows()
         for i in range(10):
             cv2.waitKey(100)
-
-    @classmethod
-    def concatenate(cls, *series, axis=0):
-        """Concatenate multiple TimeSeries objects together."""
-        if not all(map(lambda s: isinstance(s, cls), series)):
-            raise ValueError("All series must be {} objects in order to concatenate them.".format(cls.__name__))
-        if len(set(ts.fr for ts in series)) > 1:
-            raise ValueError("Timeseries must all have matching framerates.")
-
-        file_names = [s.file_name for s in series]
-        meta_datas = [s.meta_data for s in series]
-        return cls(np.concatenate(*series, axis=axis), file_name=file_names, meta_data=meta_datas)
 
     @classmethod
     def from_tiff(cls, file_name, fr=30, start_time=0, meta_data=None, subindices=None):
