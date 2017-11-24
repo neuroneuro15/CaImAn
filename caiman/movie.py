@@ -631,7 +631,7 @@ class Movie(np.ndarray):
         """
         return local_correlations(self, eight_neighbours=eight_neighbours, swap_dim=swap_dim)
 
-    def partition_FOV_KMeans(self,tradeoff_weight=.5,fx=.25,fy=.25,n_clusters=4,max_iter=500):
+    def partition_FOV_KMeans(self, tradeoff_weight=.5, n_clusters=4, max_iter=500):
         """
         Partition the FOV in clusters that are grouping pixels close in space and in mutual correlation
 
@@ -655,21 +655,17 @@ class Movie(np.ndarray):
         Example
 
         """
-        _,h1,w1=self.shape
-        self.resize(fx,fy)
-        T,h,w=self.shape
-        Y=np.reshape(self,(T,h*w))
-        mcoef=np.corrcoef(Y.T)
+        T, h, w = self.shape
 
-        idxA,idxB =  np.meshgrid(list(range(w)),list(range(h)))
-        coordmat=np.vstack((idxA.flatten(),idxB.flatten()))
+        idxA, idxB = np.meshgrid(np.arange(w), np.arange(h))
+        coordmat = np.vstack((idxA.flatten(), idxB.flatten()))
         distanceMatrix = metrics.pairwise.euclidean_distances(coordmat.T)
-        distanceMatrix=old_div(distanceMatrix,np.max(distanceMatrix))
-        estim = cluster.KMeans(n_clusters=n_clusters,max_iter=max_iter)
-        kk=estim.fit(tradeoff_weight*mcoef-(1-tradeoff_weight)*distanceMatrix)
-        labs=kk.labels_
-        fovs=np.reshape(labs,(h,w))
-        fovs=cv2.resize(np.uint8(fovs),(w1,h1),old_div(1.,fx),old_div(1.,fy),interpolation=cv2.INTER_NEAREST)
+        distanceMatrix /= np.max(distanceMatrix)
+
+        mcoef = np.corrcoef(self.T)
+        fit_params = tradeoff_weight * mcoef + (tradeoff_weight - 1) * distanceMatrix
+        kk = cluster.KMeans(n_clusters=n_clusters, max_iter=max_iter).fit(fit_params)
+        fovs = np.reshape(kk.labels_, (h, w))
         return np.uint8(fovs), mcoef, distanceMatrix
 
     def extract_traces_from_masks(self,masks):
