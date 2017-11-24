@@ -113,6 +113,20 @@ class Movie(np.ndarray):
     def time(self):
         return np.linspace(self.start_time, 1 / self.fr * self.shape[0], self.shape[0])
 
+    def crop(self, top=0, bottom=0, left=0, right=0, begin=0, end=0):
+        """Returns cropped Movie."""
+        t, h, w = self.shape
+        return self[begin:(t - end), top:(h - bottom), left:(w - right)]
+
+    def to_2D(self,order='F'):
+        [T,d1,d2]=self.shape
+        d=d1*d2
+        return np.reshape(self,(T,d),order=order)
+
+    def to_3d(self, *args, order='F', **kwargs):
+        """Synonym for array.reshape()"""
+        return self.reshape(*args, order=order, **kwargs)
+
     def motion_correction_online(self,max_shift_w=25,max_shift_h=25,init_frames_template=100,
                                  show_movie=False,bilateral_blur=False,template=None,min_count=1000):
         return motion_correct_online(self,max_shift_w=max_shift_w,max_shift_h=max_shift_h,
@@ -192,7 +206,6 @@ class Movie(np.ndarray):
 
 
         return self,shifts,xcorrs,template
-
 
     def bin_median(self):
         """ Return the median image as an array."""
@@ -334,11 +347,6 @@ class Movie(np.ndarray):
             raise ValueError("Model must be set to 'linear' or 'exponential'.")
 
         self.T[:] -= y_fit - np.median(y)
-
-    def crop(self, top=0, bottom=0, left=0, right=0, begin=0, end=0):
-        """Returns cropped Movie."""
-        t, h, w = self.shape
-        return self[begin:(t - end), top:(h - bottom), left:(w - right)]
 
     def computeDFF(self, secsWindow=5, quantilMin=8, method='delta_f_over_f'):
         """
@@ -588,7 +596,6 @@ class Movie(np.ndarray):
 
         return mask
 
-
     def local_correlations(self,eight_neighbours=False,swap_dim=True, frames_per_chunk = 1500):
         """Computes the correlation image for the input dataset Y
 
@@ -813,15 +820,6 @@ class Movie(np.ndarray):
             self[idx] = cv2.medianBlur(fr,ksize=kernel_size)
 
         return self
-
-    def to_2D(self,order='F'):
-        [T,d1,d2]=self.shape
-        d=d1*d2
-        return np.reshape(self,(T,d),order=order)
-
-    def to_3d(self, *args, order='F', **kwargs):
-        """Synonym for array.reshape()"""
-        return self.reshape(*args, order=order, **kwargs)
 
     def local_correlations_movie(self,window=10):
         T,_,_=self.shape
