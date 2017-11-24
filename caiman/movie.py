@@ -419,19 +419,19 @@ class Movie(np.ndarray):
         """
         See documentation for scikit-learn NMF
         """
-        if np.min(self)<0:
+        if np.min(self) < 0:
             raise ValueError("All values must be positive")
 
-        T,h,w=self.shape
-        Y=np.reshape(self,(T,h*w))
-        Y=Y-np.percentile(Y,1)
-        Y=np.clip(Y,0,np.Inf)
-        estimator=NMF(n_components=n_components, init=init, beta=beta,tol=tol, sparseness=sparseness,**kwargs)
-        time_components=estimator.fit_transform(Y)
-        components_ = estimator.components_
-        space_components=np.reshape(components_,(n_components,h,w))
+        T, h, w = self.shape
+        Y = np.reshape(self, (T, h * w))
+        Y = Y - np.percentile(Y, 1)
+        Y = np.clip(Y, 0, np.Inf)
 
-        return space_components,time_components
+        estimator = NMF(n_components=n_components, init=init, beta=beta,tol=tol, sparseness=sparseness, **kwargs)
+        time_components = estimator.fit_transform(Y)
+        space_components = np.reshape(estimator.components_, (n_components, h, w))
+
+        return space_components, time_components
 
     def NMF_online(self, n_components=30, method='nnsc', lambda1=100, iterations=-5, model=None, **kwargs):
         """ Method performing online matrix factorization and using the spams
