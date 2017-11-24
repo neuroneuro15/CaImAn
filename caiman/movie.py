@@ -27,7 +27,8 @@ import sklearn
 import warnings
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
-from sklearn.decomposition import NMF, incremental_pca , FastICA
+from sklearn import decomposition
+from sklearn.decomposition import NMF , FastICA
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 import h5py
@@ -494,7 +495,7 @@ class Movie(np.ndarray):
         return time_comps, space_comps
 
 
-    def IPCA(self, components = 50, batch =1000):
+    def IPCA(self, components=50, batch=1000):
         """
         Iterative Principal Component analysis, see sklearn.decomposition.incremental_pca
         Parameters:
@@ -511,29 +512,20 @@ class Movie(np.ndarray):
 
         proj_frame_vectors:the reduced version of the Movie vectors using only the principal component projection
         """
-        # vectorize the images
-        num_frames, h, w = np.shape(self)
-        frame_size = h * w
-        frame_samples = np.reshape(self, (num_frames, frame_size)).T
+        frames = self.reshape(-1, self.shape[0])
 
         # run IPCA to approxiate the SVD
-        ipca_f = incremental_pca(n_components=components, batch_size=batch)
-        ipca_f.fit(frame_samples)
+        ipca_f = decomposition.incremental_pca(n_components=components, batch_size=batch)
+        ipca_f.fit(frames)
 
-        # construct the reduced version of the Movie vectors using only the
-        # principal component projection
+        # construct the reduced version of the Movie vectors using only the principal component projection
+        proj_frame_vectors = ipca_f.inverse_transform(ipca_f.transform(frames))
 
-        proj_frame_vectors = ipca_f.inverse_transform(ipca_f.transform(frame_samples))
-
-        # get the temporal principal components (pixel time series) and
-        # associated singular values
-
+        # get the temporal principal components (pixel time series) and associated singular values
         eigenseries = ipca_f.components_.T
 
-        # the rows of eigenseries are approximately orthogonal
-        # so we can approximately obtain eigenframes by multiplying the
-        # projected frame matrix by this transpose on the right
-
+        # the rows of eigenseries are approximately orthogonal,
+        # so we can approximately obtain eigenframes by multipling the projected frame matrix by this transpose.
         eigenframes = np.dot(proj_frame_vectors, eigenseries)
 
         return eigenseries, eigenframes, proj_frame_vectors
