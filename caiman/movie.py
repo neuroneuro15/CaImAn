@@ -668,7 +668,7 @@ class Movie(np.ndarray):
         fovs = np.reshape(kk.labels_, (h, w))
         return np.uint8(fovs), mcoef, distanceMatrix
 
-    def extract_traces_from_masks(self,masks):
+    def extract_movie_from_masks(self, masks):
         """
         Parameters:
         ----------------------
@@ -678,19 +678,14 @@ class Movie(np.ndarray):
         ----------------------
         traces: array, 2D of fluorescence traces
         """
-        T,h,w=self.shape
-        Y=np.reshape(self,(T,h*w))
-        if masks.ndim == 2:
-            masks = masks[None,:,:]
+        T, h, w = self.shape
+        Y = np.reshape(self, (T, h * w))
 
-        nA,_,_=masks.shape
+        masks = np.reshape(masks, (-1, np.prod(np.shape(masks)[1:])))
+        masks = masks / np.sum(masks, axis=1, keepdims=True) # obtain average over ROI
+        masks = np.dot(masks, np.transpose(Y)).T
 
-        A=np.reshape(masks,(nA,h*w))
-
-        pixelsA=np.sum(A,axis=1)
-        A=old_div(A,pixelsA[:,None]) # obtain average over ROI
-        traces=trace(np.dot(A,np.transpose(Y)).T,**self.__dict__)
-        return traces
+        return self.__class__(masks, **self.__dict__)
 
     def guided_filter_blur_2D(self,guide_filter,radius=5, eps=0):
         """

@@ -336,7 +336,7 @@ def ICA_PCA(Y_ds, nr, sigma_smooth=(.5, .5, .5), truncate=2, fun='logcosh', max_
     masks = np.array(caiman.base.rois.extractROIsFromPCAICA(masks)[0])
 
     if masks.size > 0:
-        C_in = caiman.base.movies.movie(m1).extract_traces_from_masks(np.array(masks)).T
+        C_in = caiman.base.movies.movie(m1).extract_movie_from_masks(np.array(masks)).T
         A_in = np.reshape(masks, [-1, d1 * d2], order='F').T
 
     else:
