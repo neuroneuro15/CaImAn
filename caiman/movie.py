@@ -687,14 +687,10 @@ class Movie(np.ndarray):
 
         return self.__class__(masks, **self.__dict__)
 
-    def guided_filter_blur_2D(self,guide_filter,radius=5, eps=0):
-        """
-        performs guided filtering on each frame. See opencv documentation of cv2.ximgproc.guidedFilter
-        """
-        for idx,fr in tqdm(enumerate(self)):
-            self[idx] =  cv2.ximgproc.guidedFilter(guide_filter,fr,radius=radius,eps=eps)
-
-        return self
+    def guided_filter_blur_2D(self, guide_filter, radius=5, eps=0):
+        """Performs guided filtering on each frame of Movie in-place using cv2.ximgproc.guidedFilter()."""
+        for frame in tqdm(self):
+            frame[:] = cv2.ximgproc.guidedFilter(guide_filter, frame, radius=radius, eps=eps)
 
     def bilateral_blur_2D(self,diameter=5,sigmaColor=10000,sigmaSpace=0):
         """
