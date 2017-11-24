@@ -693,17 +693,12 @@ class Movie(np.ndarray):
             frame[:] = cv2.ximgproc.guidedFilter(guide_filter, frame, radius=radius, eps=eps)
 
     def bilateral_blur_2D(self,diameter=5,sigmaColor=10000,sigmaSpace=0):
-        """
-        performs bilateral filtering on each frame. See opencv documentation of cv2.bilateralFilter
-        """
-        if type(self[0,0,0]) is not np.float32:
-            warnings.warn('Casting the array to float 32')
-            self=np.asanyarray(self,dtype=np.float32)
+        """Performs bilateral filtering on each frame using openCV's cv2.bilateralFilter() function."""
+        if self.dtype != np.float32:
+            raise ValueError("Movie's dtype must be numpy.float32.")
 
-        for idx,fr in tqdm(enumerate(self)):
-            self[idx] =   cv2.bilateralFilter(fr,diameter,sigmaColor,sigmaSpace)
-
-        return self
+        for frame in tqdm(self):
+            frame[:] = cv2.bilateralFilter(frame, diameter, sigmaColor, sigmaSpace)
 
     def gaussian_blur_2D(self,kernel_size_x=5,kernel_size_y=5,kernel_std_x=1,kernel_std_y=1,borderType=cv2.BORDER_REPLICATE):
         """
