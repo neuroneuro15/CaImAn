@@ -586,8 +586,9 @@ class Movie(np.ndarray):
         return self
 
     def IPCA_io(self, n_components=50, fun='logcosh', max_iter=1000, tol=1e-20):
-        """ DO NOT USE STILL UNDER DEVELOPMENT
-        """
+        """ DO NOT USE STILL UNDER DEVELOPMENT"""
+        raise NotImplementedError()
+
         pca_comp=n_components;
         [T,d1,d2]=self.shape
         M=np.reshape(self,(T,d1*d2))
