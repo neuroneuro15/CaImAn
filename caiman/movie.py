@@ -135,8 +135,12 @@ class Movie(np.ndarray):
         max_els = 2 ** 31 - 1
         if self.size > max_els:
             chunk_size =  max_els // np.prod(self.shape[1:])
-            new_m = [tmp.resize(fx=fx, fy=fy, fz=fz, interpolation=interpolation) for tmp in self[::chunk_size]]
-            return self.concatenate(*new_m, axis=0)
+            new_m, file_names, meta_datas = [], [], []
+            for tmp in self[::chunk_size]:
+                new_m.append(tmp.resize(fx=fx, fy=fy, fz=fz, interpolation=interpolation))
+                file_names.append(tmp.file_name)
+                meta_datas.append(tmp.meta_data)
+            return self.__class__(np.concatenate(*new_m, axis=0), file_name=file_names, meta_data=meta_datas)
 
         t, h, w = self.shape
         mov = self.copy()
@@ -148,18 +152,6 @@ class Movie(np.ndarray):
         mov = Movie(mov, **self.__dict__)
         mov.fr = self.fr * fz
         return mov
-
-    @classmethod
-    def concatenate(cls, *series, axis=0):
-        """Concatenate multiple TimeSeries objects together."""
-        if not all(map(lambda s: isinstance(s, cls), series)):
-            raise ValueError("All series must be {} objects in order to concatenate them.".format(cls.__name__))
-        if len(set(ts.fr for ts in series)) > 1:
-            raise ValueError("Timeseries must all have matching framerates.")
-
-        file_names = [s.file_name for s in series]
-        meta_datas = [s.meta_data for s in series]
-        return cls(np.concatenate(*series, axis=axis), file_name=file_names, meta_data=meta_datas)
 
     def motion_correction_online(self,max_shift_w=25,max_shift_h=25,init_frames_template=100,
                                  show_movie=False,bilateral_blur=False,template=None,min_count=1000):
@@ -1195,10 +1187,3 @@ class Movie(np.ndarray):
             if self.meta_data[0] is not None:
                 print(self.meta_data)
                 dset.attrs["meta_data"] = pickle.dumps(self.meta_data)
-
-
-
-
-def concatenate(*series, axis=0):
-    """Concatenate Movies together."""
-    return Movie.concatenate(*series, axis=axis)
