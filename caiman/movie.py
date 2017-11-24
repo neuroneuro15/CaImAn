@@ -22,22 +22,20 @@ import cv2
 import os
 import scipy.ndimage
 import scipy
+from scipy import optimize
 import sklearn
 import warnings
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
-import scipy as sp
 from sklearn.decomposition import NMF, incremental_pca , FastICA
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
-import matplotlib.pyplot as plt
 import h5py
 import pickle
 from scipy.io import loadmat
 from matplotlib import animation
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from caiman.base import timeseries
 from skimage import feature
 
 from caiman.base.io_sbx import sbxreadskip
@@ -46,7 +44,8 @@ from .traces import trace
 from caiman.mmapping import load_memmap
 from caiman.utils import visualization
 from caiman import summary_images as si
-from caiman.motion_correction import apply_shift_online,motion_correct_online
+from caiman.motion_correction import motion_correct_online
+
 
 class Movie(np.ndarray):
     """
@@ -307,38 +306,34 @@ class Movie(np.ndarray):
                 tform = AffineTransform(translation=(-shift_x, -shift_y))
                 self[i] = warp(frame, tform, preserve_range=True, order=interp_enum, mode='reflect')
 
-    def debleach(self):
-        """ Debleach by fiting a model to the median intensity.
+    def debleach(self, model='exponential'):
         """
-    #todo: todocument
-        if type(self[0, 0, 0]) is not np.float32:
-            warnings.warn('Casting the array to float 32')
-            self = np.asanyarray(self, dtype=np.float32)
+        Debleach in-place by fitting a model to the median intensity.
 
-        t, h, w = self.shape
+        Parameters:
+        ----------
+
+        model: 'linear' or 'exponential'
+        """
+        #todo: todocument
+        data = self.astype(np.float32, subok=True) if self.dtype != np.float32 else self
+
+        t, h, w = data.shape
         x = np.arange(t)
         y = np.median(self.reshape(t, -1), axis=1)
 
-        def expf(x, a, b, c):
-            return a*np.exp(-b*x)+c
+        if model.lower() == 'linear'
+            p0 = (float(y[-1] - y[0]) / (float(x[-1] - x[0])), y[0])
+            (a, b), pcov = optimize.curve_fit(linf, x, y, p0=p0)
+            y_fit = a * x + b
+        elif model.lower() == 'exponential':
+            p0 = (y[0] - y[-1], 1e-6, y[-1])
+            (a, b, c), pcov = optimize.curve_fit(expf, x, y, p0=p0)
+            y_fit = a * np.exp(-b * x)
+        else:
+            raise ValueError("Model must be set to 'linear' or 'exponential'.")
 
-        def linf(x, a, b):
-            return a*x+b
-
-        try:
-            p0 = (y[0]-y[-1], 1e-6, y[-1])
-            popt, pcov = sp.optimize.curve_fit(expf, x, y, p0=p0)
-            y_fit = expf(x, *popt)
-        except:
-            p0 = (old_div(float(y[-1]-y[0]),float(x[-1]-x[0])), y[0])
-            popt, pcov = sp.optimize.curve_fit(linf, x, y, p0=p0)
-            y_fit = linf(x, *popt)
-
-        norm = y_fit - np.median(y[:])
-        for frame in range(t):
-            self[frame, :, :] = self[frame, :, :] - norm[frame]
-
-        return self
+        self.T[:] -= y_fit - np.median(y)
 
     def crop(self, top=0, bottom=0, left=0, right=0, begin=0, end=0):
         """Returns cropped Movie."""
