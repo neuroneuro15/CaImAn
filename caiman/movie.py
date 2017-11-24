@@ -413,7 +413,7 @@ class Movie(np.ndarray):
 
         return self.__class__(out_array, **self.__dict__)
 
-    def NonnegativeMatrixFactorization(self,n_components=30, init='nndsvd', beta=1,tol=5e-7, sparseness='components',**kwargs):
+    def NMF(self, n_components=30, init='nndsvd', beta=1, tol=5e-7, sparseness='components', **kwargs):
         """
         See documentation for scikit-learn NMF
         """
@@ -431,7 +431,7 @@ class Movie(np.ndarray):
 
         return space_components,time_components
 
-    def online_NMF(self,n_components=30,method='nnsc',lambda1=100,iterations=-5,model=None,**kwargs):
+    def NMF_online(self, n_components=30, method='nnsc', lambda1=100, iterations=-5, model=None, **kwargs):
         """ Method performing online matrix factorization and using the spams
 
         (http://spams-devel.gforge.inria.fr/doc-python/html/index.html) package from Inria.
