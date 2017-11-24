@@ -38,35 +38,39 @@ Copyright (C) 2011, the scikit-image team
 
 
 """
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 from past.builtins import basestring
 from past.utils import old_div
+import gc
+import os
+import collections
+import warnings
+
 import numpy as np
 import matplotlib.pyplot as plt
-import cv2 
+import cv2
+from cv2 import dft as fftn
+from cv2 import idft as ifftn
 
-import collections
-import caiman as cm
+from numpy.fft import ifftshift
+import itertools
 
 try:
     import tifffile
-except:
-    print('tifffile package not found, using skimage.external.tifffile')
+except ImportError:
+    warnings.warn('tifffile package not found, using skimage.external.tifffile', ImportWarning)
     from skimage.external import tifffile
-    
-import gc
-import os
-import time
-from cv2 import dft as fftn
-from cv2 import idft as ifftn
-opencv = True
-from numpy.fft import ifftshift
-import itertools
+
 try:
     profile
 except:
     profile = lambda a: a
+
+import caiman as cm
+
+
+opencv = True
     
 #%%
 class MotionCorrect(object):

@@ -15,12 +15,12 @@ See Also:
 # \copyright GNU General Public License v2.0
 # \date Created on Thu Oct 20 11:41:21 2016
 
+from __future__ import division, absolute_import
 
-from __future__ import division
 import numpy as np
 from scipy.ndimage.filters import convolve
 import cv2
-from caiman.source_extraction.cnmf.pre_processing import get_noise_fft, get_noise_fft_parallel
+from .source_extraction.cnmf.pre_processing import get_noise_fft
 
 
 def max_correlation_image(Y, bin_size=1000, eight_neighbours=True, swap_dim=True):

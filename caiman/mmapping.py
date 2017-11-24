@@ -4,7 +4,7 @@ Created on Thu Oct 20 11:33:35 2016
 
 @author: agiovann
 """
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 from past.builtins import basestring
 from past.utils import old_div

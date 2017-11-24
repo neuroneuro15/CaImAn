@@ -4,7 +4,7 @@ Created on Thu Oct 22 13:22:26 2015
 
 @author: agiovann
 """
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 from past.utils import old_div
 from scipy.ndimage.filters import gaussian_filter

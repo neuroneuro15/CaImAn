@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 from . import io
 from .movie import Movie
 from .patches import get_patches_from_image, extract_patch_coordinates, apply_to_patch, function_place_holder

@@ -19,21 +19,21 @@ See Also:
 # \copyright GNU General Public License v2.0
 # \date Created on Thu Oct 20 12:07:09 2016
 
-from __future__ import print_function
+from __future__ import print_function, division, absolute_import
 
+import sys
+import os
 import subprocess
 import time
-import ipyparallel
-from ipyparallel import Client
-import shutil
 import glob
 import shlex
 import psutil
-import sys
-import os
-import numpy as np
-from multiprocessing import Pool            
+import shutil
+from multiprocessing import Pool
 import multiprocessing
+import ipyparallel
+from ipyparallel import Client
+import numpy as np
 
 
 def start_server(slurm_script=None, ipcluster="ipcluster", ncpus = None):

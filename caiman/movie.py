@@ -15,7 +15,7 @@ See Also:
 # \copyright GNU General Public License v2.0
 # \date Created on Tue Jun 30 20:56:07 2015 , Updated on Fri Aug 19 17:30:11 2016
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 from past.utils import old_div
 import cv2
@@ -23,23 +23,21 @@ import os
 import pickle
 import warnings
 import h5py
-from scipy import optimize
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
-from sklearn import decomposition, cluster, metrics
-from scipy import io
 from matplotlib import animation
 import matplotlib.pyplot as plt
-from tqdm import tqdm
+from sklearn import decomposition, cluster, metrics
+from scipy import io, optimize
 from skimage import feature
+from tqdm import tqdm
 
-from caiman.base.io_sbx import sbxreadskip
+from .io import sbxreadskip
 from .traces import trace
-
-from caiman.mmapping import load_memmap
-from caiman.utils import visualization
-from caiman.summary_images import local_correlations
-from caiman.motion_correction import motion_correct_online
+from .mmapping import load_memmap
+from .utils import visualization
+from .summary_images import local_correlations
+from .motion_correction import motion_correct_online
 
 
 class Movie(np.ndarray):

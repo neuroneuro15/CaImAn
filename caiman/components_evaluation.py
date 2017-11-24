@@ -4,21 +4,21 @@ Created on Thu Oct 20 12:12:34 2016
 
 @author: agiovann
 """
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 
 from past.utils import old_div
+import itertools
 import numpy as np
 from .utils.stats import mode_robust, mode_robust_fast
 from scipy.sparse import csc_matrix
-from scipy.stats import norm
 import scipy
 import cv2
-import itertools
+
 try:
-	import json as simplejson
 	from keras.models import model_from_json
-except:
+except ImportError:
 	print('KERAS NOT INSTALLED. IF YOU WANT TO USE THE CNN BASED COMPONENT CLASSIFIER (experimental) CONTACT THE DEVELOPERS')
+
 
 def estimate_noise_mode(traces,robust_std=False,use_mode_fast=False, return_all = False):
     """ estimate the noise in the traces under assumption that signals are sparse and only positive. The last dimension should be time. 
