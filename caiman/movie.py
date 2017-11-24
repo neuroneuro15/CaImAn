@@ -347,14 +347,16 @@ class Movie(np.ndarray):
         x = np.arange(t)
         y = np.median(self.reshape(t, -1), axis=1)
 
-        if model.lower() == 'linear'
+        if model.lower() == 'linear':
+            fit_data = lambda x, a ,b: a * x + b
             p0 = (float(y[-1] - y[0]) / (float(x[-1] - x[0])), y[0])
-            (a, b), pcov = optimize.curve_fit(linf, x, y, p0=p0)
-            y_fit = a * x + b
+            popt, pcov = optimize.curve_fit(linf, x, y, p0=p0)
+            y_fit = fit_data(x, *popt)
         elif model.lower() == 'exponential':
+            fit_data = lambda x, a, b, c: a * np.exp(-b * x) + c
             p0 = (y[0] - y[-1], 1e-6, y[-1])
-            (a, b, c), pcov = optimize.curve_fit(expf, x, y, p0=p0)
-            y_fit = a * np.exp(-b * x)
+            popt, pcov = optimize.curve_fit(expf, x, y, p0=p0)
+            y_fit = fit_data(x, *popt)
         else:
             raise ValueError("Model must be set to 'linear' or 'exponential'.")
 
