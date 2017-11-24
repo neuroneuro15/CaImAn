@@ -814,9 +814,6 @@ class Movie(np.ndarray):
 
         return self
 
-    def resample(self):
-        raise NotImplementedError
-
     def to_2D(self,order='F'):
         [T,d1,d2]=self.shape
         d=d1*d2
