@@ -20,7 +20,6 @@ from __future__ import division, print_function
 from past.utils import old_div
 import cv2
 import os
-import sys
 import scipy.ndimage
 import scipy
 import sklearn
@@ -39,7 +38,7 @@ from matplotlib import animation
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from caiman.base import timeseries
-from skimage.feature import match_template
+from skimage import feature
 
 from caiman.base.io_sbx import sbxreadskip
 from .traces import trace
@@ -201,10 +200,9 @@ class Movie(np.ndarray):
         warnings.warn("Movie.bin_median() deprecated. Use numpy.median(movie) instead.", DeprecationWarning)
         return np.nanmedian(self, axis=0)
 
-
-    def extract_shifts(self, max_shift_w=5,max_shift_h=5, template=None, method='opencv'):
+    def extract_shifts(self, max_shift_w=5, max_shift_h=5, template=None, method='opencv'):
         """
-        Performs motion corretion using the opencv matchtemplate function. At every iteration a template is built by taking the median of all frames and then used to align the other frames.
+        Performs motion correction using the opencv or scikit-image matchtemplate function. At every iteration a template is built by taking the median of all frames and then used to align the other frames.
 
         Parameters:
         ----------
@@ -219,76 +217,53 @@ class Movie(np.ndarray):
         shifts : tuple, contains shifts in x and y and correlation with template
 
         xcorrs: cross correlation of the movies with the template
-
-        Raise:
-        ------
-        Exception('Unknown motion correction method!')
-
         """
-        min_val=np.percentile(self, 1)
-        if min_val < - 0.1:
-            print(min_val)
-            warnings.warn('** Pixels averages are too negative. Removing 1 percentile. **')
-            self=self-min_val
-        else:
-            min_val=0
 
-        if type(self[0, 0, 0]) is not np.float32:
-            warnings.warn('Casting the array to float 32')
-            self = np.asanyarray(self, dtype=np.float32)
+        data = self.astype(np.float32) if self.dtype != np.float32 else self
 
-        n_frames_, h_i, w_i = self.shape
-
-        ms_w = max_shift_w
-        ms_h = max_shift_h
-
-        if template is None:
-            template = np.median(self, axis=0)
-        else:
-            if np.percentile(template, 8) < - 0.1:
-                warnings.warn('Pixels averages are too negative for template. Removing 1 percentile.')
-                template=template-np.percentile(template,1)
-
-        template=template[ms_h:h_i-ms_h,ms_w:w_i-ms_w].astype(np.float32)
+        # Build/Adjust template image
+        template_img = np.median(data, axis=0) if type(template) == type(None) else template
+        if np.min(template_img) < 0.:
+            raise ValueError("All Pixels in Template Array must be greater or equal to zero.")
+        template_img = template_img.astype(np.float32)
+        template_img = template_img[max_shift_h:(-max_shift_h + 1), max_shift_w:(-max_shift_w + 1)]
 
         #% run algorithm, press q to stop it
-        shifts=[]   # store the amount of shift in each frame
-        xcorrs=[]
+        if method.lower() == 'opencv':
+            match_template = lambda img: cv2.matchTemplate(img, template_img, cv2.TM_CCORR_NORMED)
+            get_top_left = lambda img: cv2.minMaxLoc(res)[3]
+        elif method.lower() == 'skimage':
+            match_template = lambda img: feature.match_template(frame, template_img)
+            get_top_left = lambda img: np.unravel_index(np.argmax(res), res.shape)[::-1]
+        else:
+            raise ValueError("Method must be 'opencv' or 'skimage'.")
 
-        for i,frame in tqdm(enumerate(self)):
-            if method == 'opencv':
-                res = cv2.matchTemplate(frame,template,cv2.TM_CCORR_NORMED)
-                top_left = cv2.minMaxLoc(res)[3]
-            elif method == 'skimage':
-                res = match_template(frame,template)
-                top_left = np.unravel_index(np.argmax(res),res.shape)
-                top_left=top_left[::-1]
-            else:
-                raise Exception('Unknown motion correction method!')
-            avg_corr=np.mean(res)
-            sh_y,sh_x = top_left
+        shifts, xcorrs = [], []  # store the amount of shift in each frame
+        for frame in tqdm(data):
+            res = match_template(frame)
 
-            if (0 < top_left[1] < 2 * ms_h-1) & (0 < top_left[0] < 2 * ms_w-1):
-                # if max is internal, check for subpixel shift using gaussian
-                # peak registration
-                log_xm1_y = np.log(res[sh_x-1,sh_y])
-                log_xp1_y = np.log(res[sh_x+1,sh_y])
-                log_x_ym1 = np.log(res[sh_x,sh_y-1])
-                log_x_yp1 = np.log(res[sh_x,sh_y+1])
-                four_log_xy = 4*np.log(res[sh_x,sh_y])
-
-                sh_x_n = -(sh_x - ms_h + old_div((log_xm1_y - log_xp1_y), (2 * log_xm1_y - four_log_xy + 2 * log_xp1_y)))
-                sh_y_n = -(sh_y - ms_w + old_div((log_x_ym1 - log_x_yp1), (2 * log_x_ym1 - four_log_xy + 2 * log_x_yp1)))
-            else:
-                sh_x_n = -(sh_x - ms_h)
-                sh_y_n = -(sh_y - ms_w)
-
-            shifts.append([sh_x_n,sh_y_n])
+            avg_corr = np.mean(res)
             xcorrs.append([avg_corr])
 
-        self=self+min_val
+            shift_y, shift_x = get_top_left(frame)
+            if (0 < shift_x < 2 * max_shift_h - 1) & (0 < shift_y < 2 * max_shift_w - 1):
+                # if max is internal, check for subpixel shift using gaussian
+                # peak registration
+                log_xm1_y = np.log(res[shift_x - 1., shift_y])
+                log_xp1_y = np.log(res[shift_x + 1., shift_y])
+                log_x_ym1 = np.log(res[shift_x, shift_y - 1.])
+                log_x_yp1 = np.log(res[shift_x, shift_y + 1.])
+                four_log_xy = 4. * np.log(res[shift_x, shift_y])
 
-        return (shifts,xcorrs)
+                sh_x_n = max_shift_h - shift_x - (log_xp1_y - log_xm1_y) / (2. * (log_xm1_y - four_log_xy + log_xp1_y))
+                sh_y_n = max_shift_w - shift_y - (log_x_yp1 - log_x_ym1) / (2. * (log_x_ym1 - four_log_xy + log_x_yp1))
+            else:
+                sh_x_n = max_shift_h - shift_x
+                sh_y_n = max_shift_w - shift_y
+
+            shifts.append((sh_x_n, sh_y_n))
+
+        return (shifts, xcorrs)
 
     def apply_shifts(self, shifts, interpolation='linear', package='opencv'):
         """
