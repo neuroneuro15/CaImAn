@@ -24,7 +24,7 @@ def load_memmap(filename, mode='r'):
 
 
 def save_memmap_each(fnames, dview=None, base_name=None, resize_fact=(1, 1, 1), remove_init=0,
-                     idx_xy=None, xy_shifts=None, add_to_movie=0, border_to_0=0):
+                     idx_xy=None, xy_shifts=None, add_to_movie=0, border_to_0=0, order='C'):
     """
     Create several memory mapped files using parallel processing
 
@@ -63,27 +63,19 @@ def save_memmap_each(fnames, dview=None, base_name=None, resize_fact=(1, 1, 1), 
         paths to the created memory map files
 
     """
-    order = 'C'
+
+    xy_shifts = [None] * len(fnames) if type(xy_shifts) == type(None) else xy_shifts
+    resize_fact = [resize_fact] * len(fnames) if not isinstance(resize_fact, list) else resize_fact
     pars = []
-    if xy_shifts is None:
-        xy_shifts = [None] * len(fnames)
+    for idx, (f, shift, resize) in enumerate(zip(fnames, xy_shifts, resize_fact)):
+        fname = '{}{:04d}'.format(base_name, idx) if not base_name else os.path.splitext(f)[0]
+        par = [f, fname, resize, remove_init, idx_xy, order, shift, add_to_movie, border_to_0]
+        pars.append(par)
 
-    if type(resize_fact)is not list:
-        resize_fact = [resize_fact] * len(fnames)
-
-    for idx, f in enumerate(fnames):
-        if base_name is not None:
-            pars.append([f, base_name + '{:04d}'.format(idx), resize_fact[idx], remove_init,
-                         idx_xy, order, xy_shifts[idx], add_to_movie, border_to_0])
-        else:
-            pars.append([f, os.path.splitext(f)[0], resize_fact[idx], remove_init, idx_xy, order,
-                         xy_shifts[idx], add_to_movie, border_to_0])
-
-    if dview is not None:
-        if 'multiprocessing' in str(type(dview)):
-            fnames_new = dview.map_async(save_place_holder, pars).get(9999999)
-        else:
-            fnames_new = dview.map_sync(save_place_holder, pars)
+    if 'multiprocessing' in str(type(dview)):
+        fnames_new = dview.map_async(save_place_holder, pars).get(9999999)
+    elif type(dview) != type(None):
+        fnames_new = dview.map_sync(save_place_holder, pars)
     else:
         fnames_new = list(map(save_place_holder, pars))
 
