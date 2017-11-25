@@ -694,14 +694,14 @@ class Movie(np.ndarray):
             frame[:] = cv2.ximgproc.guidedFilter(guide_filter, frame, radius=radius, eps=eps)
         return self.__class__(mov, **self.__dict__)
 
-    def bilateral_blur_2D(self,diameter=5,sigmaColor=10000,sigmaSpace=0):
+    def bilateral_blur_2D(self,diameter=5, sigmaColor=10000, sigmaSpace=0):
         """Returns a bilaterally-filtered version of the Movie using openCV's bilateralFilter() function."""
         mov = self.astype(np.float32)
         for frame in tqdm(mov):
             frame[:] = cv2.bilateralFilter(frame, diameter, sigmaColor, sigmaSpace)
         return self.__class__(mov, **self.__dict__)
 
-    def gaussian_blur_2D(self,kernel_size_x=5, kernel_size_y=5, kernel_std_x=1, kernel_std_y=1, borderType=cv2.BORDER_REPLICATE):
+    def gaussian_blur_2D(self, kernel_size_x=5, kernel_size_y=5, kernel_std_x=1, kernel_std_y=1, borderType=cv2.BORDER_REPLICATE):
         """Returns a gaussian-blurred version of the Movie using openCV's GaussianBlur() function."""
         mov = self.copy()
         for frame in tqdm(mov):
@@ -715,11 +715,6 @@ class Movie(np.ndarray):
         for frame in tqdm(mov):
             frame[:] = cv2.medianBlur(frame, ksize=kernel_size)
         return self.__class__(mov, **self.__dict__)
-
-    def local_correlations_movie(self,window=10):
-        T,_,_=self.shape
-        return Movie(np.concatenate([self[j:j + window, :, :].local_correlations(
-            eight_neighbours=True)[np.newaxis, :, :] for j in range(T-window)], axis=0), fr=self.fr)
 
     def plot_aggregation(self, method='mean', **plot_kwargs):
         """
