@@ -83,7 +83,7 @@ def save_memmap_each(fnames, dview=None, base_name=None, resize_fact=(1, 1, 1), 
 
 
 #%%
-def save_memmap_join(mmap_fnames, base_name=None, n_chunks=20, dview=None, async=False):
+def save_memmap_join(mmap_fnames, base_name=None, n_chunks=20, dview=None, order='C'):
     """
     From small memory mappable files creates a large one
 
@@ -98,25 +98,19 @@ def save_memmap_join(mmap_fnames, base_name=None, n_chunks=20, dview=None, async
 
     dview: cluster handle
 
-    async: somtimes it will not work asynchrounously, try this if it fails
-
     Returns:
     --------
 
     """
 
     tot_frames = 0
-    order = 'C'
     for f in mmap_fnames:
         Yr, dims, T = load_memmap(f)
-        print((f, T))
         tot_frames += T
         del Yr
 
     d = np.prod(dims)
-
     if base_name is None:
-
         base_name = mmap_fnames[0]
         base_name = base_name[:base_name.find('_d1_')] + '-#-' + str(len(mmap_fnames))
 
@@ -129,7 +123,7 @@ def save_memmap_join(mmap_fnames, base_name=None, n_chunks=20, dview=None, async
 
     big_mov = np.memmap(fname_tot, mode='w+', dtype=np.float32, shape=(d, tot_frames), order='C')
 
-    step = np.int(old_div(d, n_chunks))
+    step = d // n_chunks
     pars = []
     for ref in range(0, d - step + 1, step):
         pars.append([fname_tot, d, tot_frames, mmap_fnames, ref, ref + step])
@@ -316,10 +310,6 @@ def save_memmap_chunks(filename, base_name='Yr', resize_fact=(1, 1, 1), remove_i
             number of frames to remove at the begining of each tif file
             (used for resonant scanning images if laser in rutned on trial by trial)
 
-        idx_xy: tuple size 2 [or 3 for 3D data]
-            for selecting slices of the original FOV, for instance
-            idx_xy = (slice(150,350,None), slice(150,350,None))
-
         order: string
             whether to save the file in 'C' or 'F' order
 
@@ -336,37 +326,22 @@ def save_memmap_chunks(filename, base_name='Yr', resize_fact=(1, 1, 1), remove_i
     """
 
     # TODO: can be done online
-    print(filename)
     Yr = cm.load(filename, fr=1)
+    Yr = Yr[remove_init:]
+    if border_to_0 > 0:
+        Yr[:, border_to_0:-border_to_0, border_to_0:-border_to_0] = np.nanmin(Yr)
 
     T, dims = Yr.shape[0], Yr.shape[1:]
-    step = np.int(old_div(T, n_chunks))
-    bins = []
-
-    for i in range(0, T, step):
-        bins.append(i)
-    bins.append(T)
-
-    for j in range(0, len(bins) - 1):
-        tmp = np.array(Yr[bins[j]:bins[j + 1], :, :])
-        if xy_shifts is not None:
-            tmp = tmp.apply_shifts(xy_shifts, interpolation='cubic', remove_blanks=False)
+    for tmp in np.array_split(Yr, n_chunks, axis=0):
+        tmp = tmp.apply_shifts(xy_shifts, interpolation='cubic', remove_blanks=False) if xy_shifts is not None else tmp
 
         if idx_xy is None:
-            if remove_init > 0:
-                tmp = np.array(tmp)[remove_init:]
         elif len(idx_xy) == 2:
             tmp = np.array(tmp)[remove_init:, idx_xy[0], idx_xy[1]]
         else:
             raise Exception('You need to set is_3D=True for 3D data)')
-            tmp = np.array(tmp)[remove_init:, idx_xy[0], idx_xy[1], idx_xy[2]]
 
-        if border_to_0 > 0:
-            min_mov = np.nanmin(tmp)
-            tmp[:, :border_to_0, :] = min_mov
-            tmp[:, :, :border_to_0] = min_mov
-            tmp[:, :, -border_to_0:] = min_mov
-            tmp[:, -border_to_0:, :] = min_mov
+
 
         fx, fy, fz = resize_fact
         if fx != 1 or fy != 1 or fz != 1:
