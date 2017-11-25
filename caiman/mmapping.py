@@ -10,58 +10,19 @@ from past.builtins import basestring
 from past.utils import old_div
 import numpy as np
 import os
+from os import path
 import caiman as cm
 from .io import tifffile
 
-#%%
+
 def load_memmap(filename, mode='r'):
-    """ Load a memory mapped file created by the function save_memmap
-
-    Parameters:
-    -----------
-        filename: str
-            path of the file to be loaded
-
-    Returns:
-    --------
-    Yr:
-        memory mapped variable
-
-    dims: tuple
-        frame dimensions
-
-    T: int
-        number of frames
+    """Returns (Numpy.mmap object, shape tuple, frame count) from a file created by save_memmap()."""
+    d1, d2, d3, order, T = [int(part) for part in path.basename(filename).split('_')[-9::2]]
+    Yr = np.memmap(filename, mode=mode, shape=(d1 * d2 * d3, T), dtype=np.float32, order=order)
+    shape = (d1, d2) if d3 == 1 else (d1, d2, d3)
+    return Yr, shape, T
 
 
-    Raise:
-     -----
-        exception if not in mmap
-
-    """
-    if os.path.splitext(filename)[1] == '.mmap':
-
-        file_to_load = filename
-
-        filename = os.path.split(filename)[-1]
-
-        fpart = filename.split('_')[1:-1]
-
-        d1, d2, d3, T, order = int(fpart[-9]), int(fpart[-7]
-                                                   ), int(fpart[-5]), int(fpart[-1]), fpart[-3]
-
-        Yr = np.memmap(file_to_load, mode=mode, shape=(
-            d1 * d2 * d3, T), dtype=np.float32, order=order)
-
-        return (Yr, (d1, d2), T) if d3 == 1 else (Yr, (d1, d2, d3), T)
-
-    else:
-        raise Exception('Not implemented consistently')
-        Yr = np.load(filename, mmap_mode='r')
-        return Yr, None, None
-
-
-#%%
 def save_memmap_each(fnames, dview=None, base_name=None, resize_fact=(1, 1, 1), remove_init=0,
                      idx_xy=None, xy_shifts=None, add_to_movie=0, border_to_0=0):
     """
