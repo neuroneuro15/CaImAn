@@ -701,56 +701,20 @@ class Movie(np.ndarray):
             frame[:] = cv2.bilateralFilter(frame, diameter, sigmaColor, sigmaSpace)
         return self.__class__(mov, **self.__dict__)
 
-    def gaussian_blur_2D(self,kernel_size_x=5,kernel_size_y=5,kernel_std_x=1,kernel_std_y=1,borderType=cv2.BORDER_REPLICATE):
-        """
-        Compute gaussian blut in 2D. Might be useful when motion correcting
+    def gaussian_blur_2D(self,kernel_size_x=5, kernel_size_y=5, kernel_std_x=1, kernel_std_y=1, borderType=cv2.BORDER_REPLICATE):
+        """Returns a gaussian-blurred version of the Movie using openCV's GaussianBlur() function."""
+        mov = self.copy()
+        for frame in tqdm(mov):
+            frame[:] = cv2.GaussianBlur(frame, ksize=(kernel_size_x, kernel_size_y), sigmaX=kernel_std_x,
+                                         sigmaY=kernel_std_y, borderType=borderType)
+        return self.__class__(mov, **self.__dict__)
 
-        Parameters:
-        ----------
-        kernel_size: double
-            see opencv documentation of GaussianBlur
-        kernel_std_: double
-            see opencv documentation of GaussianBlur
-        borderType: int
-            see opencv documentation of GaussianBlur
-
-        Returns:
-        --------
-        self: ndarray
-            blurred Movie
-        """
-
-        for idx,fr in tqdm(enumerate(self)):
-            self[idx] = cv2.GaussianBlur(fr,ksize=(kernel_size_x,kernel_size_y),sigmaX=kernel_std_x,sigmaY=kernel_std_y,
-                                         borderType=borderType)
-
-        return self
-
-    def median_blur_2D(self,kernel_size=3):
-        """
-        Compute gaussian blut in 2D. Might be useful when motion correcting
-
-        Parameters:
-        ----------
-        kernel_size: double
-            see opencv documentation of GaussianBlur
-
-        kernel_std_: double
-            see opencv documentation of GaussianBlur
-
-        borderType: int
-            see opencv documentation of GaussianBlur
-
-        Returns:
-        --------
-        self: ndarray
-            blurred Movie
-        """
-
-        for idx,fr in tqdm(enumerate(self)):
-            self[idx] = cv2.medianBlur(fr,ksize=kernel_size)
-
-        return self
+    def median_blur_2D(self, kernel_size=3):
+        """Returns a meduian-blurred version of the Movie using openCV's medianBlur() function."""
+        mov = self.copy()
+        for frame in tqdm(mov):
+            frame[:] = cv2.medianBlur(frame, ksize=kernel_size)
+        return self.__class__(mov, **self.__dict__)
 
     def local_correlations_movie(self,window=10):
         T,_,_=self.shape
