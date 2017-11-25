@@ -11,13 +11,7 @@ from past.utils import old_div
 import numpy as np
 import os
 import caiman as cm
-
-try:
-    import tifffile
-except ImportError:
-    print('tifffile not found, using skimage.externals')
-    from skimage.external import tifffile as tifffile
-
+from .io import tifffile
 
 #%%
 def load_memmap(filename, mode='r'):
@@ -287,8 +281,6 @@ def save_memmap(filenames, base_name='Yr', resize_fact=(1, 1, 1), remove_init=0,
             print(f)
 
         if is_3D:
-            #import tifffile
-            #            print("Using tifffile library instead of skimage because of  3D")
             Yr = f if isinstance(f, basestring) else tifffile.imread(f)
             if idx_xy is None:
                 Yr = Yr[remove_init:]

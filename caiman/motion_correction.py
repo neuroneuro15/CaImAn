@@ -57,18 +57,12 @@ from numpy.fft import ifftshift
 import itertools
 
 try:
-    import tifffile
-except ImportError:
-    warnings.warn('tifffile package not found, using skimage.external.tifffile', ImportWarning)
-    from skimage.external import tifffile
-
-try:
     profile
 except:
     profile = lambda a: a
 
 import caiman as cm
-
+from .io import tifffile
 
 opencv = True
     

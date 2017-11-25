@@ -32,7 +32,7 @@ from scipy import io, optimize
 from skimage import feature
 from tqdm import tqdm
 
-from .io import sbxreadskip
+from .io import sbxreadskip, tifffile
 from .mmapping import load_memmap
 from .utils import visualization
 from .summary_images import local_correlations
@@ -806,8 +806,8 @@ class Movie(np.ndarray):
     @classmethod
     def from_tiff(cls, file_name, fr=30, start_time=0, meta_data=None, subindices=None):
         """Loads Movie from a .tiff image file."""
-        from skimage.external.tifffile import imread
-        input_arr = imread(file_name)
+
+        input_arr = tifffile.imread(file_name)
 
         if subindices is not None:
             if isinstance(subindices, list):
@@ -1052,20 +1052,14 @@ class Movie(np.ndarray):
 
     def to_tiff(self, file_name, to32=True):
         """Save the Timeseries in a .tiff image file."""
-        try:
-            from tifffile import imsave
-        except ImportError:
-            warnings.warn('tifffile package not found, importing skimage instead for saving tiff files.')
-            from skimage.external.tifffile import imsave
-
         if to32:
             np.clip(self, np.percentile(self, 1), np.percentile(self, 99.99999), self)
             minn, maxx = np.min(self), np.max(self)
             data = 65536 * (self - minn) / (maxx - minn)
             data = data.astype(np.int32)  # todo: Fix unused data variable.  What is supposed to happen here?
-            imsave(file_name, self.astype(np.float32))
+            tifffile.imsave(file_name, self.astype(np.float32))
         else:
-            imsave(file_name, self)
+            tifffile.imsave(file_name, self)
 
     def to_npz(self, file_name):
         """Save the Timeseries in a NumPy .npz array file."""
