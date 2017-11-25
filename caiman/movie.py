@@ -33,7 +33,6 @@ from skimage import feature
 from tqdm import tqdm
 
 from .io import sbxreadskip
-from .traces import trace
 from .mmapping import load_memmap
 from .utils import visualization
 from .summary_images import local_correlations
