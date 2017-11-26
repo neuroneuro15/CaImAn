@@ -1000,7 +1000,7 @@ nmf = 'M_FLUO_t_shifted_flow.tif'
 m = cm.load('M_FLUO_t_1000_els__d1_64_d2_128_d3_1_order_F_frames_1000_.mmap')
 #shfts = [(a,b) for a,b in zip(np.random.randint(-2,3,m.shape[0]),np.random.randint(-2,3,m.shape[0]))]
 shfts = [(a,b) for a,b in zip(np.random.randn(m.shape[0]),np.random.randn(m.shape[0]))]
-msh = m.copy().apply_shifts(shfts)
+msh = m.copy().apply_motion_correction(shfts)
 msh[:,10:-10,10:-10].save(nmf)
 template = np.nanmean(m[:,10:-10,10:-10],0)
 tmpl, correlations, flows_orig, norms,smoothness = compute_metrics_motion_correction('M_FLUO_t_shifted_flow.tif',template.shape[0],template.shape[1],winsize=32, play_flow=False, resize_fact_flow=1,template = template)

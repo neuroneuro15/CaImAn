@@ -239,7 +239,7 @@ def save_memmap(filenames, base_name='Yr', resize_fact=(1, 1, 1), remove_init=0,
         else:
             Yr = cm.load(f, fr=1, in_memory=True) if isinstance(f, basestring) else cm.Movie(f)
             if xy_shifts is not None:
-                Yr = Yr.apply_shifts(xy_shifts, interpolation='cubic', remove_blanks=False)
+                Yr = Yr.apply_motion_correction(xy_shifts, interpolation='cubic', remove_blanks=False)
 
             if idx_xy is None:
                 if remove_init > 0:

@@ -76,7 +76,7 @@ Yr1_tot=cb.load('dendritic_demo.tif',fr=30)
 Yr1=Yr1_tot
 Yr2=Yr1.copy().bilateral_blur_2D(diameter=10,sigmaColor=10000,sigmaSpace=0)
 Yr2,shifts,_,_=Yr2.motion_correct(remove_blanks=True)
-Yr3=Yr1.copy().apply_shifts(shifts,remove_blanks=True)
+Yr3=Yr1.copy().apply_motion_correction(shifts, remove_blanks=True)
 Yr3.save('patch_sue.tif')
 pl.imshow(np.mean(Yr3,0),cmap=pl.cm.gray)
 #%% LOAD MOVIE AND MAKE DIMENSIONS COMPATIBLE WITH CNMF
@@ -658,7 +658,7 @@ mn2=m.copy()
 mn1=m.copy().bilateral_blur_2D(diameter=10,sigmaColor=10000,sigmaSpace=0)     
 
 mn1,shifts,xcorrs, template=mn1.motion_correct()
-mn2=mn2.apply_shifts(shifts)     
+mn2=mn2.apply_motion_correction(shifts)
 #mn1=cb.Movie(np.transpose(np.array(Y_n),[2,0,1]),fr=30)
 mn=cb.concatenate([mn1,m],axis=1)
 (mn-np.mean(mn)).play(gain=2.,magnification=4,backend='opencv',fr=20)    

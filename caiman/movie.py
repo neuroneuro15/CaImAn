@@ -154,56 +154,13 @@ class Movie(np.ndarray):
 
     def motion_correct(self, max_shift_w=5, max_shift_h=5, template=None, method='opencv',
                        remove_blanks=False,interpolation='cubic'):
-
         """
-        Extract shifts and motion corrected Movie automatically,
-
-        for more control consider the functions extract_shifts and apply_shifts
-        Disclaimer, it might change the object itself.
-
-        Parameters:
-        ----------
-        max_shift_w,max_shift_h: maximum pixel shifts allowed when correcting
-                                 in the width and height direction
-
-        template: if a good template for frame by frame correlation exists
-                  it can be passed. If None it is automatically computed
-
-        method: depends on what is installed 'opencv' or 'skimage'. 'skimage'
-                is an order of magnitude slower
-
-        Returns:
-        -------
-        self: motion corected Movie, it might change the object itself
-
-        shifts : tuple, contains x & y shifts and correlation with template
-
-        xcorrs: cross correlation of the movies with the template
-
-        template= the computed template
+        Extract shifts and motion corrected Movie automatically.
+        (DEPRECATED: Use Movie.extract_motion() and Movie.apply_motion_correction() in sequence to perform same task.)
         """
+        raise DeprecationWarning("Use Movie.extract_motion() and Movie.apply_motion_correction() in sequence to perform same task.)")
 
-        if template is None:  # if template is not provided it is created
-            shifts, xcorrs = self.extract_shifts(max_shift_w=max_shift_w, max_shift_h=max_shift_h, method=method)
-            movie = self.apply_shifts(shifts, interpolation=interpolation, package=method)
-            template = np.median(movie, axis=0)
-        else:
-            template = template - np.percentile(template, 8)  # todo: find out why template is modified before use.
-            movie = self.copy()
-
-        # todo: find out why shifts are calculated twice.
-        shifts, xcorrs = movie.extract_shifts(max_shift_w=max_shift_w, max_shift_h=max_shift_h, template=template, method=method)
-        movie = movie.apply_shifts(shifts, interpolation=interpolation, package=method)
-
-        if remove_blanks:
-            max_h, max_w = np.max(shifts, axis=0)
-            min_h,min_w= np.min(shifts,axis=0)
-            movie = movie.crop(top=max_h, bottom=-min_h + 1, left=max_w, right=-min_w, begin=0, end=0)
-
-
-        return movie, shifts, xcorrs, template
-
-    def extract_shifts(self, max_shift_w=5, max_shift_h=5, template=None, method='opencv'):
+    def extract_motion(self, max_shift_w=5, max_shift_h=5, template=None, method='opencv'):
         """
         Performs motion correction using the opencv or scikit-image matchtemplate function. At every iteration a template is built by taking the median of all frames and then used to align the other frames.
 
@@ -268,9 +225,9 @@ class Movie(np.ndarray):
 
         return (shifts, xcorrs)
 
-    def apply_shifts(self, shifts, interpolation='linear', package='opencv'):
+    def apply_motion_correction(self, shifts, interpolation='linear', package='opencv'):
         """
-        Return a Movie with precomputed shifts applied, using subpixels adjustment (cv2.INTER_CUBIC function)
+        Return a Movie with precomputed shifts applied (can be gotten from Movie.extract_motion()).
 
         Parameters:
         ------------
