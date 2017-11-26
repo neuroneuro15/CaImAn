@@ -268,7 +268,7 @@ Y = Y / img_norm[None, :, :]                        # normalize data
 
 _, d1, d2 = Y.shape
 dims = (d1, d2)                                     # dimensions of FOV
-Yr = Y.to_2D().T                                    # convert data into 2D array                                    
+Yr = Y.to_2D().T                                    # convert data into 2D array
 
 Cn_init = Y.local_correlations(swap_dim = False)    # compute correlation image
 #pl.figure(); pl.imshow(Cn_init); pl.title('Correlation Image on initial batch'); pl.colorbar()

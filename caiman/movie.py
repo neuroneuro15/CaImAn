@@ -110,10 +110,10 @@ class Movie(np.ndarray):
         t, h, w = self.shape
         return self[begin:(t - end), top:(h - bottom), left:(w - right)]
 
-    def to_2D(self,order='F'):
-        [T,d1,d2]=self.shape
-        d=d1*d2
-        return np.reshape(self,(T,d),order=order)
+    def to_2D(self, order='F'):
+        T, d1, d2 = self.shape
+        d = d1 * d2
+        return np.reshape(self, (T, d), order=order)
 
     def to_3d(self, *args, order='F', **kwargs):
         """Synonym for array.reshape()"""
