@@ -914,16 +914,6 @@ class Movie(np.ndarray):
             return cls(input_arr, fr=fr, file_name=file_name)  # TODO: Finish this function!
 
     @classmethod
-    def from_mmap(cls, file_name, fr=30, in_memory=False):
-
-        filename = os.path.split(file_name)[-1]
-        Yr, dims, T = load_memmap(os.path.join(os.path.split(file_name)[0], filename))
-        input_arr = np.reshape(Yr.T, [T] + list(dims), order='F')
-        input_arr = np.array(input_arr) if in_memory else input_arr
-
-        return Movie(input_arr, fr=fr)
-
-    @classmethod
     def from_sbx(cls, file_name, fr=30, subindices=None):
         input_arr = sbxreadskip(file_name[:-4])
         skip = subindices.step if subindices else None
@@ -949,7 +939,7 @@ class Movie(np.ndarray):
                      meta_data=meta_data)
 
     @classmethod
-    def from_memmap(cls, file_name, fr=30, start_time=0, meta_data=None):
+    def from_memmap(cls, file_name, in_memory=True, fr=30, start_time=0, meta_data=None):
         """Returns Movie from a file created by Movie.to_memmap()."""
         extension = os.path.splitext(file_name)[1]
         if not 'mmap_caiman' in extension:
@@ -959,7 +949,7 @@ class Movie(np.ndarray):
         fname, order, shape = fdata[0], fdata[1], fdata[2:]
         fname_with_path = os.path.join(os.path.dirname(file_name), fname)
         Yr = np.memmap(file_name, mode='r', shape=shape, dtype=np.float32, order=order)
-
+        Yr = np.array(Yr) if in_memory else Yr
         return cls(Yr, fr=fr, start_time=start_time, meta_data=meta_data, file_name=fname_with_path)
 
     @classmethod
