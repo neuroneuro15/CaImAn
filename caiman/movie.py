@@ -31,7 +31,6 @@ from sklearn import decomposition, cluster, metrics
 from scipy import io, optimize
 from skimage import feature, transform
 from tqdm import tqdm
-from IPython.display import HTML
 
 from .io import sbxreadskip, tifffile
 from .summary_images import local_correlations
@@ -766,6 +765,7 @@ class Movie(np.ndarray):
 
     def play_notebook(self, speed=1., gain=1., repeat=False):
         """Returns matplotlib figure with animation of Movie."""
+        from IPython.display import HTML
 
         fig = plt.figure()
         im = plt.imshow(self[0], interpolation='None', cmap=plt.cm.gray)
