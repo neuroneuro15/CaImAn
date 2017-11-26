@@ -12,7 +12,7 @@ import numpy as np
 import os
 from os import path
 import caiman as cm
-from .io import tifffile
+from caiman.io import tifffile
 
 
 def load_memmap(filename, mode='r'):

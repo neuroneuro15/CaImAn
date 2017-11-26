@@ -14,12 +14,14 @@ Function for implementing parallel scalable segmentation of two photon imaging d
 
 from __future__ import division, print_function
 
-from past.utils import old_div
-import numpy as np
-import time
-import scipy
 import os
-from ...mmapping import load_memmap
+import time
+
+import numpy as np
+import scipy
+from past.utils import old_div
+
+from caiman.io.mmapping import load_memmap
 from ...cluster import extract_patch_coordinates
 
 

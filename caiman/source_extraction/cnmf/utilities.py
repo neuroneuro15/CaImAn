@@ -19,14 +19,15 @@ See Also:
 
 from __future__ import division, print_function
 
-from past.utils import old_div
-import numpy as np
-from scipy.sparse import spdiags, issparse, csc_matrix
-from .initialization import greedyROI
-from caiman.rois import com
 import matplotlib.pyplot as plt
+import numpy as np
 import scipy
-from ...mmapping import parallel_dot_product
+from past.utils import old_div
+from scipy.sparse import spdiags, issparse, csc_matrix
+
+from caiman.io.mmapping import parallel_dot_product
+from caiman.rois import com
+from .initialization import greedyROI
 
 
 #%%

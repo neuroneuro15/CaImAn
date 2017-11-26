@@ -24,9 +24,10 @@ import shutil
 import tempfile
 
 import numpy as np
-from ...mmapping import load_memmap
 from past.builtins import basestring
 from past.utils import old_div
+
+from caiman.io.mmapping import load_memmap
 
 #%%
 def interpolate_missing_data(Y):

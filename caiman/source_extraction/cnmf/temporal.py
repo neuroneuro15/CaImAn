@@ -6,15 +6,17 @@
 """
 from __future__ import division, print_function
 
+import platform
+import sys
+
+import numpy as np
+import scipy
 from past.utils import old_div
 from scipy.sparse import spdiags, coo_matrix  # ,csgraph
-import scipy
-import numpy as np
-import platform
+
+from caiman.io.mmapping import parallel_dot_product
 from .deconvolution import constrained_foopsi
 from .utilities import update_order_greedy
-import sys
-from ...mmapping import parallel_dot_product
 #%%
 
 

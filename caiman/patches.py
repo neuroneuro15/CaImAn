@@ -1,7 +1,8 @@
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-from .mmapping import load_memmap
+
+from caiman.io.mmapping import load_memmap
 
 
 def get_patches_from_image(img, shapes, overlaps):

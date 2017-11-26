@@ -23,24 +23,27 @@ See Also:
 
 from __future__ import division, print_function
 
-import numpy as np
-from .utilities import CNMFSetParms, update_order, normalize_AC, compute_residuals
-from .pre_processing import preprocess_data
-from .initialization import initialize_components, imblur
-from .merging import merge_components
-from .spatial import update_spatial_components
-from .temporal import update_temporal_components
-from .map_reduce import run_CNMF_patches
-from .oasis import OASIS
-import caiman
-from caiman import components_evaluation, mmapping
+from time import time
+
 import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import psutil
+import scipy
+
+import caiman
+from caiman import components_evaluation
+from caiman.io import mmapping
+from .initialization import initialize_components, imblur
+from .map_reduce import run_CNMF_patches
+from .merging import merge_components
+from .oasis import OASIS
 from .online_cnmf import RingBuffer, HALS4activity, demix_and_deconvolve
 from .online_cnmf import init_shapes_and_sufficient_stats, update_shapes, update_num_components
-import scipy
-import psutil
-import matplotlib.pyplot as plt
-from time import time
+from .pre_processing import preprocess_data
+from .spatial import update_spatial_components
+from .temporal import update_temporal_components
+from .utilities import CNMFSetParms, update_order, normalize_AC, compute_residuals
 
 try:
     profile
@@ -1019,7 +1022,7 @@ class CNMF(object):
         nA2_inv_mat = scipy.sparse.spdiags(1./nA2, 0, nA2.shape[0], nA2.shape[0])
         Cf = np.vstack((self.C, self.f))
         YA = mmapping.parallel_dot_product(Yr, Ab, dview=self.dview, block_size=2000,
-                                           transpose=True, num_blocks_per_run=5)*nA2_inv_mat
+                                           transpose=True, num_blocks_per_run=5) * nA2_inv_mat
 
         AA = Ab.T.dot(Ab)*nA2_inv_mat
         self.YrA = (YA - (AA.T.dot(Cf)).T)[:, :self.A.shape[-1]].T

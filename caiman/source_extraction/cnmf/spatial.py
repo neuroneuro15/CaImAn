@@ -6,27 +6,26 @@ Created on Wed Aug 05 20:38:27 2015
 """
 from __future__ import division, print_function
 
-# noinspection PyCompatibility
-from past.builtins import basestring
-from past.utils import old_div
-import numpy as np
-from scipy.sparse import coo_matrix, csc_matrix, csr_matrix
-from scipy.sparse import spdiags
-from scipy.linalg import eig
-from scipy.ndimage.morphology import generate_binary_structure, iterate_structure
-from scipy.ndimage import label, binary_dilation
-from sklearn.decomposition import NMF
-from warnings import warn
-import numpy as np
-import scipy
-import time
-import tempfile
 import os
 import shutil
-from ...mmapping import load_memmap, parallel_dot_product
+import tempfile
+import time
+from warnings import warn
+
+import numpy as np
+import scipy
+from past.builtins import basestring
+from past.utils import old_div
+from scipy.linalg import eig
+from scipy.ndimage import binary_dilation
 from scipy.ndimage.filters import median_filter
-from scipy.ndimage.morphology import binary_closing
 from scipy.ndimage.measurements import label
+from scipy.ndimage.morphology import binary_closing
+from scipy.ndimage.morphology import generate_binary_structure, iterate_structure
+from scipy.sparse import coo_matrix, csc_matrix, csr_matrix
+from scipy.sparse import spdiags
+
+from caiman.io.mmapping import load_memmap, parallel_dot_product
 
 
 
@@ -339,7 +338,6 @@ def regression_ipyparallel(pars):
 
     # /!\ need to import since it is run from within the server
     import numpy as np
-    import sys
     import gc
     from sklearn import linear_model
 

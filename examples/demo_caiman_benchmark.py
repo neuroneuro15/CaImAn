@@ -44,7 +44,7 @@ from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
 from caiman.rois import extract_binary_masks_blob_parallel
 from caiman.source_extraction import cnmf as cnmf
-from caiman.mmapping import save_tif_to_mmap_online
+from caiman.io.mmapping import save_tif_to_mmap_online
 from caiman.motion_correction import motion_correct_online,motion_correct_online_multifile
 #%%
 pl.close('all')
@@ -149,7 +149,7 @@ t_mmap_mc_online_1 = time()
 print((t_mmap_mc_online_1 - t_mmap_mc_online))
 #%%
 t_mmap_join = time()    
-fname_new = cm.mmapping.save_memmap_join(all_names, base_name= 'Yr_MC_MF_', n_chunks=100, dview=dview,async=False)    
+fname_new = caiman.io.mmapping.save_memmap_join(all_names, base_name='Yr_MC_MF_', n_chunks=100, dview=dview, async=False)
 t_mmap_join_1 = time()    
 print((t_mmap_join_1 - t_mmap_join))
 #%%
