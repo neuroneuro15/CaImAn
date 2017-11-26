@@ -292,38 +292,7 @@ def save_memmap(filenames, base_name='Yr', resize_fact=(1, 1, 1), remove_init=0,
 
 
 def save_memmap_chunks(movie, base_filename, order='F', n_chunks=1):
-    """Saves efficiently a caiman Movie file into a Numpy memory mappable file.
-
-    Parameters:
-    ----------
-        movie: caiman.Movie
-            the data to be saved in a NumPy .mmap file.
-
-        base_filename: string
-            filename to save memory-mapped array to.  (Note: final filename will have shape info in it, and will be returned)
-
-        order: string
-            whether to save the file in 'C' or 'F' order
-
-    Returns:
-    -------
-        fname_tot: the final filename of the mapped file, the format is such that
-            the name will contain the frame dimensions and the number of f
-    """
-    fname, ext = path.splitext(base_filename)
-    fname_tot = fname + '_' + order + '_' + '_'.join(map(str, movie.shape))
-    fname_tot = fname_tot + ext if ext else fname_tot + '.mmap_caiman'
-
-    big_mov = np.memmap(fname_tot, mode='w+', dtype=movie.dtype, shape=movie.shape, order=order)
-
-    curr_row = 0
-    for tmp in np.array_split(movie, n_chunks, axis=0):
-        big_mov[curr_row:curr_row + tmp.shape[0], :, :] = np.asarray(tmp, dtype=np.float32)
-        big_mov.flush()
-        curr_row += tmp.shape[0]
-    del big_mov
-
-    return fname_tot
+    raise DeprecationWarning("save_memmap_chunks() no longer available. Please see save_memmap() or Movie.to_memmap() for alternative uses.")
 
 
 #%%
