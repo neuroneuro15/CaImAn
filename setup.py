@@ -49,7 +49,7 @@ setup(
         'Programming Language :: Python :: 2,3',
     ],
     keywords='fluorescence calcium ca imaging deconvolution ROI identification',
-    packages=find_packages(exclude=['use_cases', 'use_cases.*']),
+    packages=find_packages(),
     data_files=[('', ['LICENSE.txt']),
                 ('', ['README.md'])],
     install_requires=[''],
