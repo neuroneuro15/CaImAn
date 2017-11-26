@@ -6,6 +6,6 @@ from .cluster import start_server,stop_server
 from .movie import Movie
 from .patches import get_patches_from_image, extract_patch_coordinates, apply_to_patch, function_place_holder
 from .summary_images import local_correlations
-
+from .behavior import select_roi, extract_motor_components_OF, extract_magnitude_and_angle_from_OF, compute_optical_flow
 
 #from .source_extraction import cnmf

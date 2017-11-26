@@ -370,12 +370,6 @@ def normalize_components(t_trace,sp_filt,num_std=2):
     return new_t_trace,coor_1,coor_2
 
 
-#%%
-if __name__ == "__main__":
-    # todo: main ??
-    main()
-
-#%%    
 def main():
     mmat=loadmat('mov_AG051514-01-060914 C.mat')['mov']
     m=cm.Movie(mmat.transpose((2, 0, 1)), fr=120)
@@ -392,7 +386,8 @@ def main():
     plt.plot(t_trace[id_comp][:,1])
 
 
-
+if __name__ == "__main__":
+    main()
 
 ##%% single featureflow,. seems not towork
 #feature_params = dict( maxCorners = 100,

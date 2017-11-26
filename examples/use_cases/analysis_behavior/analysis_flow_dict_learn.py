@@ -40,7 +40,7 @@ pl.ion()
 #%
 import caiman as cm
 from caiman.components_evaluation import evaluate_components
-from caiman.behavior import behavior
+from caiman import behavior
 #%%
 from scipy.sparse import coo_matrix
 #%% ANALYSYS LICKING
@@ -225,7 +225,7 @@ for e,e1 in zip(gt_names,expt_names):
         np.save(e[:-4]+'_mask_all_lat.npy',mask)
             
     else:
-        mask =behavior.select_roi(np.median(m[::100],0),1)[0]
+        mask = behavior.select_roi(np.median(m[::100], 0), 1)[0]
         np.save(e[:-4]+'_mask_lat_hl.npy',mask)
 #%%    
 r_values = []
@@ -254,9 +254,9 @@ for e,e1 in zip(gt_names,expt_names):
         sdsd
         
     m = cm.load_movie_chain(mat_files, fr = 100)
-    spatial_filter_, time_trace_, of_or = cm.behavior.behavior.extract_motor_components_OF(m, n_components, mask = mask,  resize_fact= resize_fact, only_magnitude = only_magnitude,verbose = True, method_factorization = 'dict_learn', max_iter_DL=max_iter_DL)
+    spatial_filter_, time_trace_, of_or = caiman.behavior.extract_motor_components_OF(m, n_components, mask = mask, resize_fact= resize_fact, only_magnitude = only_magnitude, verbose = True, method_factorization ='dict_learn', max_iter_DL=max_iter_DL)
     
-    mags, dircts, dircts_thresh, spatial_masks_thrs = cm.behavior.behavior.extract_magnitude_and_angle_from_OF(spatial_filter_, time_trace_, of_or, num_std_mag_for_angle = num_std_mag_for_angle, sav_filter_size =3, only_magnitude = only_magnitude)
+    mags, dircts, dircts_thresh, spatial_masks_thrs = caiman.behavior.extract_magnitude_and_angle_from_OF(spatial_filter_, time_trace_, of_or, num_std_mag_for_angle = num_std_mag_for_angle, sav_filter_size =3, only_magnitude = only_magnitude)
     
     if whole_field:
         np.savez(e[:-4]+'_NEW_results_all_lat_DL', mags = mags, dircts= dircts, dircts_thresh= dircts_thresh, spatial_masks_thrs = spatial_masks_thrs ,
@@ -364,7 +364,7 @@ for e in gt_names:
     pl.plot(pts[0][10]/3,pts[8][10]/3,'r*')
     
     
-    mask =behavior.select_roi(np.median(m[::100],0),1)[0]
+    mask = behavior.select_roi(np.median(m[::100], 0), 1)[0]
     
     if mask_all:
         
@@ -400,9 +400,9 @@ for e in gt_names:
         mask = np.load(os.path.split(e)[0]+'/mask_wheel.npy')
         
     m = cm.load_movie_chain(mat_files, fr = 100)
-    spatial_filter_, time_trace_, of_or = cm.behavior.behavior.extract_motor_components_OF(m, n_components, mask = mask,  resize_fact= resize_fact, only_magnitude = only_magnitude , max_iter = 1000, verbose = True, method_factorization = 'dict_learn')
+    spatial_filter_, time_trace_, of_or = caiman.behavior.extract_motor_components_OF(m, n_components, mask = mask, resize_fact= resize_fact, only_magnitude = only_magnitude, max_iter = 1000, verbose = True, method_factorization ='dict_learn')
     
-    mags, dircts, dircts_thresh, spatial_masks_thrs = cm.behavior.behavior.extract_magnitude_and_angle_from_OF(spatial_filter_, time_trace_, of_or, num_std_mag_for_angle = num_std_mag_for_angle, sav_filter_size =3, only_magnitude = only_magnitude)
+    mags, dircts, dircts_thresh, spatial_masks_thrs = caiman.behavior.extract_magnitude_and_angle_from_OF(spatial_filter_, time_trace_, of_or, num_std_mag_for_angle = num_std_mag_for_angle, sav_filter_size =3, only_magnitude = only_magnitude)
     if whole_field:
         np.savez(e[:-4]+'_NEW_results_all_DL', mags = mags, dircts= dircts, dircts_thresh= dircts_thresh, spatial_masks_thrs = spatial_masks_thrs ,
              spatial_filter_ = spatial_filter_, time_trace_ = time_trace_, mask = mask, of_or = of_or)
@@ -781,7 +781,7 @@ for files_mat in ['AG051514-01.mat','AG052014-01.mat','gc-AG052014-02.mat']:
             print(e)
             mat_files = [os.path.join(e,'trial'+str(tr)+'.mat') for tr in trials_id]
             m = cm.load_movie_chain(mat_files[:5],fr=100)
-            mask =behavior.select_roi(np.median(m[::100],0),1)[0]
+            mask = behavior.select_roi(np.median(m[::100], 0), 1)[0]
             if mask_all:
                 np.save(os.path.join(e,'mask_wheel_all.npy'),mask)
             else:
@@ -817,10 +817,10 @@ for files_mat in ['AG051514-01.mat','AG052014-01.mat','gc-AG052014-02.mat']:
             mask = cm.Movie(mask.toarray().astype(np.float32)[None, :, :])
             mask = coo_matrix(np.array(mask).squeeze())
             if not os.path.exists(os.path.join(e,'opt_flow_'+str(chunk_end)+'.npy')):
-                ms = [behavior.get_nonzero_subarray(mask.multiply(fr),mask) for fr in m]
+                ms = [behavior.get_nonzero_subarray(mask.multiply(fr), mask) for fr in m]
                 ms = np.dstack(ms)
                 ms = cm.Movie(ms.transpose([2, 0, 1]))
-                of_or = cm.behavior.behavior.compute_optical_flow(ms,do_show=False,polar_coord=False) 
+                of_or = caiman.behavior.compute_optical_flow(ms, do_show=False, polar_coord=False)
                 print('Saving OF..')
                 np.save(os.path.join(e,'opt_flow_'+str(chunk_end)+'.npy'),of_or)
             else:
@@ -830,10 +830,10 @@ for files_mat in ['AG051514-01.mat','AG052014-01.mat','gc-AG052014-02.mat']:
         else:
             mask = coo_matrix(np.load(os.path.join(e,'mask_wheel.npy')))
             if not os.path.exists(os.path.join(e,'opt_flow_small_'+str(chunk_end)+'.npy')):
-                ms = [behavior.get_nonzero_subarray(mask.multiply(fr),mask) for fr in m]
+                ms = [behavior.get_nonzero_subarray(mask.multiply(fr), mask) for fr in m]
                 ms = np.dstack(ms)
                 ms = cm.Movie(ms.transpose([2, 0, 1]))
-                of_or = cm.behavior.behavior.compute_optical_flow(ms,do_show=False,polar_coord=False) 
+                of_or = caiman.behavior.compute_optical_flow(ms, do_show=False, polar_coord=False)
                 print('Saving OF..')
                 np.save(os.path.join(e,'opt_flow_small_'+str(chunk_end)+'.npy'),of_or)
             else:
@@ -848,7 +848,7 @@ for files_mat in ['AG051514-01.mat','AG052014-01.mat','gc-AG052014-02.mat']:
         of_or = np.concatenate([cm.Movie(of_or[0]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :], cm.Movie(of_or[1]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :]], axis = 0)
         if only_magnitude:
             of = of_or
-            spatial_filter_, time_trace_, norm_fact = cm.behavior.behavior.extract_components(np.sqrt(of[0]**2+of[1]**2),n_components=n_components,verbose = False,normalize_std=False,max_iter=1000)
+            spatial_filter_, time_trace_, norm_fact = caiman.behavior.extract_components(np.sqrt(of[0] ** 2 + of[1] ** 2), n_components=n_components, verbose = False, normalize_std=False, max_iter=1000)
         else:     
             if method_factorization == 'nmf':
                 of = of_or - np.min(of_or)
@@ -856,9 +856,9 @@ for files_mat in ['AG051514-01.mat','AG052014-01.mat','gc-AG052014-02.mat']:
                 of = of_or.copy()
                 
             if mask_all:
-                spatial_filter_, time_trace_, norm_fact = cm.behavior.behavior.extract_components(of,n_components=n_components,verbose = True,normalize_std=False,max_iter=1000, method_factorization = method_factorization)
+                spatial_filter_, time_trace_, norm_fact = caiman.behavior.extract_components(of, n_components=n_components, verbose = True, normalize_std=False, max_iter=1000, method_factorization = method_factorization)
             else:
-                spatial_filter_, time_trace_, norm_fact = cm.behavior.behavior.extract_components(of[:,:1000000,:,:],n_components=n_components,verbose = False,normalize_std=False,max_iter=1000, method_factorization = method_factorization)
+                spatial_filter_, time_trace_, norm_fact = caiman.behavior.extract_components(of[:, :1000000, :, :], n_components=n_components, verbose = False, normalize_std=False, max_iter=1000, method_factorization = method_factorization)
         
         mags = []
         dircts = []
@@ -874,7 +874,7 @@ for files_mat in ['AG051514-01.mat','AG052014-01.mat','gc-AG052014-02.mat']:
                 x,y = scipy.signal.medfilt(time_trace,kernel_size=[1,1]).T
                 x =  scipy.signal.savgol_filter(x.squeeze(),3,1)                
                 y =  scipy.signal.savgol_filter(y.squeeze(),3,1)
-                mag,dirct = behavior.to_polar(x-cm.components_evaluation.mode_robust(x),y-cm.components_evaluation.mode_robust(y))
+                mag,dirct = behavior.to_polar(x - cm.components_evaluation.mode_robust(x), y - cm.components_evaluation.mode_robust(y))
                 dirct = scipy.signal.medfilt(dirct.squeeze(),kernel_size=1).T        
                 
     
@@ -1023,7 +1023,7 @@ for e,session,trials_id in zip(expt_names[idx_file],wheel_sessions[idx_file],tri
 #        print(np.corrcoef(whisk_pix,mag[2:741]))
 [print(r) for r in r_values]
 #%% create_movie
-of_or = cm.behavior.behavior.compute_optical_flow(m,do_show=False,polar_coord=False)
+of_or = caiman.behavior.compute_optical_flow(m, do_show=False, polar_coord=False)
 #%%
 T,d1,d2 = np.shape(m)
 X, Y = np.meshgrid(np.arange(d2,0,-10), np.arange(d1,0,-10))
@@ -1054,13 +1054,13 @@ t1 = time.time()
 m = cm.load_movie_chain(glob.glob('trial*.mat'),fr=100)
 t2 = time.time() - t1
 #%%
-mask = coo_matrix(behavior.select_roi(m.mean(0),1)[0])
+mask = coo_matrix(behavior.select_roi(m.mean(0), 1)[0])
 #%%
 t1 = time.time()
-ms = [behavior.get_nonzero_subarray(mask.multiply(fr),mask) for fr in m]
+ms = [behavior.get_nonzero_subarray(mask.multiply(fr), mask) for fr in m]
 ms = np.dstack(ms)
 ms = cm.Movie(ms.transpose([2, 0, 1]))
-of_or = cm.behavior.behavior.compute_optical_flow(ms,do_show=False,polar_coord=False) 
+of_or = caiman.behavior.compute_optical_flow(ms, do_show=False, polar_coord=False)
 t_OF = time.time() - t1
 #%%   
 t1 = time.time() 
@@ -1071,21 +1071,21 @@ t1 = time.time()
 method_factorization = 'dict_learn' 
 if method_factorization == 'nmf': 
     of = of_or - np.min(of_or)            
-    spatial_filter_, time_trace_, norm_fact = cm.behavior.behavior.extract_components(of,n_components=n_components,verbose = True,normalize_std=False,max_iter=1000, method_factorization = method_factorization)
+    spatial_filter_, time_trace_, norm_fact = caiman.behavior.extract_components(of, n_components=n_components, verbose = True, normalize_std=False, max_iter=1000, method_factorization = method_factorization)
     t_NMF = time.time() - t1 
 else:
-    spatial_filter_, time_trace_, norm_fact = cm.behavior.behavior.extract_components(of,n_components=n_components,verbose = True,normalize_std=False,max_iter_DL=-100, method_factorization = method_factorization)
+    spatial_filter_, time_trace_, norm_fact = caiman.behavior.extract_components(of, n_components=n_components, verbose = True, normalize_std=False, max_iter_DL=-100, method_factorization = method_factorization)
     t_DL = time.time() - t1 
            
           
 #%%
-of_or = cm.behavior.behavior.compute_optical_flow(ms[:15000],do_show=False,polar_coord=False) 
+of_or = caiman.behavior.compute_optical_flow(ms[:15000], do_show=False, polar_coord=False)
 #min1,min0 = np.min(of[1]),np.min(of[0])
 #of[1] -= min1
 #of[0] -= min0
 of = of_or - np.min(of_or)
 #%%
-spatial_filter, time_trace, norm_fact = cm.behavior.behavior.extract_components(of[:,:15000,:,:],n_components=1,verbose = True,normalize_std=False,max_iter=400)
+spatial_filter, time_trace, norm_fact = caiman.behavior.extract_components(of[:, :15000, :, :], n_components=1, verbose = True, normalize_std=False, max_iter=400)
 x,y = scipy.signal.medfilt(time_trace[0],kernel_size=[1,1]).T
 spatial_mask = spatial_filter[0]
 spatial_mask[spatial_mask<(np.max(spatial_mask[0])*.99)] = np.nan
@@ -1104,7 +1104,7 @@ dirct[mag<1]=np.nan
 pl.plot(mag,'.-')
 pl.plot(dirct,'.-')
 #%%
-spatial_filter, time_trace, norm_fact = cm.behavior.behavior.extract_components(of[:,:2000,:,:],n_components=1,verbose = True)
+spatial_filter, time_trace, norm_fact = caiman.behavior.extract_components(of[:, :2000, :, :], n_components=1, verbose = True)
 mag,dirct = scipy.signal.medfilt(time_trace[0],kernel_size=[1,1]).T
 mag,dirct = time_trace[0].T
 

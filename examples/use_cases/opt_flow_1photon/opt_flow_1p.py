@@ -26,25 +26,26 @@ import pylab as pl
 pl.ion()
 #%
 import caiman as cm
-from caiman.behavior import behavior
+from caiman import behavior
+
 #%%
 
 n_components = 3
 m = cm.load('./test.tif')
 m.play(gain=3.)
 #%% extract optical flow and ry NMF on it
-mask = behavior.select_roi(np.median(m[::100],0),1)[0] # select the portion of FOV interesting (could be all of it as well)
+mask = behavior.select_roi(np.median(m[::100], 0), 1)[0] # select the portion of FOV interesting (could be all of it as well)
 resize_fact = .5
 num_std_mag_for_angle = .6
 whole_field = True
 only_magnitude = False
-spatial_filter_, time_trace_, of_or = cm.behavior.behavior.extract_motor_components_OF(m, n_components, mask = mask,  resize_fact= resize_fact, only_magnitude = only_magnitude , max_iter = 1000, verbose = True, method_factorization = 'nmf')
-mags, dircts, dircts_thresh, spatial_masks_thrs = cm.behavior.behavior.extract_magnitude_and_angle_from_OF(spatial_filter_, time_trace_, of_or, num_std_mag_for_angle = num_std_mag_for_angle, sav_filter_size =3, only_magnitude = only_magnitude)
+spatial_filter_, time_trace_, of_or = caiman.behavior.extract_motor_components_OF(m, n_components, mask = mask, resize_fact= resize_fact, only_magnitude = only_magnitude, max_iter = 1000, verbose = True, method_factorization ='nmf')
+mags, dircts, dircts_thresh, spatial_masks_thrs = caiman.behavior.extract_magnitude_and_angle_from_OF(spatial_filter_, time_trace_, of_or, num_std_mag_for_angle = num_std_mag_for_angle, sav_filter_size =3, only_magnitude = only_magnitude)
 #%% if you want to visualize optical flow
 ms = [mask*fr for fr in m]
 ms = np.dstack(ms)
 ms = cm.Movie(ms.transpose([2, 0, 1]))
-_ = cm.behavior.behavior.compute_optical_flow(ms,do_show=True,polar_coord=True) 
+_ = caiman.behavior.compute_optical_flow(ms, do_show=True, polar_coord=True)
 
 #%% spatial components
 count = 0
