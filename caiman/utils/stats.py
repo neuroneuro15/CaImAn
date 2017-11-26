@@ -9,14 +9,7 @@ from __future__ import division, print_function
 from past.utils import old_div
 import numpy as np
 
-try:
-    import numba
-except ImportError:
-    print("numba not found")
 
-
-
-#%%
 def mode_robust_fast(inputData,axis=None):
     """
     Robust estimator of the mode of a data set using the half-sample mode.
@@ -91,8 +84,7 @@ def mode_robust(inputData, axis=None, dtype=None):
 
     return dataMode
 
-#%%
-#@numba.jit("void(f4[:])")
+
 def _hsm(data):
     if data.size == 1:
         return data[0]
