@@ -17,7 +17,6 @@ See Also:
 
 from __future__ import division, print_function, absolute_import
 
-from past.utils import old_div
 import cv2
 from os import path
 import pickle
@@ -153,7 +152,7 @@ class Movie(np.ndarray):
                                      init_frames_template=init_frames_template,show_movie=show_movie,
                                      bilateral_blur=bilateral_blur,template=template,min_count=min_count)
 
-    def motion_correct(self, max_shift_w=5, max_shift_h=5, num_frames_template=None, template=None, method='opencv',
+    def motion_correct(self, max_shift_w=5, max_shift_h=5, template=None, method='opencv',
                        remove_blanks=False,interpolation='cubic'):
 
         """
@@ -173,10 +172,6 @@ class Movie(np.ndarray):
         method: depends on what is installed 'opencv' or 'skimage'. 'skimage'
                 is an order of magnitude slower
 
-        num_frames_template: if only a subset of the movies needs to be loaded
-                             for efficiency/speed reasons
-
-
         Returns:
         -------
         self: motion corected Movie, it might change the object itself
@@ -189,38 +184,24 @@ class Movie(np.ndarray):
         """
 
         if template is None:  # if template is not provided it is created
-            if num_frames_template is None:
-                num_frames_template = old_div(10e7,(self.shape[1]*self.shape[2]))
-
-            frames_to_skip = int(np.maximum(1, old_div(self.shape[0],num_frames_template)))
-
-            # sometimes it is convenient to only consider a subset of the
-            # Movie when computing the median
-            submov = self[::frames_to_skip, :].copy()
-            templ = submov.bin_median() # create template with portion of Movie
-            shifts,xcorrs=submov.extract_shifts(max_shift_w=max_shift_w, max_shift_h=max_shift_h, template=templ, method=method)
-            submov.apply_shifts(shifts, interpolation=interpolation, package=method)
-            template=submov.bin_median()
-            del submov
-            m=self.copy()
-            shifts,xcorrs=m.extract_shifts(max_shift_w=max_shift_w, max_shift_h=max_shift_h, template=template, method=method)
-            m=m.apply_shifts(shifts, interpolation=interpolation, package=method)
-            template=(m.bin_median())
-            del m
+            shifts, xcorrs = self.extract_shifts(max_shift_w=max_shift_w, max_shift_h=max_shift_h, method=method)
+            movie = self.apply_shifts(shifts, interpolation=interpolation, package=method)
+            template = np.median(movie, axis=0)
         else:
-            template=template-np.percentile(template,8)
+            template = template - np.percentile(template, 8)  # todo: find out why template is modified before use.
+            movie = self.copy()
 
-        # now use the good template to correct
-        shifts,xcorrs=self.extract_shifts(max_shift_w=max_shift_w, max_shift_h=max_shift_h, template=template, method=method)
-        self=self.apply_shifts(shifts, interpolation=interpolation, package=method)
+        # todo: find out why shifts are calculated twice.
+        shifts, xcorrs = movie.extract_shifts(max_shift_w=max_shift_w, max_shift_h=max_shift_h, template=template, method=method)
+        movie = movie.apply_shifts(shifts, interpolation=interpolation, package=method)
 
         if remove_blanks:
-            max_h,max_w= np.max(shifts,axis=0)
+            max_h, max_w = np.max(shifts, axis=0)
             min_h,min_w= np.min(shifts,axis=0)
-            self=self.crop(top=max_h, bottom=-min_h + 1, left=max_w, right=-min_w, begin=0, end=0)
+            movie = movie.crop(top=max_h, bottom=-min_h + 1, left=max_w, right=-min_w, begin=0, end=0)
 
 
-        return self,shifts,xcorrs,template
+        return movie, shifts, xcorrs, template
 
     def extract_shifts(self, max_shift_w=5, max_shift_h=5, template=None, method='opencv'):
         """
@@ -289,7 +270,7 @@ class Movie(np.ndarray):
 
     def apply_shifts(self, shifts, interpolation='linear', package='opencv'):
         """
-        Apply precomputed shifts to a Movie in-place, using subpixels adjustment (cv2.INTER_CUBIC function)
+        Return a Movie with precomputed shifts applied, using subpixels adjustment (cv2.INTER_CUBIC function)
 
         Parameters:
         ------------
@@ -319,14 +300,17 @@ class Movie(np.ndarray):
 
         t, h, w = self.shape
         shift_mat = np.array([[1, 0, 0], [0, 1, 0]], dtype=np.float32)
-        for i, (frame, (shift_y, shift_x)) in tqdm(enumerate(zip(self, shifts))):
+        movie = self.copy()
+        for frame, (shift_y, shift_x) in tqdm(zip(movie, shifts)):
             if package.lower() == 'opencv':
                 shift_mat[:, 2] = shift_x, shift_y
-                self[i] = cv2.warpAffine(frame, shift_mat, (w, h), flags=interp_enum, borderMode=cv2.BORDER_REFLECT)
-                self[i] = np.clip(self[i], np.min(frame), np.max(frame))
+                frame[:] = cv2.warpAffine(frame, shift_mat, (w, h), flags=interp_enum, borderMode=cv2.BORDER_REFLECT)
+                frame[:] = np.clip(frame[:], np.min(frame), np.max(frame))
             elif package.lower() == 'skimage':
                 tform = transform.AffineTransform(translation=(-shift_x, -shift_y))
-                self[i] = transform.warp(frame, tform, preserve_range=True, order=interp_enum, mode='reflect')
+                frame[:] = transform.warp(frame, tform, preserve_range=True, order=interp_enum, mode='reflect')
+
+        return movie
 
     def debleach(self, model='exponential'):
         """
