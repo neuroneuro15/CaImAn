@@ -704,24 +704,6 @@ def matrixMontage(spcomps, *args, **kwargs):
         plt.axis('off')
 
 
-#%%
-VIDEO_TAG = """<video controls>
- <source src="data:video/x-m4v;base64,{0}" type="video/mp4">
- Your browser does not support the video tag.
-</video>"""
-
-
-def anim_to_html(anim, fps=20):
-    """Returns an html string that embeds a Matplotlib Animation object's data."""
-    if not hasattr(anim, '_encoded_video'):
-        with NamedTemporaryFile(suffix='.mp4') as f:
-            anim.save(f.name, fps=fps, extra_args=['-vcodec', 'libx264'])
-            video = open(f.name, "rb").read()
-        anim._encoded_video = video.encode("base64")
-
-    return VIDEO_TAG.format(anim._encoded_video)
-
-
 def view_patches_bar(Yr, A, C, b, f, d1, d2, YrA=None, img=None):
     """view spatial and temporal components interactively
 

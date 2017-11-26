@@ -34,7 +34,6 @@ from tqdm import tqdm
 from IPython.display import HTML
 
 from .io import sbxreadskip, tifffile
-from .utils import visualization
 from .summary_images import local_correlations
 from .motion_correction import motion_correct_online
 
@@ -777,7 +776,7 @@ class Movie(np.ndarray):
         plt.gcf().canvas.draw()
         return ax
 
-    def play_notebook(self, speed=1., gain=1.):
+    def play_notebook(self, speed=1., gain=1., repeat=False):
         """Returns matplotlib figure with animation of Movie."""
 
         fig = plt.figure()
@@ -786,7 +785,7 @@ class Movie(np.ndarray):
 
         anim = animation.FuncAnimation(fig, lambda frame: (im.set_data(frame * gain),), frames=self, interval=1, blit=True)
         plt.close(anim._fig)
-        vis = HTML(visualization.anim_to_html(anim, fps= int(self.fr * speed)))
+        vis = HTML(anim.to_html_video(interval=float(speed) / self.fr, repeat=repeat))
         return vis
 
     def play_opencv(self, speed=1., gain=1.):
