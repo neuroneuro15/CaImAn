@@ -29,7 +29,7 @@ from matplotlib import animation
 import matplotlib.pyplot as plt
 from sklearn import decomposition, cluster, metrics
 from scipy import io, optimize
-from skimage import feature
+from skimage import feature, transform
 from tqdm import tqdm
 from IPython.display import HTML
 
@@ -312,7 +312,6 @@ class Movie(np.ndarray):
             interp_enum = getattr(cv2, 'INTER_{}'.format(interpolation))
         elif package.lower() == 'skimage':
             interp_enum = {'nearest': 0, 'linear': 1, 'cubic': 3, 'lanczos4': 4}[interpolation]
-            from skimage.transform import warp, AffineTransform
         else:
             raise ValueError("'package' argument must be 'opencv' or 'skimage'.")
 
@@ -327,8 +326,8 @@ class Movie(np.ndarray):
                 self[i] = cv2.warpAffine(frame, shift_mat, (w, h), flags=interp_enum, borderMode=cv2.BORDER_REFLECT)
                 self[i] = np.clip(self[i], np.min(frame), np.max(frame))
             elif package.lower() == 'skimage':
-                tform = AffineTransform(translation=(-shift_x, -shift_y))
-                self[i] = warp(frame, tform, preserve_range=True, order=interp_enum, mode='reflect')
+                tform = transform.AffineTransform(translation=(-shift_x, -shift_y))
+                self[i] = transform.warp(frame, tform, preserve_range=True, order=interp_enum, mode='reflect')
 
     def debleach(self, model='exponential'):
         """
@@ -1071,7 +1070,6 @@ class Movie(np.ndarray):
 
     def to_avi(self, file_name):
         """Save the Timeseries in a .avi movie file using OpenCV."""
-        import cv2
         codec = cv2.FOURCC('I', 'Y', 'U', 'V') if hasattr(cv2, 'FOURCC') else cv2.VideoWriter_fourcc(*'IYUV')
         np.clip(self, np.percentile(self, 1), np.percentile(self, 99), self)
         minn, maxx = np.min(self), np.max(self)
@@ -1085,9 +1083,8 @@ class Movie(np.ndarray):
 
     def to_matlab(self, file_name):
         """Save the Timeseries to a .mat file."""
-        from scipy.io import savemat
         f_name = self.file_name if self.file_name[0] is not None else ''
-        savemat(file_name, {'input_arr': np.rollaxis(self, axis=0, start=3),
+        io.savemat(file_name, {'input_arr': np.rollaxis(self, axis=0, start=3),
                             'start_time': self.start_time,
                             'fr': self.fr,
                             'meta_data': [] if self.meta_data[0] is None else self.meta_data,
@@ -1097,8 +1094,6 @@ class Movie(np.ndarray):
 
     def to_hdf(self, file_name):
         """Save the Timeseries to an HDF5 (.h5, .hdf, .hdf5) file."""
-        import pickle
-        import h5py
         with h5py.File(file_name, "w") as f:
             dset = f.create_dataset("mov", data=np.asarray(self))
             dset.attrs["fr"] = self.fr
