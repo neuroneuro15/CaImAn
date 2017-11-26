@@ -19,15 +19,8 @@ import threading
 import warnings
 import multiprocessing.pool
 from functools import partial
-try:    
-    from keras import backend as K
-except:
-    pass
-    
-try:
-    from PIL import Image as pil_image
-except ImportError:
-    pil_image = None
+from keras import backend as K
+from PIL import Image as pil_image
 
 
 def random_rotation(x, rg, row_axis=1, col_axis=2, channel_axis=0,
@@ -246,9 +239,6 @@ def array_to_img(x, data_format=None, scale=True):
         ImportError: if PIL is not available.
         ValueError: if invalid `x` or `data_format` is passed.
     """
-    if pil_image is None:
-        raise ImportError('Could not import PIL.Image. '
-                          'The use of `array_to_img` requires PIL.')
     x = np.asarray(x, dtype=K.floatx())
     if x.ndim != 3:
         raise ValueError('Expected image array to have rank 3 (single image). '
@@ -329,9 +319,6 @@ def load_img(path, grayscale=False, target_size=None):
     # Raises
         ImportError: if PIL is not available.
     """
-    if pil_image is None:
-        raise ImportError('Could not import PIL.Image. '
-                          'The use of `array_to_img` requires PIL.')
     img = pil_image.open(path)
     if grayscale:
         if img.mode != 'L':
