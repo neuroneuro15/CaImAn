@@ -948,6 +948,19 @@ class Movie(np.ndarray):
         return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1],
                      meta_data=meta_data)
 
+    @classmethod
+    def from_memmap(cls, file_name, fr=30, start_time=0, meta_data=None):
+        """Returns Movie from a file created by Movie.to_memmap()."""
+        extension = os.path.splitext(file_name)[1]
+        if not 'mmap_caiman' in extension:
+            raise ValueError("File extension '{}' not recognized.  Need '.mmap_caiman' to extract shape and order values from filename.".format(extension))
+
+        fdata = os.path.basename(file_name).split('_')[1:]
+        fname, order, shape = fdata[0], fdata[1], fdata[2:]
+        fname_with_path = os.path.join(os.path.dirname(file_name), fname)
+        Yr = np.memmap(file_name, mode='r', shape=shape, dtype=np.float32, order=order)
+
+        return cls(Yr, fr=fr, start_time=start_time, meta_data=meta_data, file_name=fname_with_path)
 
     @classmethod
     def load(cls, file_name, fr=30, start_time=0, meta_data=None, subindices=None, shape=None, var_name_hdf5='mov',
