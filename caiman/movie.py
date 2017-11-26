@@ -525,11 +525,9 @@ class Movie(np.ndarray):
 
         return eigenseries, eigenframes, proj_frame_vectors
 
-    def IPCA_stICA(self, componentsPCA=50,componentsICA = 40, batch = 1000, mu = 1, ICAfun = 'logcosh', **kwargs):
+    def IPCA_stICA(self, componentsPCA=50, componentsICA=40, batch=1000, mu=1, ICAfun='logcosh', **kwargs):
         """
         Compute PCA + ICA a la Mukamel 2009.
-
-
 
         Parameters:
         -----------
@@ -547,29 +545,26 @@ class Movie(np.ndarray):
         --------
         ind_frames [components, height, width] = array of independent component "eigenframes"
         """
-        eigenseries, eigenframes,_proj = self.IPCA(componentsPCA, batch)
-        # normalize the series
+        eigenseries, eigenframes, _ = self.IPCA(componentsPCA, batch)
 
-        frame_scale = old_div(mu, np.max(eigenframes))
-        frame_mean = np.mean(eigenframes, axis = 0)
+        # normalize the series
+        frame_scale = mu / float(np.max(eigenframes))
+        frame_mean = np.mean(eigenframes, axis=0)
         n_eigenframes = frame_scale * (eigenframes - frame_mean)
 
-        series_scale = old_div((1-mu), np.max(eigenframes))
+        series_scale = (1. - mu) / np.max(eigenseries)
         series_mean = np.mean(eigenseries, axis = 0)
         n_eigenseries = series_scale * (eigenseries - series_mean)
 
-        # build new features from the space/time data
-        # and compute ICA on them
-
+        # build new features from the space/time data and compute ICA on them
         eigenstuff = np.concatenate([n_eigenframes, n_eigenseries])
 
-        ica = decomposition.FastICA(n_components=componentsICA, fun=ICAfun,**kwargs)
+        ica = decomposition.FastICA(n_components=componentsICA, fun=ICAfun, **kwargs)
         joint_ics = ica.fit_transform(eigenstuff)
 
         # extract the independent frames
-        num_frames, h, w = np.shape(self);
-        frame_size = h * w;
-        ind_frames = joint_ics[:frame_size, :]
+        num_frames, h, w = np.shape(self)
+        ind_frames = joint_ics[:(h * w), :]
         ind_frames = np.reshape(ind_frames.T, (componentsICA, h, w))
 
         return ind_frames
