@@ -20,6 +20,7 @@ from __future__ import division, print_function, absolute_import
 from past.utils import old_div
 import cv2
 import os
+from os import path
 import pickle
 import warnings
 import h5py
@@ -816,7 +817,7 @@ class Movie(np.ndarray):
                 input_arr = input_arr[subindices, :, :]
         input_arr = np.squeeze(input_arr)
 
-        return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1],
+        return cls(input_arr, fr=fr, start_time=start_time, file_name=path.split(file_name)[-1],
                      meta_data=meta_data)
 
     @classmethod
@@ -838,7 +839,7 @@ class Movie(np.ndarray):
         cap.release()
         cv2.destroyAllWindows()
 
-        return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1], meta_data=meta_data)
+        return cls(input_arr, fr=fr, start_time=start_time, file_name=path.split(file_name)[-1], meta_data=meta_data)
 
     @classmethod
     def from_npy(cls, file_name, fr=30, start_time=0, in_memory=False, meta_data=None, subindices=None, shape=None):
@@ -853,7 +854,7 @@ class Movie(np.ndarray):
             else:
                 input_arr = input_arr[np.newaxis, :, :]
 
-        return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1], meta_data=meta_data)
+        return cls(input_arr, fr=fr, start_time=start_time, file_name=path.split(file_name)[-1], meta_data=meta_data)
 
     @classmethod
     def from_matlab(cls, file_name, fr=30, start_time=0, meta_data=None, subindices=None):
@@ -861,7 +862,7 @@ class Movie(np.ndarray):
         input_arr = io.loadmat(file_name)['data']
         input_arr = np.rollaxis(input_arr, 2, -3)
         input_arr = input_arr[subindices] if subindices is not None else input_arr
-        return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1], meta_data=meta_data)
+        return cls(input_arr, fr=fr, start_time=start_time, file_name=path.split(file_name)[-1], meta_data=meta_data)
 
 
     @classmethod
@@ -896,7 +897,7 @@ class Movie(np.ndarray):
                 kk.sort(key=lambda x: np.int(x.split('_')[-1]))
                 input_arr = [np.array(f[trial]['mov']) for trial in kk]
                 input_arr = np.vstack(input_arr)
-                return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1],
+                return cls(input_arr, fr=fr, start_time=start_time, file_name=path.split(file_name)[-1],
                              meta_data=meta_data)
             else:
                 if 'imaging' in f.keys():
@@ -935,19 +936,19 @@ class Movie(np.ndarray):
             input_arr = np.array(dset.sequences[0])[subindices, :, :, :, :].squeeze()
 
 
-        return cls(input_arr, fr=fr, start_time=start_time, file_name=os.path.split(file_name)[-1],
+        return cls(input_arr, fr=fr, start_time=start_time, file_name=path.split(file_name)[-1],
                      meta_data=meta_data)
 
     @classmethod
     def from_memmap(cls, file_name, in_memory=True, fr=30, start_time=0, meta_data=None):
         """Returns Movie from a file created by Movie.to_memmap()."""
-        extension = os.path.splitext(file_name)[1]
+        extension = path.splitext(file_name)[1]
         if not 'mmap_caiman' in extension:
             raise ValueError("File extension '{}' not recognized.  Need '.mmap_caiman' to extract shape and order values from filename.".format(extension))
 
-        fdata = os.path.basename(file_name).split('_')[1:]
+        fdata = path.basename(file_name).split('_')[1:]
         fname, order, shape = fdata[0], fdata[1], fdata[2:]
-        fname_with_path = os.path.join(os.path.dirname(file_name), fname)
+        fname_with_path = path.join(path.dirname(file_name), fname)
         Yr = np.memmap(file_name, mode='r', shape=shape, dtype=np.float32, order=order)
         Yr = np.array(Yr) if in_memory else Yr
         return cls(Yr, fr=fr, start_time=start_time, meta_data=meta_data, file_name=fname_with_path)
@@ -956,7 +957,7 @@ class Movie(np.ndarray):
     def load(cls, file_name, fr=30, start_time=0, meta_data=None, subindices=None, shape=None, var_name_hdf5='mov',
              in_memory=False, is_behavior=False, frame_step_sima=1000):
 
-        name, extension = os.path.splitext(file_name)[:2]
+        name, extension = path.splitext(file_name)[:2]
 
         if extension == '.tif' or extension == '.tiff':  # load avi file
             return cls.from_tiff(file_name=file_name, fr=fr, start_time=start_time, subindices=subindices, meta_data=meta_data)
@@ -1039,7 +1040,7 @@ class Movie(np.ndarray):
         raise ValueError('Extension Unknown')
 
         """
-        _, extension = os.path.splitext(file_name)
+        _, extension = path.splitext(file_name)
         if 'tif' in extension:
             self.to_tiff(file_name=file_name, to32=to32)
         elif 'mat' in extension:
@@ -1127,7 +1128,7 @@ class Movie(np.ndarray):
             fname_tot: the final filename of the mapped file, the format is such that
                 the name will contain the frame dimensions and the number of f
         """
-        fname, ext = os.path.splitext(base_filename)
+        fname, ext = path.splitext(base_filename)
         fname_tot = fname + '_' + order + '_' + '_'.join(map(str, self.shape))
         fname_tot = fname_tot + ext if ext else fname_tot + '.mmap_caiman'
 
