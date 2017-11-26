@@ -31,6 +31,7 @@ from sklearn import decomposition, cluster, metrics
 from scipy import io, optimize
 from skimage import feature
 from tqdm import tqdm
+from IPython.display import HTML
 
 from .io import sbxreadskip, tifffile
 from .utils import visualization
@@ -784,8 +785,9 @@ class Movie(np.ndarray):
         plt.axis('off')
 
         anim = animation.FuncAnimation(fig, lambda frame: (im.set_data(frame * gain),), frames=self, interval=1, blit=True)
-        visualization.display_animation(anim, fps= int(self.fr * speed))
-        return fig
+        plt.close(anim._fig)
+        vis = HTML(visualization.anim_to_html(anim, fps= int(self.fr * speed)))
+        return vis
 
     def play_opencv(self, speed=1., gain=1.):
         """Create OpenCV window and begin playing Movie.  Press Q key to quit and close window."""

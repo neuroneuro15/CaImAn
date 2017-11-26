@@ -14,7 +14,6 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from tempfile import NamedTemporaryFile
-from IPython.display import HTML
 import sys
 from warnings import warn
 from scipy.sparse import issparse, spdiags, coo_matrix, csc_matrix, hstack
@@ -713,7 +712,7 @@ VIDEO_TAG = """<video controls>
 
 
 def anim_to_html(anim, fps=20):
-    # todo: todocument
+    """Returns an html string that embeds a Matplotlib Animation object's data."""
     if not hasattr(anim, '_encoded_video'):
         with NamedTemporaryFile(suffix='.mp4') as f:
             anim.save(f.name, fps=fps, extra_args=['-vcodec', 'libx264'])
@@ -722,13 +721,6 @@ def anim_to_html(anim, fps=20):
 
     return VIDEO_TAG.format(anim._encoded_video)
 
-#%%
-
-
-def display_animation(anim, fps=20):
-    plt.close(anim._fig)
-    return HTML(anim_to_html(anim, fps=fps))
-#%%
 
 def view_patches_bar(Yr, A, C, b, f, d1, d2, YrA=None, img=None):
     """view spatial and temporal components interactively
