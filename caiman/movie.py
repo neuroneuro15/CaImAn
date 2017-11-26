@@ -19,7 +19,6 @@ from __future__ import division, print_function, absolute_import
 
 from past.utils import old_div
 import cv2
-import os
 from os import path
 import pickle
 import warnings
@@ -34,7 +33,6 @@ from skimage import feature
 from tqdm import tqdm
 
 from .io import sbxreadskip, tifffile
-from .mmapping import load_memmap
 from .utils import visualization
 from .summary_images import local_correlations
 from .motion_correction import motion_correct_online
