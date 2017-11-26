@@ -110,7 +110,7 @@ class Movie(np.ndarray):
         t, h, w = self.shape
         return self[begin:(t - end), top:(h - bottom), left:(w - right)]
 
-    def to_2D(self, order='F'):
+    def to_2d(self, order='F'):
         T, d1, d2 = self.shape
         d = d1 * d2
         return np.reshape(self, (T, d), order=order)

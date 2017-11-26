@@ -260,7 +260,7 @@ Y = Y / img_norm[None, :, :]
 
 _, d1, d2 = Y.shape
 dims = (d1, d2)
-Yr = Y.to_2D().T
+Yr = Y.to_2d().T
 merge_thresh = 0.8  # merging threshold, max correlation allowed
 p = 1  # order of the autoregressive system
 # T = Y.shape[0]

@@ -98,7 +98,7 @@ def initialize_movie(Y, K, gSig, rf, stride, base_name,
    
     _, d1, d2 = Y.shape
     dims = (d1, d2)
-    Yr = Y.to_2D().T
+    Yr = Y.to_2d().T
       # merging threshold, max correlation allowed
      # order of the autoregressive system
     #T = Y.shape[0]
@@ -323,7 +323,7 @@ for count,fname in enumerate(base_names):
     mc_init = cm.load(fname)
     _, d1, d2 = mc_init.shape
     dims = (d1, d2)
-    Yr = mc_init .to_2D().T
+    Yr = mc_init .to_2d().T
     idx_components = np.where((cnm.r_values>0.95) | (cnm.fitness_raw<-50) | (cnm.fitness_delta<-50))[0]
     cnm._prepare_object(np.asarray(Yr),T1, expected_comps, idx_components = cnm.idx_components)
     cnm.rval_thr = .75

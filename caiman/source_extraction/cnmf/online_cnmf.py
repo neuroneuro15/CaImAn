@@ -701,7 +701,7 @@ def initialize_movie_online(Y, K, gSig, rf, stride, base_name,
    
     _, d1, d2 = Y.shape
     dims = (d1, d2)
-    Yr = Y.to_2D().T
+    Yr = Y.to_2d().T
       # merging threshold, max correlation allowed
      # order of the autoregressive system
     #T = Y.shape[0]

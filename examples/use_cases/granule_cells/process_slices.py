@@ -125,7 +125,7 @@ for fl in fls:
 
 #        traces=C+YrA
         m=cb.load(fl)
-        m_fl=m.to_2D().T
+        m_fl=m.to_2d().T
         if binary_mask:            
             masks=A.toarray()
             masks=old_div(masks,np.max(masks,0))

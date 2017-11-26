@@ -860,7 +860,7 @@ def generate_linked_traces(mov_names,chunk_sizes,A,b,f):
         mov_chunk_name=os.path.join(os.path.dirname(mv),mov_chunk_name)
         print(mov_chunk_name)
 
-        m=cb.load(mov_chunk_name).to_2D().T
+        m=cb.load(mov_chunk_name).to_2d().T
         bckg_1=b.dot(f_in[:,counter:counter+chunk_sizes[jj]])
 
         m=m-bckg_1          

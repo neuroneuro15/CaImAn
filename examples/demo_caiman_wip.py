@@ -56,7 +56,7 @@ idxA,idxB =  np.meshgrid(list(range(w)),list(range(h)))
 coordmat=np.vstack((idxA.flatten(),idxB.flatten()))
 distanceMatrix=euclidean_distances(coordmat.T)
 distanceMatrix=np.logical_and(distanceMatrix<2,distanceMatrix>0)*distanceMatrix
-img=np.corrcoef(mh.to_2D(order='C').T)
+img=np.corrcoef(mh.to_2d(order='C').T)
 img=img*distanceMatrix
 img=scipy.sparse.coo_matrix(img)
 from sklearn.cluster import DBSCAN,KMeans,SpectralClustering

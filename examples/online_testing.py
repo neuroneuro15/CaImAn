@@ -26,7 +26,7 @@ all_els = []
 for it in range(1):
     print(it)
 #    a = cm.Movie(np.random.randn(*mns.shape).astype(np.float32))
-    Yr = cm.Movie.to_2D(a).astype(np.float)
+    Yr = cm.Movie.to_2d(a).astype(np.float)
 
     #%
 #    norm = lambda(x): np.exp(-x**2/2)/np.sqrt(2*np.pi)
@@ -52,13 +52,13 @@ mov = Yr
 mns = -cm.Movie(np.reshape(res.clip(-1000, 0),
                            [80, 60, -1]).transpose([2, 1, 0]))
 #mns[mns > 1000] = 1000
-mov = cm.Movie.to_2D(mns)
+mov = cm.Movie.to_2d(mns)
 #%%
 noise = res[2]
 mode = cm.components_evaluation.mode_robust(Yr, 0)
-Yr_1 = (cm.Movie.to_2D(a) - mode) / res[2]
+Yr_1 = (cm.Movie.to_2d(a) - mode) / res[2]
 mns_1 = (np.reshape(Yr_1, [-1, 80, 60], order='F'))
-mov = np.maximum(0, cm.Movie.to_2D(mns_1))
+mov = np.maximum(0, cm.Movie.to_2d(mns_1))
 #%%
 
 

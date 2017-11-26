@@ -88,7 +88,7 @@ Y = Y / img_norm[None, :, :]                        # normalize data
 
 _, d1, d2 = Y.shape
 dims = (d1, d2)                                     # dimensions of FOV
-Yr = Y.to_2D().T                                    # convert data into 2D array
+Yr = Y.to_2d().T                                    # convert data into 2D array
 merge_thresh = 0.8                                  # merging threshold, max correlation allowed
 p = 1                                               # order of the autoregressive system
 
