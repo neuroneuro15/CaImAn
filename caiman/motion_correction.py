@@ -56,11 +56,6 @@ from cv2 import idft as ifftn
 from numpy.fft import ifftshift
 import itertools
 
-try:
-    profile
-except:
-    profile = lambda a: a
-
 import caiman as cm
 from .io import tifffile
 
@@ -581,7 +576,6 @@ def motion_correct_iteration(img,template,frame_num,max_shift_w=25,
     return new_img,new_templ,shift,avg_corr
 
 #%%
-@profile
 def motion_correct_iteration_fast(img,template,max_shift_w=10,max_shift_h=10):
     """ For using in online realtime scenarios """
     h_i, w_i = template.shape

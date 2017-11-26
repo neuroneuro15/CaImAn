@@ -45,11 +45,6 @@ from .spatial import update_spatial_components
 from .temporal import update_temporal_components
 from .utilities import CNMFSetParms, update_order, normalize_AC, compute_residuals
 
-try:
-    profile
-except:
-    profile = lambda a: a
-
 
 class CNMF(object):
     """  Source extraction using constrained non-negative matrix factorization.
@@ -738,7 +733,6 @@ class CNMF(object):
         self.time_spend = 0
         return self
 
-    @profile
     def fit_next(self, t, frame_in, num_iters_hals=3):
         """
         This method fits the next frame using the online cnmf algorithm and updates the object.

@@ -56,15 +56,6 @@ def estimate_noise_mode(traces,robust_std=False,use_mode_fast=False, return_all 
         return sd_r    
 #
 
-
-#%%
-try:
-    profile
-except:
-    profile = lambda a: a 
-
-
-@profile
 def compute_event_exceptionality(traces,robust_std=False,N=5,use_mode_fast=False, sigma_factor = 3.):
     """
     Define a metric and order components according to the probabilty if some "exceptional events" (like a spike). 

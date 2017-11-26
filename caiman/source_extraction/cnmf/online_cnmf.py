@@ -17,13 +17,6 @@ from sklearn.decomposition import NMF
 from sklearn.preprocessing import normalize
 
 
-try:
-    profile
-except:
-    profile = lambda a: a
-
-
-#%%
 def bare_initialization(Y, init_batch = 1000, k = 1, method_init = 'greedy_roi', gnb = 1,
                         gSig = [5,5], motion_flag = False, **kwargs):
     """
@@ -170,7 +163,6 @@ def seeded_initialization(Y, Ain, dims = None, init_batch = 1000, gnb = 1, **kwa
        
 
 # definitions for demixed time series extraction and denoising/deconvolving
-@profile
 def HALS4activity(Yr, A, noisyC, AtA, iters=5, tol=1e-3, groups=None):
     """Solve C = argmin_C ||Yr-AC|| using block-coordinate decent"""
 
@@ -193,7 +185,6 @@ def HALS4activity(Yr, A, noisyC, AtA, iters=5, tol=1e-3, groups=None):
     return C, noisyC
 
 
-@profile
 def demix_and_deconvolve(C, noisyC, AtY, AtA, OASISinstances, iters=3, n_refit=0):
     """
     Solve C = argmin_C ||Y-AC|| subject to C following AR(p) dynamics
@@ -308,7 +299,6 @@ def init_shapes_and_sufficient_stats(Y, A, C, b, f, bSiz=3):
     return Ab, ind_A, CY, CC
 
 
-@profile
 def update_shapes(CY, CC, Ab, ind_A, indicator_components=None, Ab_dense=None, update_bkgrd=True, iters=3):
     D, M = Ab.shape
     N = len(ind_A)
@@ -440,8 +430,6 @@ def rank1nmf(Ypx, ain):
     return ain, cin, cin_res
 
 
-#%%
-@profile
 def update_num_components(t, sv, Ab, Cf, Yres_buf, Y_buf, rho_buf,
                           dims, gSig, gSiz, ind_A, CY, CC, groups, oases, gnb=1,
                           rval_thr=0.875, bSiz=3, robust_std=False,
