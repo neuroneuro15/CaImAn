@@ -1107,3 +1107,34 @@ class Movie(np.ndarray):
             if self.meta_data[0] is not None:
                 print(self.meta_data)
                 dset.attrs["meta_data"] = pickle.dumps(self.meta_data)
+
+    def to_memmap(self, base_filename, order='F', n_chunks=1):
+        """Saves efficiently a caiman Movie file into a Numpy memory mappable file.
+
+        Parameters:
+        ----------
+            base_filename: string
+                filename to save memory-mapped array to.  (Note: final filename will have shape info in it, and will be returned)
+
+            order: string
+                whether to save the file in 'C' or 'F' order
+
+        Returns:
+        -------
+            fname_tot: the final filename of the mapped file, the format is such that
+                the name will contain the frame dimensions and the number of f
+        """
+        fname, ext = os.path.splitext(base_filename)
+        fname_tot = fname + '_' + order + '_' + '_'.join(map(str, self.shape))
+        fname_tot = fname_tot + ext if ext else fname_tot + '.mmap_caiman'
+
+        big_mov = np.memmap(fname_tot, mode='w+', dtype=self.dtype, shape=self.shape, order=order)
+
+        curr_row = 0
+        for tmp in np.array_split(self, n_chunks, axis=0):
+            big_mov[curr_row:curr_row + tmp.shape[0], :, :] = np.asarray(tmp, dtype=np.float32)
+            big_mov.flush()
+            curr_row += tmp.shape[0]
+        del big_mov
+
+        return fname_tot
