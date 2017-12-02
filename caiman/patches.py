@@ -100,6 +100,28 @@ def apply_to_patch(mmap_file, shape, dview, rf, stride, function, *args_in, **kw
     Exception('Something went wrong')
 
     """
+
+    def function_place_holder(args_in):
+        # todo: todocument
+
+        file_name, idx_, shapes, function, args, kwargs = args_in
+        Yr, _, _ = load_memmap(file_name)
+        Yr = Yr[idx_, :]
+        Yr.filename = file_name
+        d, T = Yr.shape
+        Y = np.reshape(Yr, (shapes[1], shapes[0], T), order='F').transpose([2, 0, 1])
+        [T, d1, d2] = Y.shape
+
+        res_fun = function(Y, *args, **kwargs)
+        if type(res_fun) is not tuple:
+
+            if res_fun.shape == (d1, d2):
+                print('** reshaping form 2D to 1D')
+                res_fun = np.reshape(res_fun, d1 * d2, order='F')
+
+        return res_fun
+
+
     T, d1, d2 = shape
     rf1, rf2 = (rf, rf) if np.isscalar(rf) else rf
     stride1, stride2 = (stride, stride) if np.isscalar(stride) else stride
@@ -123,26 +145,6 @@ def apply_to_patch(mmap_file, shape, dview, rf, stride, function, *args_in, **kw
 
     return file_res, idx_flat, shape_grid
 
-
-def function_place_holder(args_in):
-    # todo: todocument
-
-    file_name, idx_, shapes, function, args, kwargs = args_in
-    Yr, _, _ = load_memmap(file_name)
-    Yr = Yr[idx_, :]
-    Yr.filename = file_name
-    d, T = Yr.shape
-    Y = np.reshape(Yr, (shapes[1], shapes[0], T), order='F').transpose([2, 0, 1])
-    [T, d1, d2] = Y.shape
-
-    res_fun = function(Y, *args, **kwargs)
-    if type(res_fun) is not tuple:
-
-        if res_fun.shape == (d1, d2):
-            print('** reshaping form 2D to 1D')
-            res_fun = np.reshape(res_fun, d1 * d2, order='F')
-
-    return res_fun
 
 
 #
