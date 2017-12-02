@@ -20,6 +20,7 @@ def sbxinfo(filename):
 
     return info
 
+
 def sbxread(filename, k=0, n_frames=np.inf):
     """Returns data array from .sbx files."""
     filename = path.splitext(filename)[0]  # strip out file extension.
@@ -70,32 +71,9 @@ def sbxreadskip(filename, skip):
 
 
 def sbxshape(filename):
-    """
-    Input:
-     -----
-     filename should be full path excluding .sbx
-    """
-
-    # Check if contains .sbx and if so just truncate
-    if '.sbx' in filename:
-        filename = filename[:-4]
-
-    # Load info
-    info = loadmat(filename + '.mat')['info']
-
-    # Defining number of channels/size factor
-    if info['channels'] == 1:
-        info['nChan'] = 2;
-        factor = 1
-    elif info['channels'] == 2:
-        info['nChan'] = 1;
-        factor = 2
-    elif info['channels'] == 3:
-        info['nChan'] = 1;
-        factor = 2
-
-    # Determine number of frames in whole file
-    max_idx = os.path.getsize(filename + '.sbx') / info['recordsPerBuffer'] / info['sz'][1] * factor / 4 - 1
+    """Returns 3-element shape tuple from an spx's associated .mat file."""
+    info = sbxinfo(filename)
+    max_idx = path.getsize(filename + '.sbx') / info['recordsPerBuffer'] / info['sz'][1] * info['factor'] / 4 - 1
     N = max_idx + 1  # Last frame
     x = (int(info['sz'][1]), int(info['recordsPerBuffer']), int(N))
     return x
