@@ -433,6 +433,15 @@ def nf_load_masks(file_name,dims):
     return masks
 
 
+def neurofinder_format_masks(binary_masks):
+    """
+    Returns a list of ROI 'coordinate' dictionaries from ncomp x height x width, binary mask array, for the neurofinder format.
+
+    For more info on Neurofinder, go to http://neurofinder.codeneuro.org/
+    """
+    return  [{"coordinates": list(zip(*np.where(m)))} for m in binary_masks]
+
+
 def nf_masks_to_json(binary_masks,json_filename):
     """
     Take as input a tensor of binary mask and produces json format for neurofinder 
@@ -449,11 +458,8 @@ def nf_masks_to_json(binary_masks,json_filename):
         regions in neurofinder format
 
     """
-    regions = [{"coordinates": [[x,y] for x,y in zip(*np.where(m))]} for m in binary_masks]
     with open(json_filename, 'w') as f:
-        json.dump(regions, f)
-
-    return regions            
+        json.dump(neurofinder_format_masks(binary_masks), f)
 
 
 def extract_binary_masks_blob(A,  neuron_radius,dims,num_std_threshold=1, minCircularity= 0.5,
