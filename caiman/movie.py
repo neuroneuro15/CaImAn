@@ -36,49 +36,45 @@ from .summary_images import local_correlations
 from .motion_correction import motion_correct_online
 
 
-class Movie(np.ndarray):
-    """
-    Class representing a Movie. This class subclasses Timeseries,
-    that in turn subclasses ndarray
+class Movie(object):
 
-    Movie(input_arr, fr=None,start_time=0,file_name=None, meta_data=None)
+    def __init__(self, input_arr, fr=30, start_time=0, file_name=None, meta_data=None, **kwargs):
+        """
+        Class representing a Movie. Has a numpy.ndarray-like interface.
 
-    Example of usage:
-    ----------
-    input_arr = 3d ndarray
-    fr=33; # 33 Hz
-    start_time=0
-    m=Movie(input_arr, start_time=0,fr=33);
+        Movie(input_arr, fr=None,start_time=0,file_name=None, meta_data=None)
 
-    Parameters:
-    ----------
+        Example of usage:
+        ----------
+        input_arr = 3d ndarray
+        fr=33; # 33 Hz
+        start_time=0
+        m=Movie(input_arr, start_time=0,fr=33);
 
-    input_arr:  np.ndarray, 3D, (time,height,width)
+        Parameters:
+        ----------
 
-    fr: frame rate
+        input_arr:  np.ndarray, 3D, (time,height,width)
 
-    start_time: time beginning Movie, if None it is assumed 0
+        fr: frame rate
 
-    meta_data: dictionary including any custom meta data
+        start_time: time beginning Movie, if None it is assumed 0
 
-    file_name: name associated with the file (e.g. path to the original file)
+        meta_data: dictionary including any custom meta data
 
-    """
+        file_name: name associated with the file (e.g. path to the original file)
 
-    def __new__(cls, input_arr, fr=30, start_time=0, file_name=None, meta_data=None, **kwargs):
- #todo: todocument
-        if (type(input_arr) is np.ndarray) or \
-           (type(input_arr) is h5py._hl.dataset.Dataset) or\
-           ('mmap' in str(type(input_arr))) or\
-           ('tifffile' in str(type(input_arr))):
-            obj = np.asarray(input_arr).view(cls)
-            obj.start_time = np.double(start_time)
-            obj.fr = np.double(fr)
-            obj.file_name = file_name if isinstance(file_name, list) else [file_name]
-            obj.meta_data = meta_data if isinstance(meta_data, list) else [meta_data]
-            return obj
-        else:
-            raise Exception('Input must be an ndarray, use load instead!')
+        """
+
+        self._values = np.array(input_arr, dtype=np.float32) if not isinstance(input_arr, np.memmap) else input_arr
+        if self._values.dtype != np.float32:
+            raise TypeError('Array data must be encoded as float32 values.')
+
+        self.start_time = np.double(start_time)
+        self.fr = np.double(fr)
+        self.file_name = file_name if isinstance(file_name, list) else [file_name]
+        self.meta_data = meta_data if isinstance(meta_data, list) else [meta_data]
+
 
     def __array_prepare__(self, out_arr, context):
         """Checks that frame rate value given makes sense."""
@@ -97,6 +93,19 @@ class Movie(np.ndarray):
         self.fr = getattr(obj, 'fr', None)
         self.file_name = getattr(obj, 'file_name', None)
         self.meta_data = getattr(obj, 'meta_data', None)
+
+    @property
+    def values(self):
+        return self._values.view()
+
+    def __getattr__(self, item):
+        return getattr(self.values, item)
+
+    def __getitem__(self, item):
+        return self.values[item]
+
+    def __setitem__(self, key, value):
+        self.values[key] = value
 
     @property
     def time(self):
