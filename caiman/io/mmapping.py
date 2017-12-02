@@ -64,6 +64,15 @@ def save_memmap_each(fnames, dview=None, base_name=None, resize_fact=(1, 1, 1), 
 
     """
 
+    def save_place_holder(pars):
+        """ To use map reduce"""
+        (f, base_name, resize_fact, remove_init, idx_xy, order,
+         xy_shifts, add_to_movie, border_to_0) = pars
+        return save_memmap([f], base_name=base_name, resize_fact=resize_fact, remove_init=remove_init,
+                           idx_xy=idx_xy, order=order, xy_shifts=xy_shifts,
+                           add_to_movie=add_to_movie, border_to_0=border_to_0)
+
+
     xy_shifts = [None] * len(fnames) if type(xy_shifts) == type(None) else xy_shifts
     resize_fact = [resize_fact] * len(fnames) if not isinstance(resize_fact, list) else resize_fact
     pars = []
@@ -168,18 +177,6 @@ def save_portion(pars):
     del big_mov
     return Ttot
 
-
-#%%
-def save_place_holder(pars):
-    """ To use map reduce
-    """
-    # todo: todocument
-
-    (f, base_name, resize_fact, remove_init, idx_xy, order,
-        xy_shifts, add_to_movie, border_to_0) = pars
-    return save_memmap([f], base_name=base_name, resize_fact=resize_fact, remove_init=remove_init,
-                       idx_xy=idx_xy, order=order, xy_shifts=xy_shifts,
-                       add_to_movie=add_to_movie, border_to_0=border_to_0)
 
 
 #%%
@@ -307,6 +304,36 @@ def parallel_dot_product(A, b, block_size=5000, dview=None, transpose=False, num
     """
 
     import pickle
+
+    def dot_place_holder(par):
+        A_name, idx_to_pass, b_, transpose = par
+        A_, _, _ = load_memmap(A_name)
+        b_ = pickle.loads(b_).astype(np.float32)
+
+        print((idx_to_pass[-1]))
+        if 'sparse' in str(type(b_)):
+            if transpose:
+                outp = (b_.T.tocsc()[:, idx_to_pass].dot(A_[idx_to_pass])).T.astype(np.float32)
+                #            del b_
+                #            return idx_to_pass, outp
+
+            else:
+                outp = (b_.T.dot(A_[idx_to_pass].T)).T.astype(np.float32)
+                #            del b_
+                #            return idx_to_pass,outp
+        else:
+            if transpose:
+                outp = A_[idx_to_pass].dot(b_[idx_to_pass]).astype(np.float32)
+                #            del b_
+                #            return idx_to_pass, outp
+            else:
+
+                outp = A_[idx_to_pass].dot(b_).astype(np.float32)
+
+        del b_, A_
+        return idx_to_pass, outp
+
+
     pars = []
     d1, d2 = np.shape(A)
     b = pickle.dumps(b)
@@ -381,35 +408,3 @@ def parallel_dot_product(A, b, block_size=5000, dview=None, transpose=False, num
 
     return output
 
-
-#%%
-def dot_place_holder(par):
-    # todo: todocument
-
-    import pickle
-    A_name, idx_to_pass, b_, transpose = par
-    A_, _, _ = load_memmap(A_name)
-    b_ = pickle.loads(b_).astype(np.float32)
-
-    print((idx_to_pass[-1]))
-    if 'sparse' in str(type(b_)):
-        if transpose:
-            outp = (b_.T.tocsc()[:, idx_to_pass].dot(A_[idx_to_pass])).T.astype(np.float32)
-#            del b_
-#            return idx_to_pass, outp
-
-        else:
-            outp = (b_.T.dot(A_[idx_to_pass].T)).T.astype(np.float32)
-#            del b_
-#            return idx_to_pass,outp
-    else:
-        if transpose:
-            outp = A_[idx_to_pass].dot(b_[idx_to_pass]).astype(np.float32)
-#            del b_
-#            return idx_to_pass, outp
-        else:
-
-            outp = A_[idx_to_pass].dot(b_).astype(np.float32)
-
-    del b_, A_
-    return idx_to_pass, outp
