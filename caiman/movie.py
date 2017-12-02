@@ -75,25 +75,6 @@ class Movie(object):
         self.file_name = file_name if isinstance(file_name, list) else [file_name]
         self.meta_data = meta_data if isinstance(meta_data, list) else [meta_data]
 
-
-    def __array_prepare__(self, out_arr, context):
-        """Checks that frame rate value given makes sense."""
-        if len(set(input.fr for input in context[1] if isinstance(input, self.__class__))) > 1:
-            raise ValueError("Frame rates of input vectors must all match each other.")
-        if len(set(input.start_time for input in context[1] if isinstance(input, self.__class__))) > 1:
-            warnings.warn('start_time of input vectors do not match each other.', UserWarning)
-
-        super(self.__class__, self).__array_prepare__(out_arr, context)
-
-    def __array_finalize__(self, obj):
-        # see InfoArray.__array_finalize__ for comments
-        if obj is None: return
-
-        self.start_time = getattr(obj, 'start_time', None)
-        self.fr = getattr(obj, 'fr', None)
-        self.file_name = getattr(obj, 'file_name', None)
-        self.meta_data = getattr(obj, 'meta_data', None)
-
     @property
     def values(self):
         return self._values.view()
