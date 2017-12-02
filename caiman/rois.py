@@ -26,12 +26,12 @@ import shutil
 import os 
 
 
-def extract_binary_masks_from_structural_channel(Y,min_area_size = 30, min_hole_size = 15, gSig = 5, expand_method = 'closing', selem = np.ones((3,3))):
+def extract_binary_masks_from_structural_channel(img, min_area_size=30, min_hole_size=15, gSig=5, expand_method='closing', selem=np.ones((3,3))):
     """Extract binary masks by using adaptive thresholding on a structural channel
     
     Inputs:
     ------
-    Y:                  caiman Movie object
+    img:                  Numpy array
                         Movie of the structural channel (assumed motion corrected)
     
     min_area_size:      int
@@ -57,27 +57,24 @@ def extract_binary_masks_from_structural_channel(Y,min_area_size = 30, min_hole_
     mR:                 np.array
                         mean image used to detect cell boundaries
     """
-    
-    mR = Y.mean(axis=0)
+
+    if not expand_method.lower() in ['dilation', 'closing']:
+        raise ValueError("expand_method argument must be either 'dilation' or 'closing'.")
+
+    mR = img.mean(axis=0)
     img = cv2.blur(mR,(gSig,gSig))
-    img = (img - np.min(img))/(np.max(img)-np.min(img))*255.
+    img = (img - np.min(img)) / (np.max(img) - np.min(img)) * 255.
     img = img.astype(np.uint8)
+    img = cv2.adaptiveThreshold(img, np.max(img), cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY, gSig, 0)
+    img = remove_small_holes(img > 0, min_size=min_hole_size)
+    img = remove_small_objects(img, min_size=min_area_size)
+    areas, n_features = ndi.label(img)
     
-    th = cv2.adaptiveThreshold(img,np.max(img),cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,gSig,0)
-    th = remove_small_holes(th>0,min_size = min_hole_size)
-    th = remove_small_objects(th, min_size = min_area_size)
-    areas = label(th)
-    
-    A = np.zeros((np.prod(th.shape),areas[1]),dtype=bool)
-    
-    for i in range(areas[1]):
-        temp = (areas[0]==i+1)
-        if expand_method is 'dilation':
-            temp = dilation(temp, selem = selem)
-        elif expand_method is 'closing':
-            temp = dilation(temp, selem = selem)
-            
-        A[:,i] = temp.flatten('F')
+    A = np.zeros((np.prod(img.shape), n_features), dtype=bool)
+    for i in range(n_features):
+        temp = (areas == i + 1)
+        temp = dilation(temp, selem=selem) if expand_method.lower() == 'dilation' else closing(temp, selem=selem)
+        A[:, i] = temp.flatten(order='F')
     
     return A, mR
 
@@ -86,8 +83,8 @@ def extract_binary_masks_from_structural_channel(Y,min_area_size = 30, min_hole_
 def mask_to_2d(mask):
     #todo todocument
     if mask.ndim > 2:
-        ncomps,d1,d2 = np.shape(mask)
-        dims = d1,d2
+        ncomps, d1, d2 = np.shape(mask)
+        dims = d1, d2
         return scipy.sparse.coo_matrix(np.reshape(mask[:].transpose([1,2,0]),(np.prod(dims),-1,),order='F'))
     else:    
         dims  = np.shape(mask)    
@@ -818,7 +815,7 @@ def extractROIsFromPCAICA(spcomps, numSTD=4, gaussiansigmax=2 , gaussiansigmay=2
         else:
             compabspos=comp*(comp>thresh)-comp*(comp<-thresh)
 
-        labeledpos, n = label(compabspos>0, np.ones((3,3)))
+        labeledpos, n = ndi.label(compabspos>0, np.ones((3,3)))
         maskgrouped.append(labeledpos)
         for jj in range(1,n+1):
             tmp_mask=np.asarray(labeledpos==jj)
