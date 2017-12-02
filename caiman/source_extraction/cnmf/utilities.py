@@ -26,8 +26,9 @@ from past.utils import old_div
 from scipy.sparse import spdiags, issparse, csc_matrix
 
 from caiman.io.mmapping import parallel_dot_product
-from caiman.rois import com
+from caiman.utils.math import com
 from .initialization import greedyROI
+
 
 
 #%%

@@ -18,7 +18,7 @@ import sys
 from warnings import warn
 from scipy.sparse import issparse, spdiags, coo_matrix, csc_matrix, hstack
 from matplotlib.widgets import Slider
-from caiman.rois import com
+from caiman.utils.math import com
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage.filters import median_filter
 import matplotlib.cm as cm

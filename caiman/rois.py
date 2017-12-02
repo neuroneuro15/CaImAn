@@ -25,37 +25,7 @@ import tempfile
 import shutil
 import os 
 
-#%%
-def com(A, d1, d2):
-    """Calculation of the center of mass for spatial components
 
-     Inputs:
-     ------
-     A:   np.ndarray
-          matrix of spatial components (d x K)
-
-     d1:  int
-          number of pixels in x-direction
-
-     d2:  int
-          number of pixels in y-direction
-
-     Output:
-     -------
-     cm:  np.ndarray
-          center of mass for spatial components (K x 2)
-    """
-    nr = np.shape(A)[-1]
-    Coor = dict()
-    Coor['x'] = np.kron(np.ones((d2, 1)), np.expand_dims(list(range(d1)), axis=1))
-    Coor['y'] = np.kron(np.expand_dims(list(range(d2)), axis=1), np.ones((d1, 1)))
-    cm = np.zeros((nr, 2))        # vector for center of mass
-    cm[:, 0] = old_div(np.dot(Coor['x'].T, A), A.sum(axis=0))
-    cm[:, 1] = old_div(np.dot(Coor['y'].T, A), A.sum(axis=0))
-
-    return cm
-
-#%% 
 def extract_binary_masks_from_structural_channel(Y,min_area_size = 30, min_hole_size = 15, gSig = 5, expand_method = 'closing', selem = np.ones((3,3))):
     """Extract binary masks by using adaptive thresholding on a structural channel
     
