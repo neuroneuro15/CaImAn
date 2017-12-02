@@ -29,7 +29,7 @@ try:
 except NameError:
     print('Not IPYTHON')
     pass
-from caiman.rois import nf_read_roi_zip
+from caiman.io import nf_read_roi_zip
 import numpy as np
 import pylab as pl
 import caiman as cm

@@ -30,7 +30,8 @@ foldernames = ['/mnt/ceph/neuro/labeling/FINAL_NO_USED_FOR_CONSENSUS/neurofinder
 #%%
 
 import glob
-from caiman.rois import detect_duplicates, nf_merge_roi_zip, nf_read_roi_zip
+from caiman.rois import detect_duplicates
+from caiman.io import nf_merge_roi_zip, nf_read_roi_zip
 from shutil import copyfile
 #%%
 for fldname in foldernames:
