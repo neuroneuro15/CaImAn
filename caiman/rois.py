@@ -248,9 +248,7 @@ def nf_match_neurons_in_binary_masks(masks_gt,masks_comp,thresh_cost=.7, min_dis
     if plot_results:
         try : #Plotting function
             plt.rcParams['pdf.fonttype'] = 42
-            font = {'family' : 'Myriad Pro',
-                    'weight' : 'regular',
-                    'size'   : 10}
+            font = {'family': 'Myriad Pro', 'weight': 'regular', 'size': 10}
             plt.rc('font', **font)
             lp,hp = np.nanpercentile(Cn,[5,95])
             plt.subplot(1,2,1)
@@ -276,18 +274,12 @@ def nf_match_neurons_in_binary_masks(masks_gt,masks_comp,thresh_cost=.7, min_dis
             print(e)
     return  idx_tp_gt,idx_tp_comp, idx_fn_gt, idx_fp_comp, performance 
 
-#%% threshold
-def norm_nrg(a_):
-    
-    a = a_.copy()
-    dims = a.shape
-    a = a.reshape(-1,order = 'F')
-    indx = np.argsort(a, axis=None)[::-1]
-    cumEn = np.cumsum(a.flatten()[indx]**2)
-    cumEn /= cumEn[-1]
-    a = np.zeros(np.prod(dims))
-    a[indx] = cumEn
-    return a.reshape(dims,order = 'F')
+
+def norm_nrg(array):
+    """threshold"""  # todo: correct documentation (function doesn't do any thresholding.)
+    new_array = np.cumsum(np.sort(array, axis=None)[::-1] ** 2) # Check function
+    new_array /= new_array.max()
+    return new_array.reshape(array.shape, order='F')
 
 #%% compute mask distances
 def distance_masks(M_s,cm_s,max_dist,enclosed_thr = None):
