@@ -31,7 +31,7 @@ from scipy import io, optimize
 from skimage import feature, transform
 from tqdm import tqdm
 
-from .io import sbxreadskip, tifffile, load_memmap
+from .io import sbxreadskip, tifffile, load_memmap, save_memmap
 from .summary_images import local_correlations
 from .motion_correction import motion_correct_online
 
@@ -1019,7 +1019,7 @@ class Movie(object):
                 dset.attrs["meta_data"] = pickle.dumps(self.meta_data)
 
     def to_memmap(self, base_filename, order='F', n_chunks=1):
-        """Saves efficiently a caiman Movie file into a Numpy memory mappable file.
+        """Saves efficiently a caiman Movie file into a Numpy memory mappable file by calling caiman.io.save_memmap()
 
         Parameters:
         ----------
@@ -1034,17 +1034,5 @@ class Movie(object):
             fname_tot: the final filename of the mapped file, the format is such that
                 the name will contain the frame dimensions and the number of f
         """
-        fname, ext = path.splitext(base_filename)
-        fname_tot = fname + '_' + order + '_' + '_'.join(map(str, self.shape))
-        fname_tot = fname_tot + ext if ext else fname_tot + '.mmap_caiman'
-
-        big_mov = np.memmap(fname_tot, mode='w+', dtype=self.dtype, shape=self.shape, order=order)
-
-        curr_row = 0
-        for tmp in np.array_split(self, n_chunks, axis=0):
-            big_mov[curr_row:curr_row + tmp.shape[0], :, :] = np.asarray(tmp, dtype=np.float32)
-            big_mov.flush()
-            curr_row += tmp.shape[0]
-        del big_mov
-
+        fname_tot = save_memmap(self._values, order=order, n_chunks=n_chunks)
         return fname_tot

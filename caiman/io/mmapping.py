@@ -6,13 +6,8 @@ Created on Thu Oct 20 11:33:35 2016
 """
 from __future__ import division, print_function, absolute_import
 
-from past.builtins import basestring
-from past.utils import old_div
 import numpy as np
-import os
 from os import path
-import caiman as cm
-from caiman.io import tifffile
 
 
 def load_memmap(filename, mode='r', in_memory=True):
@@ -32,119 +27,44 @@ def load_memmap(filename, mode='r', in_memory=True):
     return Yr, shape, T
 
 
-def save_memmap(filenames, base_name='Yr', resize_fact=(1, 1, 1), remove_init=0, idx_xy=None,
-                order='F', xy_shifts=None, is_3D=False, add_to_movie=0, border_to_0=0):
-    """ Saves efficiently a list of tif files into a memory mappable file
+def save_memmap(array, base_filename, order='F', n_chunks=1):
+    """Saves efficiently an array into a Numpy memory mappable file.
 
     Parameters:
     ----------
-        filenames: list
-            list of tif files or list of numpy arrays
-
-        base_name: str
-            the base used to build the file name. IT MUST NOT CONTAIN "_"
-
-        resize_fact: tuple
-            x,y, and z downampling factors (0.5 means downsampled by a factor 2)
-
-        remove_init: int
-            number of frames to remove at the begining of each tif file
-            (used for resonant scanning images if laser in rutned on trial by trial)
-
-        idx_xy: tuple size 2 [or 3 for 3D data]
-            for selecting slices of the original FOV, for instance
-            idx_xy = (slice(150,350,None), slice(150,350,None))
+        base_filename: string
+            filename to save memory-mapped array to.  (Note: final filename will have shape info in it, and will be returned)
 
         order: string
             whether to save the file in 'C' or 'F' order
 
-        xy_shifts: list
-            x and y shifts computed by a motion correction algorithm to be applied before memory mapping
-
-        is_3D: boolean
-            whether it is 3D data
     Returns:
     -------
-        fname_new: the name of the mapped file, the format is such that
+        fname_tot: the final filename of the mapped file, the format is such that
             the name will contain the frame dimensions and the number of f
-
     """
+    if isinstance(base_filename, list):
+        raise ValueError("List of filenames is no longer supported.  save_memmap() now just saves a numpy array and formats the filename to store metadata.")
 
-    # TODO: can be done online
-    Ttot = 0
-    for idx, f in enumerate(filenames):
-        if isinstance(f, str):
-            print(f)
+    fname, ext = path.splitext(base_filename)
+    fname_tot = fname + '_' + order + '_' + '_'.join(map(str, array.shape))
+    fname_tot = fname_tot + ext if ext else fname_tot + '.mmap_caiman'
 
-        if is_3D:
-            Yr = f if isinstance(f, basestring) else tifffile.imread(f)
-            if idx_xy is None:
-                Yr = Yr[remove_init:]
-            elif len(idx_xy) == 2:
-                Yr = Yr[remove_init:, idx_xy[0], idx_xy[1]]
-            else:
-                Yr = Yr[remove_init:, idx_xy[0], idx_xy[1], idx_xy[2]]
+    mmap_array = np.memmap(fname_tot, mode='w+', dtype=array.dtype, shape=array.shape, order=order)
+    curr_row = 0
+    for tmp in np.array_split(self, n_chunks, axis=0):
+        mmap_array[curr_row:curr_row + tmp.shape[0], :, :] = np.asarray(tmp, dtype=np.float32)
+        mmap_array.flush()
+        curr_row += tmp.shape[0]
+    del mmap_array
 
-        else:
-            Yr = cm.load(f, fr=1, in_memory=True) if isinstance(f, basestring) else cm.Movie(f)
-            if xy_shifts is not None:
-                Yr = Yr.apply_motion_correction(xy_shifts, interpolation='cubic', remove_blanks=False)
-
-            if idx_xy is None:
-                if remove_init > 0:
-                    Yr = np.array(Yr)[remove_init:]
-            elif len(idx_xy) == 2:
-                Yr = np.array(Yr)[remove_init:, idx_xy[0], idx_xy[1]]
-            else:
-                raise Exception('You need to set is_3D=True for 3D data)')
-                Yr = np.array(Yr)[remove_init:, idx_xy[0], idx_xy[1], idx_xy[2]]
-
-        if border_to_0 > 0:
-
-            min_mov = np.nanmin(Yr)
-            Yr[:, :border_to_0, :] = min_mov
-            Yr[:, :, :border_to_0] = min_mov
-            Yr[:, :, -border_to_0:] = min_mov
-            Yr[:, -border_to_0:, :] = min_mov
-
-        fx, fy, fz = resize_fact
-        if fx != 1 or fy != 1 or fz != 1:
-
-            if 'Movie' not in str(type(Yr)):
-                Yr = cm.Movie(Yr, fr=1)
-
-            Yr = Yr.resize(fx=fx, fy=fy, fz=fz)
-        T, dims = Yr.shape[0], Yr.shape[1:]
-        Yr = np.transpose(Yr, list(range(1, len(dims) + 1)) + [0])
-        Yr = np.reshape(Yr, (np.prod(dims), T), order='F')
-
-        if idx == 0:
-            fname_tot = base_name + '_d1_' + str(dims[0]) + '_d2_' + str(dims[1]) + '_d3_' + str(
-                1 if len(dims) == 2 else dims[2]) + '_order_' + str(order)
-            if isinstance(f, str):
-                fname_tot = os.path.join(os.path.split(f)[0], fname_tot)
-            big_mov = np.memmap(fname_tot, mode='w+', dtype=np.float32,
-                                shape=(np.prod(dims), T), order=order)
-        else:
-            big_mov = np.memmap(fname_tot, dtype=np.float32, mode='r+',
-                                shape=(np.prod(dims), Ttot + T), order=order)
-
-        big_mov[:, Ttot:Ttot + T] = np.asarray(Yr, dtype=np.float32) + 1e-10 + add_to_movie
-        big_mov.flush()
-        del big_mov
-        Ttot = Ttot + T
-
-    fname_new = fname_tot + '_frames_' + str(Ttot) + '_.mmap'
-    os.rename(fname_tot, fname_new)
-
-    return fname_new
+    return fname_tot
 
 
 def save_memmap_chunks(movie, base_filename, order='F', n_chunks=1):
     raise DeprecationWarning("save_memmap_chunks() no longer available. Please see save_memmap() or Movie.to_memmap() for alternative uses.")
 
 
-#%%
 def parallel_dot_product(A, b, block_size=5000, dview=None, transpose=False, num_blocks_per_run=20):
     # todo: todocument
     """ Chunk matrix product between matrix and column vectors
