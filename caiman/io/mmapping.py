@@ -61,6 +61,14 @@ def save_memmap(array, base_filename, order='F', n_chunks=1):
     return fname_tot
 
 
+def save_memmap_each(*args, **kwargs):
+    raise DeprecationWarning(
+        "save_memmap_each() no longer available. Please call save_memmap() directly instead on each array.")
+
+def save_memmap_join(*args, **kwargs):
+    raise DeprecationWarning(
+        "save_memmap_join() no longer available. Please call np.concatenate() on arrays to join, then save_memmap() directly instead.")
+
 def save_memmap_chunks(movie, base_filename, order='F', n_chunks=1):
     raise DeprecationWarning("save_memmap_chunks() no longer available. Please see save_memmap() or Movie.to_memmap() for alternative uses.")
 
