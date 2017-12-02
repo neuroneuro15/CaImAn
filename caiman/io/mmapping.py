@@ -121,6 +121,28 @@ def save_memmap_join(mmap_fnames, base_name=None, n_chunks=20, dview=None, order
 
     """
 
+    def save_portion(pars):
+        # todo: todocument
+
+        big_mov, d, tot_frames, fnames, idx_start, idx_end = pars
+        big_mov = np.memmap(big_mov, mode='r+', dtype=np.float32, shape=(d, tot_frames), order='C')
+        Ttot = 0
+        Yr_tot = np.zeros((idx_end - idx_start, tot_frames))
+        print((Yr_tot.shape))
+        for f in fnames:
+            print(f)
+            Yr, dims, T = load_memmap(f)
+            print((idx_start, idx_end))
+            Yr_tot[:, Ttot:Ttot + T] = np.array(Yr[idx_start:idx_end])
+            Ttot = Ttot + T
+            del Yr
+
+        big_mov[idx_start:idx_end, :] = Yr_tot
+        del Yr_tot
+        print('done')
+        del big_mov
+        return Ttot
+
     tot_frames = 0
     for f in mmap_fnames:
         Yr, dims, T = load_memmap(f)
@@ -150,7 +172,7 @@ def save_memmap_join(mmap_fnames, base_name=None, n_chunks=20, dview=None, order
 
     if dview is not None:
         if 'multiprocessing' in str(type(dview)):
-            dview.map_async(save_portion, pars).get(9999999)            
+            dview.map_async(save_portion, pars).get(9999999)
         else:
             dview.map_sync(save_portion, pars)
     else:
@@ -164,31 +186,6 @@ def save_memmap_join(mmap_fnames, base_name=None, n_chunks=20, dview=None, order
     return fname_tot
 
 
-def save_portion(pars):
-    # todo: todocument
-
-    big_mov, d, tot_frames, fnames, idx_start, idx_end = pars
-    big_mov = np.memmap(big_mov, mode='r+', dtype=np.float32, shape=(d, tot_frames), order='C')
-    Ttot = 0
-    Yr_tot = np.zeros((idx_end - idx_start, tot_frames))
-    print((Yr_tot.shape))
-    for f in fnames:
-        print(f)
-        Yr, dims, T = load_memmap(f)
-        print((idx_start, idx_end))
-        Yr_tot[:, Ttot:Ttot + T] = np.array(Yr[idx_start:idx_end])
-        Ttot = Ttot + T
-        del Yr
-
-    big_mov[idx_start:idx_end, :] = Yr_tot
-    del Yr_tot
-    print('done')
-    del big_mov
-    return Ttot
-
-
-
-#%%
 def save_memmap(filenames, base_name='Yr', resize_fact=(1, 1, 1), remove_init=0, idx_xy=None,
                 order='F', xy_shifts=None, is_3D=False, add_to_movie=0, border_to_0=0):
     """ Saves efficiently a list of tif files into a memory mappable file
