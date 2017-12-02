@@ -13,12 +13,12 @@ import scipy
 import numpy as np
 import cv2
 import time
-from scipy.optimize import linear_sum_assignment   
-import json
+from scipy.optimize import linear_sum_assignment
 from skimage.filters import sobel
 from scipy import ndimage as ndi
 import matplotlib.pyplot as plt
 from .io import nf_read_roi_zip
+
 
 def extract_binary_masks_from_structural_channel(img, min_area_size=30, min_hole_size=15, gSig=5, expand_method='closing', selem=np.ones((3,3))):
     """Extract binary masks by using adaptive thresholding on a structural channel
@@ -414,52 +414,6 @@ def link_neurons(matches,costs,max_cost=0.6,min_FOV_present=None):
     neurons=np.array(neurons).T
     print(('num_neurons:' + str(num_neurons)))
     return neurons
-
-
-#%%
-def nf_load_masks(file_name,dims):
-    # todo todocument
-
-    # load the regions (training data only)
-    with open(file_name) as f:
-        regions = json.load(f)
-
-    def tomask(coords):
-        mask = np.zeros(dims)
-        mask[list(zip(*coords))] = 1
-        return mask
-
-    masks = np.array([tomask(s['coordinates']) for s in regions])
-    return masks
-
-
-def neurofinder_format_masks(binary_masks):
-    """
-    Returns a list of ROI 'coordinate' dictionaries from ncomp x height x width, binary mask array, for the neurofinder format.
-
-    For more info on Neurofinder, go to http://neurofinder.codeneuro.org/
-    """
-    return  [{"coordinates": list(zip(*np.where(m)))} for m in binary_masks]
-
-
-def nf_masks_to_json(binary_masks,json_filename):
-    """
-    Take as input a tensor of binary mask and produces json format for neurofinder 
-
-    Parameters:
-    -----------
-    binary_masks: 3d ndarray (components x dimension 1  x dimension 2)
-
-    json_filename: str
-
-    Returns:
-    --------
-    regions: list of dict
-        regions in neurofinder format
-
-    """
-    with open(json_filename, 'w') as f:
-        json.dump(neurofinder_format_masks(binary_masks), f)
 
 
 def extract_binary_masks_blob(A,  neuron_radius,dims,num_std_threshold=1, minCircularity= 0.5,
