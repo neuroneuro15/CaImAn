@@ -433,7 +433,6 @@ def nf_load_masks(file_name,dims):
     return masks
 
 
-#%%
 def nf_masks_to_json(binary_masks,json_filename):
     """
     Take as input a tensor of binary mask and produces json format for neurofinder 
@@ -450,14 +449,9 @@ def nf_masks_to_json(binary_masks,json_filename):
         regions in neurofinder format
 
     """
-    regions=[]
-    for m in binary_masks:
-        coords = [[x,y] for x,y in zip(*np.where(m))]
-        regions.append({"coordinates":coords})
-
-
+    regions = [{"coordinates": [[x,y] for x,y in zip(*np.where(m))]} for m in binary_masks]
     with open(json_filename, 'w') as f:
-        f.write(json.dumps(regions))
+        json.dump(regions, f)
 
     return regions            
 
