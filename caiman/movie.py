@@ -31,7 +31,7 @@ from scipy import io, optimize
 from skimage import feature, transform
 from tqdm import tqdm
 
-from .io import sbxreadskip, tifffile
+from .io import sbxreadskip, tifffile, load_memmap
 from .summary_images import local_correlations
 from .motion_correction import motion_correct_online
 
@@ -858,18 +858,10 @@ class Movie(object):
                      meta_data=meta_data)
 
     @classmethod
-    def from_memmap(cls, file_name, in_memory=True, fr=30, start_time=0, meta_data=None):
+    def from_memmap(cls, file_name, mode='r', in_memory=True, fr=30, start_time=0, meta_data=None):
         """Returns Movie from a file created by Movie.to_memmap()."""
-        extension = path.splitext(file_name)[1]
-        if not 'mmap_caiman' in extension:
-            raise ValueError("File extension '{}' not recognized.  Need '.mmap_caiman' to extract shape and order values from filename.".format(extension))
-
-        fdata = path.basename(file_name).split('_')[1:]
-        fname, order, shape = fdata[0], fdata[1], fdata[2:]
-        fname_with_path = path.join(path.dirname(file_name), fname)
-        Yr = np.memmap(file_name, mode='r', shape=shape, dtype=np.float32, order=order)
-        Yr = np.array(Yr) if in_memory else Yr
-        return cls(Yr, fr=fr, start_time=start_time, meta_data=meta_data, file_name=fname_with_path)
+        Yr, shape, T = load_memmap(filename=file_name, mode=mode, in_memory=in_memory)
+        return cls(Yr, fr=fr, start_time=start_time, meta_data=meta_data, file_name=file_name)
 
     @classmethod
     def load(cls, file_name, fr=30, start_time=0, meta_data=None, subindices=None, shape=None, var_name_hdf5='mov',

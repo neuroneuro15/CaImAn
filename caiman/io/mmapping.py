@@ -15,11 +15,20 @@ import caiman as cm
 from caiman.io import tifffile
 
 
-def load_memmap(filename, mode='r'):
+def load_memmap(filename, mode='r', in_memory=True):
     """Returns (Numpy.mmap object, shape tuple, frame count) from a file created by save_memmap()."""
-    d1, d2, d3, order, T = [int(part) for part in path.basename(filename).split('_')[-9::2]]
-    Yr = np.memmap(filename, mode=mode, shape=(d1 * d2 * d3, T), dtype=np.float32, order=order)
-    shape = (d1, d2) if d3 == 1 else (d1, d2, d3)
+    extension = path.splitext(filename)[1]
+    if not 'mmap_caiman' in extension:
+        fdata = path.basename(filename).split('_')[1:]
+        fname, order, shape = fdata[0], fdata[1], fdata[2:]
+    else:
+        d1, d2, d3, order, T = [int(part) for part in path.basename(filename).split('_')[-9::2]]
+        # shape = (d1, d2) if d3 == 1 else (d1, d2, d3)
+        shape = (d1 * d2 * d3, T)
+
+    Yr = np.memmap(filename, mode=mode, shape=shape, dtype=np.float32, order=order)
+    Yr = np.array(Yr) if in_memory else Yr
+
     return Yr, shape, T
 
 
