@@ -87,20 +87,22 @@ def mask_to_2d(mask):
     mask = np.reshape(mask, (np.prod(dims), -1,), order='F')
     return scipy.sparse.coo_matrix(mask)
 
-#%%
-def get_distance_from_A(masks_gt,masks_comp, min_dist = 10 ):
+
+def get_distance_from_A(masks_gt, masks_comp, min_dist=10):
     #todo todocument
+    dims = np.shape(masks_gt)
+    masks_gt_new = np.reshape(masks_gt[:].transpose([1, 2, 0]), (np.prod(dims), -1,), order='F')
+    masks_comp_new = np.reshape(masks_comp[:].transpose([1,2,0]), (np.prod(dims), -1,), order='F')
 
-    ncomps,d1,d2 = np.shape(masks_gt)
-    dims = d1,d2
-    A_ben = scipy.sparse.csc_matrix(np.reshape(masks_gt[:].transpose([1,2,0]),(np.prod(dims),-1,),order='F'))
-    A_cnmf = scipy.sparse.csc_matrix(np.reshape(masks_comp[:].transpose([1,2,0]),(np.prod(dims),-1,),order='F'))
+    A_ben = scipy.sparse.csc_matrix(masks_gt_new)
+    A_cnmf = scipy.sparse.csc_matrix(masks_comp_new)
 
-    cm_ben = [ scipy.ndimage.center_of_mass(mm) for mm in masks_gt]
-    cm_cnmf = [ scipy.ndimage.center_of_mass(mm) for mm in masks_comp]
-    
-    return distance_masks([A_ben,A_cnmf],[cm_ben,cm_cnmf], min_dist )  
-#%%
+    cm_ben = [scipy.ndimage.center_of_mass(mm) for mm in masks_gt]
+    cm_cnmf = [scipy.ndimage.center_of_mass(mm) for mm in masks_comp]
+
+    return distance_masks([A_ben, A_cnmf], [cm_ben, cm_cnmf], min_dist)
+
+
 def nf_match_neurons_in_binary_masks(masks_gt,masks_comp,thresh_cost=.7, min_dist = 10, print_assignment= False,
                                      plot_results = False, Cn=None, labels = None, cmap = 'viridis', D = None, enclosed_thr = None):
     """
