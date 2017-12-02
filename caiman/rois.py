@@ -79,17 +79,13 @@ def extract_binary_masks_from_structural_channel(img, min_area_size=30, min_hole
     return A, mR
 
 
-#%% 
 def mask_to_2d(mask):
     #todo todocument
+    dims = np.shape(mask)[-2:]
     if mask.ndim > 2:
-        ncomps, d1, d2 = np.shape(mask)
-        dims = d1, d2
-        return scipy.sparse.coo_matrix(np.reshape(mask[:].transpose([1,2,0]),(np.prod(dims),-1,),order='F'))
-    else:    
-        dims  = np.shape(mask)    
-        return scipy.sparse.coo_matrix(np.reshape(mask,(np.prod(dims),-1,),order='F'))
-
+        mask = mask[:].transpose([1, 2, 0])
+    mask = np.reshape(mask, (np.prod(dims), -1,), order='F')
+    return scipy.sparse.coo_matrix(mask)
 
 #%%
 def get_distance_from_A(masks_gt,masks_comp, min_dist = 10 ):
