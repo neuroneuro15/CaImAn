@@ -14,8 +14,6 @@ from scipy.sparse import csc_matrix
 import scipy
 import cv2
 
-import json as simplejson
-
 
 def estimate_noise_mode(traces, robust_std=False, use_mode_fast=False, return_all = False):
     """ estimate the noise in the traces under assumption that signals are sparse and only positive. The last dimension should be time. 

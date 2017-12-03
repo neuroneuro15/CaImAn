@@ -916,6 +916,7 @@ class Movie(object):
             Movie corresponding to the concatenation og the input files
 
         """
+        raise NotImplementedError("Function currently broken. ")
         mov = []
         for f in tqdm(file_list):
             m = cls.load(f, fr=fr, start_time=start_time,

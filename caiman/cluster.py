@@ -28,8 +28,6 @@ import multiprocessing
 import ipyparallel
 from ipyparallel import Client
 import numpy as np
-    Function that partition the FOV in patches
-        dimensions of the original matrix that will be  divided in patches
 
 
 def start_server(slurm_script=None, ipcluster="ipcluster", ncpus = None):
