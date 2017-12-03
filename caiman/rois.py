@@ -183,26 +183,19 @@ def nf_match_neurons_in_binary_masks(masks_gt, masks_comp, thresh_cost=.7, min_d
 
 
 def plot_nf_match_neurons_in_binary_masks(masks_gt, masks_comp, idx_tp_gt, idx_fn_gt, idx_tp_comp, idx_fp_comp,
-                                          labels=None, cmap='viridis', Cn=None, level=.98):
+                                          labels=None, cmap='viridis', Cn=None, levels=(.98,)):
     """The plotting part of the old nf_match_neurons_in_binary_masks() function.  Takes the outputs of that function."""
-    plt.rcParams['pdf.fonttype'] = 42
-    font = {'family': 'Myriad Pro', 'weight': 'regular', 'size': 10}
-    plt.rc('font', **font)
     lp, hp = np.nanpercentile(Cn, [5, 95])
-    plt.subplot(1, 2, 1)
-    plt.imshow(Cn, vmin=lp, vmax=hp, cmap=cmap)
-    [plt.contour(norm_nrg(mm), levels=[level], colors='w', linewidths=1) for mm in masks_comp[idx_tp_comp]]
-    [plt.contour(norm_nrg(mm), levels=[level], colors='r', linewidths=1) for mm in masks_gt[idx_tp_gt]]
-    title = 'MATCHES' if labels is None else 'MATCHES: {}(w), {}(r)'.format(labels[1], labels[0])
-    plt.title(title)
-    plt.axis('off')
-    plt.subplot(1, 2, 2)
-    plt.imshow(Cn, vmin=lp, vmax=hp, cmap=cmap)
-    [plt.contour(norm_nrg(mm), levels=[level], colors='w', linewidths=1) for mm in masks_comp[idx_fp_comp]]
-    [plt.contour(norm_nrg(mm), levels=[level], colors='r', linewidths=1) for mm in masks_gt[idx_fn_gt]]
-    title = 'FALSE POSITIVE (w), FALSE NEGATIVE (r)' if labels is None else '{}(w), {}(r)'.format(labels[1], labels[0])
-    plt.title(title)
-    plt.axis('off')
+    fig, axes = plt.subplots(ncols=2)
+    for ax, (pos_comp, neg_gt) in zip(axes, [(idx_tp_comp, idx_tp_gt), (idx_fp_comp, idx_fn_gt)]):
+        ax.imshow(Cn, vmin=lp, vmax=hp, cmap=cmap)
+        for mm in masks_comp[pos_comp]:
+            ax.contour(norm_nrg(mm), levels=levels, colors='w', linewidths=1)
+        for mm in masks_gt[neg_gt]:
+            ax.contour(norm_nrg(mm), levels=levels, colors='r', linewidths=1)
+        ax.set_title('MATCHES')
+        ax.set_axis('off')
+    return fig
 
 
 def norm_nrg(array):
