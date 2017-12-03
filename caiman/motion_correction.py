@@ -45,19 +45,16 @@ from past.utils import old_div
 import gc
 import os
 import collections
+import itertools
 import warnings
 
 import numpy as np
+from numpy.fft import ifftshift
 import matplotlib.pyplot as plt
 import cv2
-from cv2 import dft as fftn
-from cv2 import idft as ifftn
 
-from numpy.fft import ifftshift
-import itertools
-
-import caiman as cm
-from .io import tifffile
+from .movie import Movie
+from .io import tifffile, sbxshape
 
 opencv = True
     
@@ -270,7 +267,7 @@ class MotionCorrect(object):
             caiman Movie object with applied shifts (not memory mapped)
         """
         
-        Y = cm.load(fname).astype(np.float32)
+        Y = Movie.load(fname)
         
         if rigid_shifts is True:
             if self.shifts_opencv:
@@ -289,7 +286,7 @@ class MotionCorrect(object):
                         -np.resize(shiftY, dims)+x_grid, -np.resize(shiftX, dims)+y_grid, cv2.INTER_CUBIC) 
                         for img, shiftX, shiftY in zip(Y, shifts_x, shifts_y)]
             
-        return cm.Movie(np.stack(m_reg, axis=0))
+        return Movie(np.stack(m_reg, axis=0))
 
 
 
@@ -378,7 +375,7 @@ def motion_correct_oneP_rigid(filename,gSig_filt,max_shifts, dview=None, splits_
     
     Motion correction object
     '''
-    min_mov = np.array([cm.motion_correction.low_pass_filter_space(m_,gSig_filt) for m_ in cm.load(filename, subindices=range(400))]).min()    
+    min_mov = np.array([low_pass_filter_space(m_,gSig_filt) for m_ in Movie.load(filename, subindices=range(400))]).min()
     new_templ = None    
     
     # TODO: needinfo how the classes works
@@ -913,7 +910,7 @@ def process_movie_parallel(arg_in):
     if template is not None:
         if isinstance(template,basestring):
             if os.path.exists(template):
-                template=cm.load(template,fr=1)
+                template=Movie.load(template,fr=1)
             else:
                 raise Exception('Path to template does not exist:'+template)                
 
@@ -923,9 +920,9 @@ def process_movie_parallel(arg_in):
         Yr=fname
 
     elif ('ndarray' in type_input):        
-        Yr=cm.Movie(np.array(fname, dtype=np.float32), fr=fr)
+        Yr=Movie(np.array(fname, dtype=np.float32), fr=fr)
     elif isinstance(fname,basestring): 
-        Yr=cm.load(fname,fr=fr)
+        Yr=Movie.load(fname,fr=fr)
     else:
         raise Exception('Unkown input type:' + type_input)
 
@@ -1273,17 +1270,17 @@ def register_translation(src_image, target_image, upsample_factor=1,
     # real data needs to be fft'd.
     elif space.lower() == 'real':
         if opencv:
-            src_freq_1 = fftn(src_image,flags=cv2.DFT_COMPLEX_OUTPUT+cv2.DFT_SCALE)
+            src_freq_1 = cv2.dft(src_image, flags=cv2.DFT_COMPLEX_OUTPUT + cv2.DFT_SCALE)
             src_freq  = src_freq_1[:,:,0]+1j*src_freq_1[:,:,1]
             src_freq   = np.array(src_freq, dtype=np.complex128, copy=False)            
-            target_freq_1 = fftn(target_image,flags=cv2.DFT_COMPLEX_OUTPUT+cv2.DFT_SCALE)
+            target_freq_1 = cv2.dft(target_image, flags=cv2.DFT_COMPLEX_OUTPUT + cv2.DFT_SCALE)
             target_freq  = target_freq_1[:,:,0]+1j*target_freq_1[:,:,1]
             target_freq = np.array(target_freq , dtype=np.complex128, copy=False)
         else:
             src_image_cpx = np.array(src_image, dtype=np.complex128, copy=False)
             target_image_cpx = np.array(target_image, dtype=np.complex128, copy=False)
             src_freq = np.fft.fftn(src_image_cpx)
-            target_freq = fftn(target_image_cpx)
+            target_freq = cv2.dft(target_image_cpx)
 
     else:
         raise ValueError("Error: register_translation only knows the \"real\" "
@@ -1295,12 +1292,12 @@ def register_translation(src_image, target_image, upsample_factor=1,
     if opencv:
 
         image_product_cv = np.dstack([np.real(image_product),np.imag(image_product)])
-        cross_correlation = fftn(image_product_cv,flags=cv2.DFT_INVERSE+cv2.DFT_SCALE)
+        cross_correlation = cv2.dft(image_product_cv, flags=cv2.DFT_INVERSE + cv2.DFT_SCALE)
         cross_correlation = cross_correlation[:,:,0]+1j*cross_correlation[:,:,1]
     else:
         shape = src_freq.shape
         image_product = src_freq * target_freq.conj()
-        cross_correlation = ifftn(image_product)
+        cross_correlation = cv2.idft(image_product)
 
     # Locate maximum
     new_cross_corr  = np.abs(cross_correlation)
@@ -1427,7 +1424,7 @@ def apply_shifts_dft(src_freq, shifts, diffphase, is_freq = True, border_nan = F
     shifts = shifts[::-1]
     if not is_freq:
         src_freq = np.dstack([np.real(src_freq),np.imag(src_freq)])
-        src_freq = fftn(src_freq,flags=cv2.DFT_COMPLEX_OUTPUT+cv2.DFT_SCALE)
+        src_freq = cv2.dft(src_freq, flags=cv2.DFT_COMPLEX_OUTPUT + cv2.DFT_SCALE)
         src_freq  = src_freq[:,:,0]+1j*src_freq[:,:,1]
         src_freq   = np.array(src_freq, dtype=np.complex128, copy=False)          
 
@@ -1439,7 +1436,7 @@ def apply_shifts_dft(src_freq, shifts, diffphase, is_freq = True, border_nan = F
     Greg = src_freq*np.exp(1j*2*np.pi*(-shifts[0]*1.*Nr/nr-shifts[1]*1.*Nc/nc))
     Greg = Greg.dot(np.exp(1j*diffphase))
     Greg = np.dstack([np.real(Greg),np.imag(Greg)])
-    new_img = ifftn(Greg)[:,:,0]
+    new_img = cv2.idft(Greg)[:, :, 0]
     if border_nan:  
         max_w,max_h,min_w,min_h=0,0,0,0
         max_h,max_w = np.ceil(np.maximum((max_h,max_w),shifts)).astype(np.int)
@@ -1778,7 +1775,7 @@ def compute_metrics_motion_correction(fname,final_size_x,final_size_y, swap_dim,
     #cv2.OPTFLOW_FARNEBACK_GAUSSIAN
     import scipy
     vmin, vmax = -1, 1
-    m = cm.load(fname)
+    m = Movie.load(fname)
 
     max_shft_x = np.int(np.ceil((np.shape(m)[1]-final_size_x)/2))
     max_shft_y = np.int(np.ceil((np.shape(m)[2]-final_size_y)/2))
@@ -1799,7 +1796,7 @@ def compute_metrics_motion_correction(fname,final_size_x,final_size_y, swap_dim,
     img_corr = m.local_correlations(eight_neighbours=True, swap_dim = swap_dim)
     print (m.shape)
     if template is None:
-        tmpl = cm.motion_correction.bin_median(m)
+        tmpl = bin_median(m)
     else:
         tmpl = template
 
@@ -1914,22 +1911,22 @@ def motion_correct_batch_rigid(fname, max_shifts, dview = None, splits = 56 ,num
     
     """
     corrected_slicer = slice(subidx.start, subidx.stop, subidx.step*10)
-    m = cm.load(fname,subindices=corrected_slicer)
+    m = Movie.load(fname,subindices=corrected_slicer)
     
     if m.shape[0]<300:
-        m = cm.load(fname,subindices=corrected_slicer)
+        m = Movie.load(fname,subindices=corrected_slicer)
     elif m.shape[0]<500:
         corrected_slicer = slice(subidx.start, subidx.stop, subidx.step*5)
-        m = cm.load(fname,subindices=corrected_slicer)
+        m = Movie.load(fname,subindices=corrected_slicer)
     else:
         corrected_slicer = slice(subidx.start, subidx.stop, subidx.step*30)
-        m = cm.load(fname,subindices=corrected_slicer)
+        m = Movie.load(fname,subindices=corrected_slicer)
     
     if template is None:   
         if gSig_filt is not None:
-            m = cm.Movie(np.array([low_pass_filter_space(m_, gSig_filt) for m_ in m]))
+            m = Movie(np.array([low_pass_filter_space(m_, gSig_filt) for m_ in m]))
             
-        template = cm.motion_correction.bin_median(m.motion_correct(max_shifts[0],max_shifts[1],template=None)[0])
+        template = bin_median(m.motion_correct(max_shifts[0],max_shifts[1],template=None)[0])
 
     new_templ = template
     if add_to_movie is None:
@@ -2117,15 +2114,15 @@ def tile_and_correct_wrapper(params):
         mc = np.zeros(imgs.shape,dtype = np.float32)
         shift_info = []
     elif extension == '.sbx':  # check if sbx file
-        imgs = cm.base.movies.sbxread(name, idxs[0], len(idxs))
+        imgs = Movie.from_sbx(name, idxs[0], len(idxs))
         mc = np.zeros(imgs.shape,dtype = np.float32)
         shift_info = []
     elif extension =='.hdf5':
-        imgs = cm.load(img_name,subindices=list(idxs))
+        imgs = Movie.load(img_name,subindices=list(idxs))
         mc = np.zeros(imgs.shape,dtype = np.float32)
         shift_info = []
     elif extension =='.h5':
-        imgs = cm.load(img_name,subindices=list(idxs))
+        imgs = Movie.load(img_name,subindices=list(idxs))
         mc = np.zeros(imgs.shape,dtype = np.float32)
         shift_info = []    
     for count, img in enumerate(imgs): 
@@ -2176,7 +2173,7 @@ def motion_correction_piecewise(fname, splits, strides, overlaps, add_to_movie=0
                
     elif extension == '.sbx':  # check if sbx file
          
-        shape = cm.base.movies.sbxshape(name)
+        shape = sbxshape(name)
         d1 = shape[1]
         d2 = shape[0]
         T = shape[2]
