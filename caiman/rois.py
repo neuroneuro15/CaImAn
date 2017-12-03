@@ -278,7 +278,7 @@ def find_matches(distance_matrix):
     return matches, costs
 
 
-def link_neurons(matches,costs,max_cost=0.6,min_FOV_present=None):
+def link_neurons(matches, costs, max_cost=0.6, min_FOV_present=None):
     """
     Link neurons from different FOVs given matches and costs obtained from the hungarian algorithm
 
@@ -303,30 +303,21 @@ def link_neurons(matches,costs,max_cost=0.6,min_FOV_present=None):
 
     """
     if min_FOV_present is None:
-        min_FOV_present=len(matches)
+        min_FOV_present = len(matches)
 
-    neurons=[]
-    num_neurons=0
-    num_chunks=len(matches)+1
-    for idx in range(len(matches[0][0])):
-        neuron=[]
-        neuron.append(idx)
-        for match,cost,chk in zip(matches,costs,list(range(1,num_chunks))):
-            rows,cols=match        
-            m_neur=np.where(rows==neuron[-1])[0].squeeze()
-            if m_neur.size > 0:                           
-                if cost[m_neur]<=max_cost:
-                    neuron.append(cols[m_neur])
-                else:
-                    break
+    neurons = []
+    for neuron_idx in range(len(matches[0][0])):
+        neuron = [neuron_idx]
+        for (rows, cols), cost in zip(matches, costs):
+            m_neur = np.where(rows == neuron_idx)[0].squeeze()
+            if m_neur.size > 0 and cost[m_neur] <= max_cost:
+                neuron.append(cols[m_neur])
             else:
                 break
-        if len(neuron)>min_FOV_present:           
-            num_neurons+=1        
+        if len(neuron) > min_FOV_present:
             neurons.append(neuron)
 
-    neurons=np.array(neurons).T
-    print(('num_neurons:' + str(num_neurons)))
+    neurons = np.array(neurons).T
     return neurons
 
 
