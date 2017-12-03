@@ -146,7 +146,7 @@ def nf_match_neurons_in_binary_masks(masks_gt, masks_comp, thresh_cost=.7, min_d
     performance:  
 
     """
-    # transpose to have a sparse list of components, then reshaping it to have a 1D matrix red in the Fortran style
+    # transpose to have a sparse list of components, then reshaping it to have a 1D matrix read in the Fortran style
     dims = np.shape(masks_gt)[1:]
     A_ben = scipy.sparse.csc_matrix(np.reshape(masks_gt.transpose([1, 2, 0]), (np.prod(dims), -1,), order='F'))
     A_cnmf = scipy.sparse.csc_matrix(np.reshape(masks_comp.transpose([1, 2, 0]), (np.prod(dims), -1,), order='F'))
@@ -160,7 +160,13 @@ def nf_match_neurons_in_binary_masks(masks_gt, masks_comp, thresh_cost=.7, min_d
     matches = matches[0]
     costs = costs[0]
 
-    #%% compute precision and recall
+    idx_tp = np.where(np.array(costs) < thresh_cost)[0]
+    idx_tp_gt = matches[0][idx_tp]    # ground truth
+    idx_tp_comp = matches[1][idx_tp]   # algorithm - comp
+    idx_fn_gt = np.setdiff1d(np.arange(masks_gt.shape[0]), matches[0][idx_tp])
+    idx_fp_comp =  np.setdiff1d(np.arange(masks_comp.shape[0]), matches[1][idx_tp])
+
+    # compute precision and recall
     TP = np.sum(np.array(costs)<thresh_cost)*1.
     FN = np.shape(masks_gt)[0] - TP
     FP = np.shape(masks_comp)[0] - TP
@@ -172,13 +178,6 @@ def nf_match_neurons_in_binary_masks(masks_gt, masks_comp, thresh_cost=.7, min_d
         'accuracy': float(TP + TN) / (TP + FP + FN + TN),
         'f1_score': 2. * TP / (2. * TP + FP + FN),
     }
-    print(performance)
-
-    idx_tp = np.where(np.array(costs) < thresh_cost)[0]
-    idx_tp_gt = matches[0][idx_tp]    # ground truth
-    idx_tp_comp = matches[1][idx_tp]   # algorithm - comp
-    idx_fn_gt = np.setdiff1d(np.arange(masks_gt.shape[0]), matches[0][idx_tp])
-    idx_fp_comp =  np.setdiff1d(np.arange(masks_comp.shape[0]), matches[1][idx_tp])
 
     return  idx_tp_gt, idx_tp_comp, idx_fn_gt, idx_fp_comp, performance
 
