@@ -14,13 +14,10 @@ from scipy.sparse import csc_matrix
 import scipy
 import cv2
 
-try:
-	from keras.models import model_from_json
-except ImportError:
-	print('KERAS NOT INSTALLED. IF YOU WANT TO USE THE CNN BASED COMPONENT CLASSIFIER (experimental) CONTACT THE DEVELOPERS')
+import json as simplejson
 
 
-def estimate_noise_mode(traces,robust_std=False,use_mode_fast=False, return_all = False):
+def estimate_noise_mode(traces, robust_std=False, use_mode_fast=False, return_all = False):
     """ estimate the noise in the traces under assumption that signals are sparse and only positive. The last dimension should be time. 
 
     """
@@ -56,14 +53,14 @@ def estimate_noise_mode(traces,robust_std=False,use_mode_fast=False, return_all 
         return sd_r    
 #
 
-def compute_event_exceptionality(traces,robust_std=False,N=5,use_mode_fast=False, sigma_factor = 3.):
+def compute_event_exceptionality(traces, robust_std=False, N=5, use_mode_fast=False, sigma_factor = 3.):
     """
-    Define a metric and order components according to the probabilty if some "exceptional events" (like a spike). 
+    Define a metric and order components according to the probability of some "exceptional events" (like a spike). 
 
-    Such probability is defined as the likeihood of observing the actual trace value over N samples given an estimated noise distribution.
+    Such probability is defined as the likelihood of observing the actual trace value over N samples given an estimated noise distribution.
     The function first estimates the noise distribution by considering the dispersion around the mode. 
     This is done only using values lower than the mode. The estimation of the noise std is made robust by using the approximation std=iqr/1.349. 
-    Then, the probavility of having N consecutive eventsis estimated.
+    Then, the probability of having N consecutive events is estimated.
     This probability is used to order the components.
 
     Parameters:    
@@ -144,11 +141,11 @@ def compute_event_exceptionality(traces,robust_std=False,N=5,use_mode_fast=False
     # select the maximum value of such probability for each trace
     fitness = np.min(erfc, 1)
 
-    return fitness,erfc,sd_r,md
+    return fitness, erfc, sd_r,md
 
 
 #%%
-def find_activity_intervals(C,Npeaks = 5, tB=-3, tA = 10, thres = 0.3):
+def find_activity_intervals(C, Npeaks = 5, tB=-3, tA = 10, thres = 0.3):
 #todo todocument
     import peakutils
     K,T = np.shape(C)
@@ -177,23 +174,23 @@ def find_activity_intervals(C,Npeaks = 5, tB=-3, tA = 10, thres = 0.3):
 
 
 #%%
-def classify_components_ep(Y,A,C,b,f,Athresh = 0.1,Npeaks = 5, tB=-3, tA = 10, thres = 0.3):
+def classify_components_ep(Y, A, C, b, f, Athresh = 0.1, Npeaks = 5, tB=-3, tA = 10, thres = 0.3):
     # todo todocument
 
     K,T = np.shape(C)
-    A = csc_matrix(A)
+    A  = csc_matrix(A)
     AA = (A.T*A).toarray() 
-    nA=np.sqrt(np.array(A.power(2).sum(0)))
+    nA = np.sqrt(np.array(A.power(2).sum(0)))
     AA = old_div(AA,np.outer(nA,nA.T))
     AA -= np.eye(K)
     
-    LOC = find_activity_intervals(C, Npeaks = Npeaks, tB=tB, tA = tA, thres = thres)
+    LOC  = find_activity_intervals(C, Npeaks = Npeaks, tB=tB, tA = tA, thres = thres)
     rval = np.zeros(K)
 
     significant_samples=[]
     for i in range(K):
-        if i%200 == 0:
-            print('components evaluated:'+str(i))
+        if i % 200 == 0: # Show status periodically
+            print('components evaluated:' + str(i))
         if LOC[i] is not None:
             atemp = A[:,i].toarray().flatten()
             atemp[np.isnan(atemp)] = np.nanmean(atemp)
@@ -219,24 +216,34 @@ def classify_components_ep(Y,A,C,b,f,Athresh = 0.1,Npeaks = 5, tB=-3, tA = 10, t
             rval[i] = 0
             significant_samples.append(0)
 
-    return rval,significant_samples
+    return rval, significant_samples
 #%%
-def evaluate_components_CNN(A,dims,gSig,model_name = 'use_cases/CaImAnpaper/cnn_model', patch_size = 50):
+def evaluate_components_CNN(A, dims, gSig, model_name = 'use_cases/CaImAnpaper/cnn_model', patch_size = 50, loaded_model = None, isGPU = False):
     """ evaluate component quality using a CNN network
     
     """
-    json_file = open(model_name +'.json', 'r')
-    loaded_model_json = json_file.read()
-    json_file.close()
-    loaded_model = model_from_json(loaded_model_json)
-    loaded_model.load_weights(model_name +'.h5')
-    print("Loaded model from disk")
-    half_crop = np.minimum(gSig[0]*4+1,patch_size)
+    if not isGPU:
+        import os
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    
+    try:
+    	from keras.models import model_from_json
+    except:
+    	print('PROBLEM LOADING KERAS: cannot use classifier')
+
+    if loaded_model is None:
+        json_file = open(model_name +'.json', 'r')
+        loaded_model_json = json_file.read()
+        json_file.close()
+        loaded_model = model_from_json(loaded_model_json)
+        loaded_model.load_weights(model_name +'.h5')
+        print("Loaded model from disk")
+    half_crop = np.minimum(gSig[0]*4+1, patch_size), np.minimum(gSig[1]*4+1, patch_size)
     dims = np.array(dims)
-    coms = [scipy.ndimage.center_of_mass(mm.toarray().reshape(dims,order='F')) for mm in A.tocsc().T]    
-    coms = np.maximum(coms,half_crop)
-    coms = np.array([np.minimum(cms,dims-half_crop) for cms in coms]).astype(np.int)
-    crop_imgs = [mm.toarray().reshape(dims,order='F')[com[0]-half_crop:com[0]+half_crop, com[1]-half_crop:com[1]+half_crop] for mm,com in zip(A.tocsc().T,coms) ]
+    coms = [scipy.ndimage.center_of_mass(mm.toarray().reshape(dims, order='F')) for mm in A.tocsc().T]  
+    coms = np.maximum(coms, half_crop)
+    coms = np.array([np.minimum(cms, dims-half_crop) for cms in coms]).astype(np.int)
+    crop_imgs = [mm.toarray().reshape(dims, order='F')[com[0]-half_crop[0]:com[0]+half_crop[0], com[1]-half_crop[1]:com[1]+half_crop[1]] for mm,com in zip(A.tocsc().T,coms) ]
     final_crops = np.array([cv2.resize(im/np.linalg.norm(im),(patch_size ,patch_size )) for im in crop_imgs])
     predictions = loaded_model.predict(final_crops[:,:,:,np.newaxis], batch_size=32, verbose=1)
 
@@ -244,7 +251,7 @@ def evaluate_components_CNN(A,dims,gSig,model_name = 'use_cases/CaImAnpaper/cnn_
 #%%
 def evaluate_components(Y, traces, A, C, b, f, final_frate, remove_baseline = True, N = 5, robust_std = False,
                         Athresh = 0.1, Npeaks = 5, thresh_C = 0.3,  sigma_factor = 3.):
-    """ Define a metric and order components according to the probabilty if some "exceptional events" (like a spike).
+    """ Define a metric and order components according to the probability of some "exceptional events" (like a spike).
     
     Such probability is defined as the likeihood of observing the actual trace value over N samples given an estimated noise distribution. 
     The function first estimates the noise distribution by considering the dispersion around the mode.
@@ -379,8 +386,8 @@ def evaluate_components_placeholder(params):
     import numpy as np
     fname, traces, A, C, b, f, final_frate, remove_baseline, N, robust_std, Athresh, Npeaks, thresh_C = params
     Yr, dims, T = cm.load_memmap(fname)
-    d1, d2 = dims
-    images = np.reshape(Yr.T, [T] + list(dims), order='F')
+    #d1, d2 = dims
+    #images = np.reshape(Yr.T, [T] + list(dims), order='F')
     Y = np.reshape(Yr, dims + (T,), order='F')
     fitness_raw, fitness_delta, erfc_raw, erfc_delta, r_values, significant_samples = \
         evaluate_components(Y, traces, A, C, b, f, final_frate, remove_baseline=remove_baseline,
@@ -389,10 +396,114 @@ def evaluate_components_placeholder(params):
     return fitness_raw, fitness_delta, [], [], r_values, significant_samples 
         
 #%%
+def estimate_components_quality_auto(Y, A, C, b, f, YrA, frate, decay_time, gSig, dims, dview = None, min_SNR=2, r_values_min = 0.9, 
+                                     r_values_lowest = -1, Npeaks = 10, use_cnn = True, thresh_cnn_min = 0.95, thresh_cnn_lowest = 0.1,
+                                     thresh_fitness_delta = -20., min_std_reject = 0.5):
+    
+        ''' estimates the quality of component automatically
+        
+        Parameters:
+        -----------        
+        Y, A, C, b, f, YrA: 
+            from CNMF
+        
+        frate: 
+            frame rate in Hz
+        
+        decay_time:
+            decay time of transients/indocator
+        
+        gSig:
+            same as CNMF parameter
+            
+        dims:
+            same as CNMF parameter
+            
+        dview:
+            same as CNMF parameter
+            
+        min_SNR:
+            adaptive way to set threshold (will be equal to min_SNR) 
+        
+        r_values_min:
+            all r values above this are accepted (spatial consistency metric)             
+            
+        r_values_lowest:
+            all r values above this are rejected (spatial consistency metric)             
+            
+        use_cnn:
+            whether to use CNN to filter components (not for 1 photon data)
+                        
+        thresh_cnn_min:
+            all samples with probabilities larger than this are accepted
+            
+        thresh_cnn_lowest:
+            all samples with probabilities smaller than this are rejected
+        
+        min_std_reject:
+            adaptive way to set threshold (like min_SNR but used to discard components with std lower than this value)
+            
+        Returns:
+        --------
+        
+        idx_components: list
+            list of components that pass the tests
+        
+        idx_components_bad: list
+            list of components that fail the tests
+            
+        comp_SNR: float
+            peak-SNR over the length of a transient for each component
+            
+        r_values: float
+            space correlation values
+        
+        cnn_values: float
+            prediction values from the CNN classifier               
+        '''        
+
+        N_samples = np.ceil(frate*decay_time).astype(np.int)                # number of timesteps to consider when testing new neuron candidates
+        thresh_fitness_raw = scipy.special.log_ndtr(-min_SNR)*N_samples     # inclusion probability of noise transient
+        
+        fitness_min = scipy.special.log_ndtr(-min_SNR)*N_samples                # threshold on time variability        
+        thresh_fitness_raw_reject = scipy.special.log_ndtr(-min_std_reject)*N_samples      # components with SNR lower than 0.5 will be rejected
+        traces = C + YrA
+
+        _, _ , fitness_raw, fitness_delta, r_values = estimate_components_quality(
+            traces, Y, A, C, b, f, final_frate=frate, Npeaks=Npeaks, r_values_min=r_values_min, fitness_min=fitness_min,
+            fitness_delta_min=thresh_fitness_delta, return_all=True, dview = dview, num_traces_per_group = 50, N = N_samples)
+       
+        comp_SNR = -norm.ppf(np.exp(fitness_raw/N_samples))
+        idx_components_r = np.where((r_values >= r_values_min))[0]
+        idx_components_raw = np.where(fitness_raw < thresh_fitness_raw)[0]
+
+        idx_components = []
+        if use_cnn: 
+            neuron_class = 1 # normally 1
+            predictions,final_crops = evaluate_components_CNN(A,dims,gSig)
+            idx_components_cnn = np.where(predictions[:,neuron_class]>=thresh_cnn_min)[0]
+            bad_comps = np.where((r_values <= r_values_lowest) | (fitness_raw >= thresh_fitness_raw_reject) | (predictions[:,neuron_class]<=thresh_cnn_lowest))[0]
+            idx_components = np.union1d(idx_components,idx_components_cnn)
+            cnn_values = predictions[:,1]
+        else:
+            bad_comps = np.where((r_values <= r_values_lowest) | (fitness_raw >= thresh_fitness_raw_reject))[0]
+            cnn_values = []
+    
+        idx_components = np.union1d(idx_components, idx_components_r)
+        idx_components = np.union1d(idx_components, idx_components_raw)
+        #idx_components = np.union1d(idx_components, idx_components_delta)            
+        idx_components = np.setdiff1d(idx_components,bad_comps)        
+        idx_components_bad = np.setdiff1d(list(range(len(r_values))), idx_components)                
+        
+        return idx_components.astype(np.int),idx_components_bad.astype(np.int), comp_SNR, r_values, cnn_values
+        
+    
+#%%
+    
 def estimate_components_quality(traces, Y, A, C, b, f, final_frate = 30, Npeaks=10, r_values_min = .95,
                                 fitness_min = -100,fitness_delta_min = -100, return_all = False, N =5,
                                 remove_baseline = True, dview = None, robust_std = False,Athresh=0.1,thresh_C=0.3, num_traces_per_group = 20):
-    """ Define a metric and order components according to the probabilty if some "exceptional events" (like a spike).
+    """ Define a metric and order components according to the probability of some "exceptional events" (like a spike).
 
     Such probability is defined as the likeihood of observing the actual trace value over N samples given an estimated noise distribution.
     The function first estimates the noise distribution by considering the dispersion around the mode.
@@ -468,15 +579,14 @@ def estimate_components_quality(traces, Y, A, C, b, f, final_frate = 30, Npeaks=
             idx = list(g)
             # idx = list(filter(None.__ne__, idx))
             idx = list(filter(lambda a: a is not None, idx))    
-            params.append([Y.filename,traces[idx],A.tocsc()[:,idx],C[idx],b,f,final_frate,remove_baseline,N,robust_std,Athresh,Npeaks,thresh_C])
+            params.append([Y.filename, traces[idx], A.tocsc()[:,idx], C[idx], b, f, final_frate, remove_baseline, N, robust_std, Athresh, Npeaks, thresh_C])
         
         if dview is None:            
             res = map(evaluate_components_placeholder,params)
         else:
-            
             print('EVALUATING IN PARALLEL... NOT RETURNING ERFCs')
             if 'multiprocessing' in str(type(dview)):
-                res = dview.map_async(evaluate_components_placeholder,params).get(9999999)
+                res = dview.map_async(evaluate_components_placeholder,params).get(4294967)
             else:
                 res = dview.map_sync(evaluate_components_placeholder,params)
         
@@ -500,7 +610,6 @@ def estimate_components_quality(traces, Y, A, C, b, f, final_frate = 30, Npeaks=
             else:
                 erfc_raw = np.concatenate([erfc_raw, erfc_raw__],axis = 0)
                 erfc_delta = np.concatenate([erfc_delta, erfc_delta__],axis = 0)
-            
 
     idx_components_r = np.where(r_values >= r_values_min)[0]  # threshold on space consistency
     idx_components_raw = np.where(fitness_raw < fitness_min)[0] # threshold on time variability
@@ -511,6 +620,6 @@ def estimate_components_quality(traces, Y, A, C, b, f, final_frate = 30, Npeaks=
     idx_components_bad = np.setdiff1d(list(range(len(traces))), idx_components)
     
     if return_all:
-        return idx_components,idx_components_bad, fitness_raw, fitness_delta, r_values 
+        return idx_components, idx_components_bad, fitness_raw, fitness_delta, r_values 
     else:
-        return idx_components,idx_components_bad
+        return idx_components, idx_components_bad

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """ functions that creates image from a video file
 
-for plotting purposes mainly, reutrn correlation images ( local or max )
+for plotting purposes mainly, return correlation images ( local or max )
 
 See Also:
 ------------
@@ -24,7 +24,7 @@ from .source_extraction.cnmf.pre_processing import get_noise_fft
 
 
 def max_correlation_image(Y, bin_size=1000, eight_neighbours=True, swap_dim=True):
-    """Computes the max-correlation image for the input dataset Y  with bin_size
+    """Computes the max-correlation image for the input dataset Y with bin_size
 
     Parameters:
     -----------
@@ -75,7 +75,7 @@ def max_correlation_image(Y, bin_size=1000, eight_neighbours=True, swap_dim=True
 
 #%%
 def local_correlations_fft(Y, eight_neighbours=True, swap_dim=True, opencv=True):
-    """Computes the correlation image for the input dataset Y  using a faster FFT based method
+    """Computes the correlation image for the input dataset Y using a faster FFT based method
 
     Parameters:
     -----------

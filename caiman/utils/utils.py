@@ -16,14 +16,13 @@ https://docs.python.org/2/library/urllib.html
 #\author: andrea giovannucci
 #\namespace utils
 #\pre none
-
-
 from __future__ import print_function
 
 
 import numpy as np
 import os
 from scipy.ndimage.filters import gaussian_filter
+import cv2
 try:
     from urllib2 import urlopen
 except ImportError:
@@ -34,7 +33,7 @@ try:  # python2
 except ImportError:  # python3
     import pickle
 
-
+#%%
 def download_demo(name='Sue_2x_3000_40_-46.tif', save_folder=''):
     """download a file from the file list with the url of its location
 
@@ -65,7 +64,8 @@ def download_demo(name='Sue_2x_3000_40_-46.tif', save_folder=''):
                  'demo_behavior.h5': 'https://www.dropbox.com/s/53jmhc9sok35o82/movie_behavior.h5?dl=1',
                  'Tolias_mesoscope_1.hdf5': 'https://www.dropbox.com/s/t1yt35u0x72py6r/Tolias_mesoscope_1.hdf5?dl=1',
                  'Tolias_mesoscope_2.hdf5': 'https://www.dropbox.com/s/i233b485uxq8wn6/Tolias_mesoscope_2.hdf5?dl=1',
-                 'Tolias_mesoscope_3.hdf5': 'https://www.dropbox.com/s/4fxiqnbg8fovnzt/Tolias_mesoscope_3.hdf5?dl=1'}
+                 'Tolias_mesoscope_3.hdf5': 'https://www.dropbox.com/s/4fxiqnbg8fovnzt/Tolias_mesoscope_3.hdf5?dl=1',
+                 'data_endoscope.tif':'https://www.dropbox.com/s/dcwgwqiwpaz4qgc/data_endoscope.tif?dl=1'}
     #          ,['./example_movies/demoMovie.tif','https://www.dropbox.com/s/obmtq7305ug4dh7/demoMovie.tif?dl=1']]
     base_folder = './example_movies'
     if os.path.exists(base_folder):
@@ -299,27 +299,3 @@ def load_object(filename):
     return obj
 
 
-def downscale(Y, ds):
-    """downscaling without zero padding
-    faster version of skimage.transform._warps.block_reduce(Y, ds, np.nanmean, np.nan)"""
-    size = np.ceil(np.array(Y.shape) / np.array(ds, dtype=float)).astype(int) * np.array(ds)
-    tmp = np.nan * np.zeros(size, dtype=Y.dtype)
-    if Y.ndim == 2:
-        d = Y.shape
-        tmp[:d[0], :d[1]] = Y
-        return np.nanmean(np.nanmean(
-            tmp.reshape(np.int(size[0] / ds[0]), ds[0], np.int(size[1] / ds[1]), ds[1]), 1), 2)
-    elif Y.ndim == 3:
-        d = Y.shape
-        tmp[:d[0], :d[1], :d[2]] = Y
-        return np.nanmean(np.nanmean(np.nanmean(
-            tmp.reshape(np.int(size[0] / ds[0]), ds[0], np.int(size[1] / ds[1]), ds[1],
-                        np.int(size[2] / ds[2]), ds[2]), 1), 2), 3)
-    elif Y.ndim == 4:
-        d = Y.shape
-        tmp[:d[0], :d[1], :d[2], :d[3]] = Y
-        return np.nanmean(np.nanmean(np.nanmean(np.nanmean(
-            tmp.reshape(np.int(size[0] / ds[0]), ds[0], np.int(size[1] / ds[1]), ds[1],
-                        np.int(size[2] / ds[2]), ds[2], np.int(size[3] / ds[3]), ds[3]), 1), 2), 3), 4)
-    else:
-        raise NotImplementedError

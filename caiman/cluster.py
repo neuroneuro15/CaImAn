@@ -4,14 +4,8 @@
 This file contains
 
 We put arrays on disk as raw bytes, extending along the first dimension.
-Alongside each array x we ensure the value x.dtype which stores the string
-Description h
+Alongside each array x we ensure the value x.dtype which stores the data type.
 
-See Also:
-------------
-
-@url
-.. image::
 @author andrea giovannucci
 """
 # \package caiman
@@ -34,6 +28,8 @@ import multiprocessing
 import ipyparallel
 from ipyparallel import Client
 import numpy as np
+    Function that partition the FOV in patches
+        dimensions of the original matrix that will be  divided in patches
 
 
 def start_server(slurm_script=None, ipcluster="ipcluster", ncpus = None):
@@ -84,10 +80,7 @@ def start_server(slurm_script=None, ipcluster="ipcluster", ncpus = None):
 
 
 def shell_source(script):
-    """Sometime you want to emulate the action of "source"
-
-    in bash, settings some environment variables. Here is a way to do it.
-    """
+    """ Run a source-style bash script, copy resulting env vars to current process. """
     pipe = subprocess.Popen(". %s; env" % script,  stdout=subprocess.PIPE, shell=True)
     output = pipe.communicate()[0]
     env = dict()
@@ -171,7 +164,8 @@ def stop_server(ipcluster='ipcluster',pdir=None,profile=None, dview = None):
 
 
 def setup_cluster(backend = 'multiprocessing',n_processes = None,single_thread = False):
-    """ Restart if necessary the pipyparallel cluster, and manages the case of SLURM
+    """ If necessary, restart the pipyparallel cluster. If we have a slurm backend,
+        restart that instead.
 
     Parameters:
     ----------

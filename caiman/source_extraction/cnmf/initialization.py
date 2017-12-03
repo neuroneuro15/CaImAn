@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 """ Initialize the component for the CNMF
 
-contain a list of functions to initialize the neurons and the corresponding traces with different set of methods
-liek ICA PCA, greedy roi
-
+contain a list of functions to initialize the neurons and the corresponding traces with
+different set of methods like ICA PCA, greedy roi
 
 
 """
@@ -18,24 +17,138 @@ from __future__ import division, print_function
 from past.utils import old_div
 import numpy as np
 from sklearn.decomposition import NMF, FastICA
-from skimage.transform import resize
 from skimage.morphology import disk
 import scipy.ndimage as nd
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage.filters import correlate
+from skimage.transform import downscale_local_mean
+from skimage.transform import resize as resize_sk
 import scipy.sparse as spr
 import scipy
 import caiman
 from caiman.source_extraction.cnmf.deconvolution import deconvolve_ca
 from caiman.source_extraction.cnmf.pre_processing import get_noise_fft
 from caiman.source_extraction.cnmf.spatial import circular_constraint
-from caiman.utils.utils import downscale
 import cv2
 import sys
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 #%%
+def resize(Y, size, interpolation=cv2.INTER_LINEAR):
+    """faster and 3D compatible version of skimage.transform.resize"""
+    if Y.ndim == 2:
+        return cv2.resize(Y, tuple(size[::-1]), interpolation=interpolation)
+    elif Y.ndim == 3:
+        if np.isfortran(Y):
+            return (cv2.resize(np.array(
+                [cv2.resize(y, size[:2], interpolation=interpolation) for y in Y.T]).T
+                .reshape((-1, Y.shape[-1]), order='F'),
+                (size[-1], np.prod(size[:2])), interpolation=interpolation).reshape(size, order='F'))
+        else:
+            return np.array([cv2.resize(y, size[:0:-1], interpolation=interpolation) for y in
+                             cv2.resize(Y.reshape((len(Y), -1), order='F'),
+                                        (np.prod(Y.shape[1:]), size[0]), interpolation=interpolation)
+                             .reshape((size[0],) + Y.shape[1:], order='F')])
+    else:  # TODO deal with ndim=4
+        raise NotImplementedError
+
+#%%
+#def resize(vect, newsize, interpolation=cv2.INTER_LINEAR, opencv=True):
+#    if opencv:
+#        if vect.ndim == 2:
+#            print(newsize)
+#            newvect = cv2.resize(vect,tuple(newsize[::-1]),interpolation = interpolation)
+#        else:
+#            h,w,t=vect.shape
+#            newvect = []
+#            print("reshaping in space")
+#            for frame in vect.transpose([2,0,1]):
+#                newvect.append(cv2.resize(frame,(newsize[1],newsize[0]),interpolation=interpolation))
+#                
+#            newvect=np.dstack(newvect)
+#                        
+#            h1,w1,t1 = newvect.shape
+#            
+#            if (h1,w1) != newsize[:-1]:
+#                print(newvect.shape)
+#                print(newsize)
+#                raise Exception("Bad resizing!")
+#            
+#            if t != newsize: 
+#                print("reshaping in time")
+#                newvect=np.reshape(newvect,(h1*w1,t1))
+#                newvect=cv2.resize(newvect,(newsize[2],h1*w1),interpolation=interpolation)            
+#                newvect=np.reshape(newvect,newsize)
+#
+#    else:
+#            return resize_sk(vect, newsize, order = order, mode = 'reflect')        
+#        
+#    return newvect
+#%%
+def downscale(Y, ds, opencv = False):
+    """downscaling without zero padding
+    faster version of skimage.transform._warps.block_reduce(Y, ds, np.nanmean, np.nan)"""
+    from caiman.base.movies import movie
+    if opencv and (Y.ndim in [2,3]):
+        if Y.ndim == 2:
+            Y = Y[..., None]
+            ds = tuple(ds) + (1,)
+        else:
+            Y_ds = movie(Y).resize(fx = 1./ds[0], fy = 1./ds[1], fz = 1./ds[2], interpolation=cv2.INTER_AREA)
+        print('***** OPENCV!!!!')
+    else:
+        if Y.ndim > 3:
+            # raise NotImplementedError
+            # slower and more memory intensive version using skimage
+            from skimage.transform._warps import block_reduce
+            return block_reduce(Y, ds, np.nanmean, np.nan)
+        elif Y.ndim == 1:
+            Y = Y[:, None, None]
+            ds = (ds, 1, 1)
+        elif Y.ndim == 2:
+            Y = Y[..., None]
+            ds = tuple(ds) + (1,)
+        q = np.array(Y.shape) // np.array(ds)
+        r = np.array(Y.shape) % np.array(ds)
+        s = q * np.array(ds)
+        Y_ds = np.zeros(q + (r > 0), dtype=Y.dtype)
+        Y_ds[:q[0], :q[1], :q[2]] = (Y[:s[0], :s[1], :s[2]]
+                                     .reshape(q[0], ds[0], q[1], ds[1], q[2], ds[2])
+                                     .mean(1).mean(2).mean(3))
+        if r[0]:
+            Y_ds[-1, :q[1], :q[2]] = (Y[-r[0]:, :s[1], :s[2]]
+                                      .reshape(r[0], q[1], ds[1], q[2], ds[2])
+                                      .mean(0).mean(1).mean(2))
+            if r[1]:
+                Y_ds[-1, -1, :q[2]] = (Y[-r[0]:, -r[1]:, :s[2]]
+                                       .reshape(r[0], r[1], q[2], ds[2])
+                                       .mean(0).mean(0).mean(1))
+                if r[2]:
+                    Y_ds[-1, -1, -1] = Y[-r[0]:, -r[1]:, -r[2]:].mean()
+            if r[2]:
+                Y_ds[-1, :q[1], -1] = (Y[-r[0]:, :s[1]:, -r[2]:]
+                                       .reshape(r[0], q[1], ds[1], r[2])
+                                       .mean(0).mean(1).mean(1))
+        if r[1]:
+            Y_ds[:q[0], -1, :q[2]] = (Y[:s[0], -r[1]:, :s[2]]
+                                      .reshape(q[0], ds[0], r[1], q[2], ds[2])
+                                      .mean(1).mean(1).mean(2))
+            if r[2]:
+                Y_ds[:q[0], -1, -1] = (Y[:s[0]:, -r[1]:, -r[2]:]
+                                       .reshape(q[0], ds[0], r[1], r[2])
+                                       .mean(1).mean(1).mean(1))
+        if r[2]:
+            Y_ds[:q[0], :q[1], -1] = (Y[:s[0], :s[1], -r[2]:]
+                                      .reshape(q[0], ds[0], q[1], ds[1], r[2])
+                                      .mean(1).mean(2).mean(2))
+    return Y_ds.squeeze()    
+    
+            
+#%%
+try:
+    profile
+except:
+    def profile(a): return a
 
 if sys.version_info >= (3, 0):
     def xrange(*args, **kwargs):
@@ -58,7 +171,7 @@ def initialize_components(Y, K=30, gSig=[5, 5], gSiz=None, ssub=1, tsub=1, nIter
     Parameters:
     ----------
     Y: np.ndarray
-         d1 x d2 [x d3] x T Movie, raw data.
+         d1 x d2 [x d3] x T movie, raw data.
 
     K: [optional] int
         number of neurons to extract (default value: 30). Maximal number for method 'corr_pnr'.
@@ -82,7 +195,8 @@ def initialize_components(Y, K=30, gSig=[5, 5], gSiz=None, ssub=1, tsub=1, nIter
         temporal downsampling factor recommended for long datasets (default 1, no downsampling).
 
     kernel: [optional] np.ndarray
-        User specified kernel for greedyROI (default None, greedy ROI searches for Gaussian shaped neurons)
+        User specified kernel for greedyROI
+        (default None, greedy ROI searches for Gaussian shaped neurons)
 
     use_hals: [optional] bool
         Whether to refine components with the hals method
@@ -91,10 +205,10 @@ def initialize_components(Y, K=30, gSig=[5, 5], gSiz=None, ssub=1, tsub=1, nIter
         Whether to normalize_init data before running the initialization
 
     img: optional [np 2d array]
-        Image with which to normalize. If not present use the mean + offset 
+        Image with which to normalize. If not present use the mean + offset
 
     method: str
-        Initialization method 'greedy_roi' or 'sparse_nmf' 
+        Initialization method 'greedy_roi' or 'sparse_nmf'
 
     max_iter_snmf: int
         Maximum number of sparse NMF iterations
@@ -103,10 +217,10 @@ def initialize_components(Y, K=30, gSig=[5, 5], gSiz=None, ssub=1, tsub=1, nIter
         Sparsity penalty
 
     rolling_sum: boolean
-        Detect new components based on a rolling sum of pixel activity (default: True)        
+        Detect new components based on a rolling sum of pixel activity (default: True)
 
     rolling_length: int
-                Length of rolling window (default: 100)
+        Length of rolling window (default: 100)
 
     center_psf: Boolean
         True indicates centering the filtering kernel for background
@@ -116,16 +230,14 @@ def initialize_components(Y, K=30, gSig=[5, 5], gSiz=None, ssub=1, tsub=1, nIter
     min_corr: float
         minimum local correlation coefficients for selecting a seed pixel.
 
-
     min_pnr: float
         minimum peak-to-noise ratio for selecting a seed pixel.
 
-
     deconvolve_options: dict
-            all options for deconvolving temporal traces, in general just pass options['temporal_params']    
+        all options for deconvolving temporal traces, in general just pass options['temporal_params']
 
     ring_size_factor: float
-            it's the ratio between the ring radius and neuron diameters.
+        it's the ratio between the ring radius and neuron diameters.
 
     nb: integer
         number of background components for approximating the background using NMF model
@@ -180,6 +292,7 @@ def initialize_components(Y, K=30, gSig=[5, 5], gSiz=None, ssub=1, tsub=1, nIter
         if img is None:
             img = np.mean(Y, axis=-1)
             img += np.median(img)
+            img += np.finfo(np.float32).eps
 
         Y = old_div(Y, np.reshape(img, d + (-1,), order='F'))
         alpha_snmf /= np.mean(img)
@@ -187,9 +300,18 @@ def initialize_components(Y, K=30, gSig=[5, 5], gSiz=None, ssub=1, tsub=1, nIter
         Y = np.array(Y)
 
     # spatial downsampling
+    
+
     if ssub != 1 or tsub != 1:
-        print("Spatial Downsampling ...")
-        Y_ds = downscale(Y, tuple([ssub] * len(d) + [tsub]))
+        
+        if  method == 'corr_pnr':
+            print("Spatial Downsampling 1-photon")
+            Y_ds = downscale(Y, tuple([ssub] * len(d) + [tsub]), opencv = False) # this icrements the performance against ground truth and solves border problems       
+        else:
+            print("Spatial Downsampling 2-photon")            
+            Y_ds = downscale(Y, tuple([ssub] * len(d) + [tsub]), opencv = True) # this icrements the performance against ground truth and solves border problems       
+#            mean_val = np.mean(Y)
+#            Y_ds = downscale_local_mean(Y, tuple([ssub] * len(d) + [tsub]), cval=mean_val) # this gives better results against ground truth for 2-photon datasets
     else:
         Y_ds = Y
 
@@ -257,33 +379,35 @@ def initialize_components(Y, K=30, gSig=[5, 5], gSiz=None, ssub=1, tsub=1, nIter
         Ain = np.reshape(Ain, ds + (K,), order='F')
 
         if len(ds) == 2:
-            Ain = resize(Ain, d + (K,), order=1)
+            Ain = resize(Ain, d + (K,))
 
         else:  # resize only deals with 2D images, hence apply resize twice
-            Ain = np.reshape([resize(a, d[1:] + (K,), order=1)
+            Ain = np.reshape([resize(a, d[1:] + (K,))
                               for a in Ain], (ds[0], d[1] * d[2], K), order='F')
-            Ain = resize(Ain, (d[0], d[1] * d[2], K), order=1)
+            Ain = resize(Ain, (d[0], d[1] * d[2], K))
 
         Ain = np.reshape(Ain, (np.prod(d), K), order='F')
 
     b_in = np.reshape(b_in, ds + (nb,), order='F')
 
     if len(ds) == 2:
-        b_in = resize(b_in, d + (nb,), order=1)
+        b_in = resize(b_in, d + (nb,))
     else:
-        b_in = np.reshape([resize(b, d[1:] + (nb,), order=1)
+        b_in = np.reshape([resize(b, d[1:] + (nb,))
                            for b in b_in], (ds[0], d[1] * d[2], nb), order='F')
-        b_in = resize(b_in, (d[0], d[1] * d[2], nb), order=1)
+        b_in = resize(b_in, (d[0], d[1] * d[2], nb))
 
     b_in = np.reshape(b_in, (np.prod(d), nb), order='F')
 
     if Ain.size > 0:
         Cin = resize(Cin.astype(float), [K, T])
+
         center = np.asarray([center_of_mass(a.reshape(d, order='F')) for a in Ain.T])
     else:
         center = []
 
     f_in = resize(np.atleast_2d(f_in), [nb, T])
+
 
     if normalize_init is True:
         if Ain.size > 0:
@@ -296,7 +420,8 @@ def initialize_components(Y, K=30, gSig=[5, 5], gSiz=None, ssub=1, tsub=1, nIter
 #%%
 
 
-def ICA_PCA(Y_ds, nr, sigma_smooth=(.5, .5, .5), truncate=2, fun='logcosh', max_iter=1000, tol=1e-10, remove_baseline=True, perc_baseline=20, nb=1):
+def ICA_PCA(Y_ds, nr, sigma_smooth=(.5, .5, .5), truncate=2, fun='logcosh',
+            max_iter=1000, tol=1e-10, remove_baseline=True, perc_baseline=20, nb=1):
     """ Initialization using ICA and PCA. DOES NOT WORK WELL WORK IN PROGRESS"
 
     Parameters:
@@ -357,7 +482,8 @@ def ICA_PCA(Y_ds, nr, sigma_smooth=(.5, .5, .5), truncate=2, fun='logcosh', max_
 #%%
 
 
-def sparseNMF(Y_ds, nr, max_iter_snmf=500, alpha=10e2, sigma_smooth=(.5, .5, .5), remove_baseline=True, perc_baseline=20, nb=1, truncate=2):
+def sparseNMF(Y_ds, nr, max_iter_snmf=500, alpha=10e2, sigma_smooth=(.5, .5, .5),
+              remove_baseline=True, perc_baseline=20, nb=1, truncate=2):
     """
     Initilaization using sparse NMF
 
@@ -377,7 +503,7 @@ def sparseNMF(Y_ds, nr, max_iter_snmf=500, alpha=10e2, sigma_smooth=(.5, .5, .5)
         percentile to remove frmo Movie before NMF
 
     nb: int
-        Number of background components    
+        Number of background components
 
     Returns:
     -------
@@ -408,11 +534,11 @@ def sparseNMF(Y_ds, nr, max_iter_snmf=500, alpha=10e2, sigma_smooth=(.5, .5, .5)
     yr = np.reshape(m1, [T, d], order='F')
     C = mdl.fit_transform(yr).T
     A = mdl.components_.T
-    ind_good = np.where(np.logical_and((np.sum(A, 0) * np.std(C, axis=1))
-                                       > 0, np.sum(A > np.mean(A), axis=0) < old_div(d, 3)))[0]
+    ind_good = np.where(np.logical_and((np.sum(A, 0) * np.std(C, axis=1)) > 0,
+                                       np.sum(A > np.mean(A), axis=0) < old_div(d, 3)))[0]
 
-    ind_bad = np.where(np.logical_or((np.sum(A, 0) * np.std(C, axis=1))
-                                     == 0, np.sum(A > np.mean(A), axis=0) > old_div(d, 3)))[0]
+    ind_bad = np.where(np.logical_or((np.sum(A, 0) * np.std(C, axis=1)) == 0,
+                                     np.sum(A > np.mean(A), axis=0) > old_div(d, 3)))[0]
     A_in = np.zeros_like(A)
 
     C_in = np.zeros_like(C)
@@ -433,7 +559,8 @@ def sparseNMF(Y_ds, nr, max_iter_snmf=500, alpha=10e2, sigma_smooth=(.5, .5, .5)
 #%%
 
 
-def greedyROI(Y, nr=30, gSig=[5, 5], gSiz=[11, 11], nIter=5, kernel=None, nb=1, rolling_sum=False, rolling_length=100):
+def greedyROI(Y, nr=30, gSig=[5, 5], gSiz=[11, 11], nIter=5, kernel=None, nb=1,
+              rolling_sum=False, rolling_length=100):
     """
     Greedy initialization of spatial and temporal components using spatial Gaussian filtering
 
@@ -491,19 +618,20 @@ def greedyROI(Y, nr=30, gSig=[5, 5], gSiz=[11, 11], nIter=5, kernel=None, nb=1, 
     """
     print("Greedy initialization of spatial and temporal components using spatial Gaussian filtering")
     d = np.shape(Y)
+    Y[np.isnan(Y)] = 0
     med = np.median(Y, axis=-1)
     Y = Y - med[..., np.newaxis]
     gHalf = np.array(gSiz) // 2
     gSiz = 2 * gHalf + 1
     # we initialize every values to zero
-    A = np.zeros((np.prod(d[0:-1]), nr))
-    C = np.zeros((nr, d[-1]))
+    A = np.zeros((np.prod(d[0:-1]), nr), dtype=np.float32)
+    C = np.zeros((nr, d[-1]), dtype=np.float32)
     center = np.zeros((nr, Y.ndim - 1))
 
     rho = imblur(Y, sig=gSig, siz=gSiz, nDimBlur=Y.ndim - 1, kernel=kernel)
     if rolling_sum:
         print('USING ROLLING SUM FOR INITIALIZATION....')
-        rolling_filter = np.ones((rolling_length)) / rolling_length
+        rolling_filter = np.ones((rolling_length), dtype=np.float32) / rolling_length
         rho_s = scipy.signal.lfilter(rolling_filter, 1., rho**2)
         v = np.amax(rho_s, axis=-1)
     else:
@@ -522,8 +650,8 @@ def greedyROI(Y, nr=30, gSig=[5, 5], gSiz=[11, 11], nIter=5, kernel=None, nb=1, 
         ijSig = [[np.maximum(ij[c] - gHalf[c], 0), np.minimum(ij[c] + gHalf[c] + 1, d[c])]
                  for c in range(len(ij))]
         # we create an array of it (fl like) and compute the trace like the pixel ij trough time
-        dataTemp = np.array(Y[[slice(*a) for a in ijSig]].copy(), dtype=np.float)
-        traceTemp = np.array(np.squeeze(rho[ij]), dtype=np.float)
+        dataTemp = np.array(Y[[slice(*a) for a in ijSig]].copy(), dtype=np.float32)
+        traceTemp = np.array(np.squeeze(rho[ij]), dtype=np.float32)
 
         coef, score = finetune(dataTemp, traceTemp, nIter=nIter)
         C[k, :] = np.squeeze(score)
@@ -552,11 +680,12 @@ def greedyROI(Y, nr=30, gSig=[5, 5], gSiz=[11, 11], nIter=5, kernel=None, nb=1, 
             else:
                 v[[slice(*a) for a in Mod]] = np.sum(rho[[slice(*a) for a in Mod]]**2, axis=-1)
 
+    
     res = np.reshape(Y, (np.prod(d[0:-1]), d[-1]), order='F') + med.flatten(order='F')[:, None]
 #    model = NMF(n_components=nb, init='random', random_state=0)
     model = NMF(n_components=nb, init='nndsvdar')
-    b_in = model.fit_transform(np.maximum(res, 0))
-    f_in = model.components_.squeeze()
+    b_in = model.fit_transform(np.maximum(res, 0)).astype(np.float32)
+    f_in = model.components_.squeeze().astype(np.float32)
 
     return A, C, center, b_in, f_in
 
@@ -603,7 +732,7 @@ def finetune(Y, cin, nIter=5):
     # we compute the multiplication of patches per traces ( non negatively )
     for _ in range(nIter):
         a = np.maximum(np.dot(Y, cin), 0)
-        a = old_div(a, np.sqrt(np.sum(a**2)))  # compute the l2/a
+        a = old_div(a, np.sqrt(np.sum(a**2)) + np.finfo(np.float32).eps)  # compute the l2/a
         # c as the variation of thoses patches
         cin = np.sum(Y * a[..., np.newaxis], tuple(np.arange(Y.ndim - 1)))
 
@@ -765,6 +894,7 @@ def hals(Y, A, C, b, f, bSiz=3, maxIter=5):
     return Ab[:, :-nb], Cf[:-nb], Ab[:, -nb:], Cf[-nb:].reshape(nb, -1)
 
 
+@profile
 def greedyROI_corr(Y, Y_ds, max_number=None, gSiz=None, gSig=None, center_psf=True,
                    min_corr=None, min_pnr=None, seed_method='auto', deconvolve_options=None,
                    min_pixel=3, bd=0, thresh_init=2, ring_size_factor=None, nb=1, options=None,
@@ -825,7 +955,7 @@ def greedyROI_corr(Y, Y_ds, max_number=None, gSiz=None, gSig=None, center_psf=Tr
     T = Y.shape[-1]
     d1, d2, total_frames = Y_ds.shape
     tsub = int(round(float(T) / total_frames))
-    B = np.array(Y_ds.reshape((-1, total_frames), order='F') - A.dot(C), dtype=np.float32)
+    B = Y_ds.reshape((-1, total_frames), order='F') - A.dot(C)
 
     if ring_size_factor is not None:
         # background according to ringmodel
@@ -833,7 +963,8 @@ def greedyROI_corr(Y, Y_ds, max_number=None, gSiz=None, gSig=None, center_psf=Tr
         W, b0 = compute_W(Y_ds.reshape((-1, total_frames), order='F'),
                           A, C, (d1, d2), int(np.round(ring_size_factor * gSiz)))
 
-        B = b0[:, None] + W.dot(B - b0[:, None])
+        B = -b0[:, None] - W.dot(B - b0[:, None])  # "-B"
+        B += Y_ds.reshape((-1, total_frames), order='F')  # "Y-B"
 
         # find more neurons in residual
         print('Compute Residuals')
@@ -842,7 +973,7 @@ def greedyROI_corr(Y, Y_ds, max_number=None, gSiz=None, gSig=None, center_psf=Tr
         if max_number is not 0:
             print('Initialization again')
             A_R, C_R, _, _, center_R = init_neurons_corr_pnr(
-                Y_ds - (A.dot(C) + B).reshape(Y_ds.shape, order='F'),
+                (B - A.dot(C)).reshape(Y_ds.shape, order='F'),
                 max_number=max_number, gSiz=gSiz, gSig=gSig,
                 center_psf=center_psf, min_corr=min_corr, min_pnr=min_pnr,
                 seed_method=seed_method, deconvolve_options=deconvolve_options,
@@ -854,14 +985,13 @@ def greedyROI_corr(Y, Y_ds, max_number=None, gSiz=None, gSig=None, center_psf=Tr
         # 1st iteration on decimated data
         print('Update Temporal')
         C, A = caiman.source_extraction.cnmf.temporal.update_temporal_components(
-            np.array(Y_ds.reshape((-1, total_frames), order='F') - B), spr.csc_matrix(A),
+            B, spr.csc_matrix(A),
             np.zeros((d1 * d2, 0), np.float32), C, np.zeros((0, total_frames), np.float32),
             dview=None, bl=None, c1=None, sn=None, g=None, **options['temporal_params'])[:2]
         print('Update Spatial')
         options['spatial_params']['dims'] = (d1, d2)
         A, _, C, _ = caiman.source_extraction.cnmf.spatial.update_spatial_components(
-            np.array(Y_ds.reshape((-1, total_frames), order='F') - B), C=C,
-            f=np.zeros((0, total_frames), np.float32), A_in=A,
+            B, C=C, f=np.zeros((0, total_frames), np.float32), A_in=A,
             sn=np.sqrt(downscale((sn**2).reshape(dims, order='F'),
                                  tuple([ssub] * len(dims))).ravel() / tsub) / ssub,
             b_in=np.zeros((d1 * d2, 0), np.float32),
@@ -871,36 +1001,39 @@ def greedyROI_corr(Y, Y_ds, max_number=None, gSiz=None, gSig=None, center_psf=Tr
         print('Compute Background Again')
         # background according to ringmodel
         W, b0 = compute_W(Y_ds.reshape((-1, total_frames), order='F'),
-                          A, C, (d1, d2), int(np.round(ring_size_factor * gSiz)))
+                          A.toarray(), C, (d1, d2), int(np.round(ring_size_factor * gSiz)))
 
         # 2nd iteration on non-decimated data
         K = C.shape[0]
         if T > total_frames:
             C = np.repeat(C, tsub, 1)[:, :T]
-            Ys = downscale(Y, (ssub, ssub, 1)).reshape((-1, T), order='F')
+            Ys = (Y if ssub == 1 else downscale(Y, (ssub, ssub, 1))).reshape((-1, T), order='F')
             # N.B: upsampling B in space is fine, but upsampling in time doesn't work well,
             # cause the error in upsampled background can be of similar size as neural signal
             B = Ys - A.dot(C)
-        B = b0[:, None] + W.dot(B - b0[:, None])
-        B = np.reshape(B, (d1, d2, -1), order='F')
-        B = (np.repeat(np.repeat(B, ssub, 0), ssub, 1)[:dims[0], :dims[1]]
-             .reshape((-1, T), order='F'))
-        A = A.toarray().reshape((d1, d2, K), order='F')
-        A = spr.csc_matrix(np.repeat(np.repeat(A, ssub, 0), ssub, 1)[:dims[0], :dims[1]]
-                           .reshape((np.prod(dims), K), order='F'))
+        else:
+            B = Y_ds.reshape((-1, T), order='F') - A.dot(C)
+        B = -b0[:, None] - W.dot(B - b0[:, None])  # "-B"
+        if ssub > 1:
+            B = np.reshape(B, (d1, d2, -1), order='F')
+            B = (np.repeat(np.repeat(B, ssub, 0), ssub, 1)[:dims[0], :dims[1]]
+                 .reshape((-1, T), order='F'))
+            A = A.toarray().reshape((d1, d2, K), order='F')
+            A = spr.csc_matrix(np.repeat(np.repeat(A, ssub, 0), ssub, 1)[:dims[0], :dims[1]]
+                               .reshape((np.prod(dims), K), order='F'))
 
         print('Update Temporal')
+        B += Y.reshape((-1, T), order='F')  # "Y-B"
         C, A, b__, f__, S__, bl__, c1__, neurons_sn__, g1__, YrA__, lam__ = \
             caiman.source_extraction.cnmf.temporal.update_temporal_components(
-                np.array(Y.reshape((-1, T), order='F') - B), spr.csc_matrix(A),
+                B, spr.csc_matrix(A),
                 np.zeros((np.prod(dims), 0), np.float32), C, np.zeros((0, T), np.float32),
                 dview=None, bl=None, c1=None, sn=None, g=None, **options['temporal_params'])
         print('Update Spatial')
         options['spatial_params']['dims'] = dims
         options['spatial_params']['se'] = np.ones((1,) * len((d1, d2)), dtype=np.uint8)
         A, _, C, _ = caiman.source_extraction.cnmf.spatial.update_spatial_components(
-            np.array(Y.reshape((-1, T), order='F') - B), C=C,
-            f=np.zeros((0, T), np.float32), A_in=A, sn=sn,
+            B, C=C, f=np.zeros((0, T), np.float32), A_in=A, sn=sn,
             b_in=np.zeros((np.prod(dims), 0), np.float32),
             dview=None, **options['spatial_params'])
         A = A.astype(np.float32)
@@ -930,9 +1063,10 @@ def greedyROI_corr(Y, Y_ds, max_number=None, gSiz=None, gSig=None, center_psf=Tr
         b_in, s_in, f_in = spr.linalg.svds(B, k=nb)
         f_in *= s_in[:, np.newaxis]
 
-    return A, C, center.T, b_in, f_in
+    return A, C, center.T, b_in.astype(np.float32), f_in.astype(np.float32)
 
 
+@profile
 def init_neurons_corr_pnr(data, max_number=None, gSiz=15, gSig=None,
                           center_psf=True, min_corr=0.8, min_pnr=10,
                           seed_method='auto', deconvolve_options=None,
@@ -1018,9 +1152,9 @@ def init_neurons_corr_pnr(data, max_number=None, gSiz=15, gSig=None,
         total_frames, d1, d2 = data.shape
         data_raw = data
 
+    data_filtered = data_raw.copy()
     if gSig:
         # spatially filter data
-        data_filtered = data_raw.copy()
         if not isinstance(gSig, list):
             gSig = [gSig, gSig]
         ksize = tuple([(3 * i) // 2 * 2 + 1 for i in gSig])
@@ -1028,15 +1162,14 @@ def init_neurons_corr_pnr(data, max_number=None, gSiz=15, gSig=None,
 
         if center_psf:
             for idx, img in enumerate(data_filtered):
-                data_filtered[idx, ] = cv2.GaussianBlur(img, ksize=ksize, sigmaX=gSig[0], sigmaY=gSig[1], borderType=1) \
+                data_filtered[idx, ] = cv2.GaussianBlur(img, ksize=ksize, sigmaX=gSig[0],
+                                                        sigmaY=gSig[1], borderType=1) \
                     - cv2.boxFilter(img, ddepth=-1, ksize=ksize, borderType=1)
                 # data_filtered[idx, ] = cv2.filter2D(img, -1, psf, borderType=1)
         else:
             for idx, img in enumerate(data_filtered):
                 data_filtered[idx, ] = cv2.GaussianBlur(img, ksize=ksize, sigmaX=gSig[
                                                         0], sigmaY=gSig[1], borderType=1)
-    else:
-        data_filtered = data_raw
 
     # compute peak-to-noise ratio
     data_filtered -= data_filtered.mean(axis=0)
@@ -1358,6 +1491,7 @@ def extract_ac(data_filtered, data_raw, ind_ctr, patch_dims):
     return ai, ci.reshape(len(ci)), True
 
 
+@profile
 def compute_W(Y, A, C, dims, radius, data_fits_in_memory=True):
     """compute background according to ring model
     solves the problem
@@ -1410,7 +1544,8 @@ def compute_W(Y, A, C, dims, radius, data_fits_in_memory=True):
         index = get_indices_of_pixels_on_ring(p)
         indices += list(index)
         B = Y[index] - A[index].dot(C) - b0[index, None] if X is None else X[index]
-        data += list(np.linalg.inv(np.array(B.dot(B.T)) + 1e-9 * np.eye(len(index), dtype='float32')).
+        data += list(np.linalg.inv(np.array(B.dot(B.T)) +
+                                   1e-9 * np.eye(len(index), dtype='float32')).
                      dot(B.dot(Y[p] - A[p].dot(C).ravel() - b0[p] if X is None else X[p])))
         # np.linalg.lstsq seems less robust but scipy version would be (robust but for the problem size slower) alternative
         # data += list(scipy.linalg.lstsq(B.T, Y[p] - A[p].dot(C) - b0[p], check_finite=False)[0])
