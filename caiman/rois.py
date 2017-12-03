@@ -17,6 +17,7 @@ from scipy.optimize import linear_sum_assignment
 from skimage.filters import sobel
 from scipy import ndimage as ndi
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 from .io import nf_read_roi_zip
 
 
@@ -204,8 +205,8 @@ def norm_nrg(array):
     new_array /= new_array.max()
     return new_array.reshape(array.shape, order='F')
 
-#%% compute mask distances
-def distance_masks(M_s,cm_s,max_dist,enclosed_thr = None):
+
+def distance_masks(M_s, cm_s, max_dist, enclosed_thr=None):
     """
     Compute distance matrix based on an intersection over union metric. Matrix are compared in order,
     with matrix i compared with matrix i+1
@@ -224,7 +225,6 @@ def distance_masks(M_s,cm_s,max_dist,enclosed_thr = None):
         
     enclosed_thr: float
         if not None set distance to at most the specified value when ground truth is a subset of inferred 
-        
 
     Returns:
     --------
@@ -233,68 +233,46 @@ def distance_masks(M_s,cm_s,max_dist,enclosed_thr = None):
     Raise:
     ------
     Exception('Nan value produced. Error in inputs')
-
-
     """
-    D_s=[]
-    
-    for gt_comp,test_comp,cmgt_comp,cmtest_comp in zip(M_s[:-1],M_s[1:],cm_s[:-1],cm_s[1:]):
-
-        #todo : better with a function that calls itself
-        print('New Pair **')
-        #not to interfer with M_s
-        gt_comp= gt_comp.copy()[:,:]
-        test_comp= test_comp.copy()[:,:]
+    D_s = []
+    for gt_comp, test_comp, cmgt_comp, cmtest_comp in tqdm(zip(M_s[:-1], M_s[1:], cm_s[:-1], cm_s[1:])):
 
         #the number of components for each
-        nb_gt=np.shape(gt_comp)[-1]
-        nb_test=np.shape(test_comp)[-1]
-        D = np.ones((nb_gt,nb_test))
+        nb_gt = np.shape(gt_comp)[-1]
+        nb_test = np.shape(test_comp)[-1]
+        D = np.ones((nb_gt, nb_test))
 
-        cmgt_comp=np.array(cmgt_comp)
-        cmtest_comp=np.array(cmtest_comp)
+        cmgt_comp = np.array(cmgt_comp)
+        cmtest_comp = np.array(cmtest_comp)
         if enclosed_thr is not None:
             gt_val = gt_comp.T.dot(gt_comp).diagonal()
+
         for i in range(nb_gt):
-            #for each components of gt
-            k=gt_comp[:,np.repeat(i,nb_test)]+test_comp
-            # k is correlation matrix of this neuron to every other of the test
+            k = gt_comp[:, np.repeat(i, nb_test)] + test_comp  # k is correlation matrix of this neuron to every other of the test
+
             for j  in range(nb_test): #for each components on the tests
-                dist = np.linalg.norm(cmgt_comp[i]-cmtest_comp[j])
-                # we compute the distance of this one to the other ones
-                if dist<max_dist:
-                    # union matrix of the i-th neuron to the jth one
-                    union = k[:,j].sum()
-                    # we could have used OR for union and AND for intersection while converting
-                    # the matrice into real boolean before
+                dist = np.linalg.norm(cmgt_comp[i]-cmtest_comp[j])  # we compute the distance of this one to the other ones
+                union = k[:, j].sum()   # union matrix of the i-th neuron to the jth one
+                if dist >= max_dist or union:  # if we don't have even a union this is pointless
+                    D[i, j] = 1
+                    continue
 
-                    # product of the two elements' matrices
-                    # we multiply the boolean values from the jth omponent to the ith
-                    intersection= np.array(gt_comp[:,i].T.dot(test_comp[:,j]).todense()).squeeze()
+                intersection= np.array(gt_comp[:,i].T.dot(test_comp[:,j]).todense()).squeeze()  # product of the two elements' matrices; we multiply the boolean values from the jth omponent to the ith
+                d = 1 - 1. * intersection / (union - intersection)
+                if enclosed_thr is None:
+                    #intersection is removed from union since union contains twice the overlapping area
+                    #having the values in this format 0-1 is helpful for the hungarian algorithm that follows
+                    D[i,j] = d
+                elif intersection == gt_val[i]:
+                    D[i, j] = min(d, 0.5)
 
-                    # if we don't have even a union this is pointless
-                    if union  > 0:
+        if np.any(np.isnan(D)):
+            raise Exception('Nan value produced. Error in inputs')
+        D_s.append(D)
 
-                        #intersection is removed from union since union contains twice the overlaping area
-                        #having the values in this format 0-1 is helpfull for the hungarian algorithm that follows
-                        D[i,j] = 1-1.*intersection/(union-intersection)
-                        if enclosed_thr is not None:                            
-                            if intersection == gt_val[i]:
-                                D[i,j] = min(D[i,j],0.5)
-                    else:
-                        D[i,j] = 1.
-
-                    if np.isnan(D[i,j]):
-                        raise Exception('Nan value produced. Error in inputs')
-                else:
-                    D[i,j] = 1
-
-        D_s.append(D)            
     return D_s
 
 
-
-#%% find matches
 def find_matches(D_s, print_assignment=False):
     #todo todocument
 
