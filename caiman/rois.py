@@ -13,7 +13,7 @@ import scipy
 import numpy as np
 import cv2
 import time
-from scipy.optimize import linear_sum_assignment
+from scipy import optimize
 from skimage.filters import sobel
 from scipy import ndimage as ndi
 import matplotlib.pyplot as plt
@@ -98,7 +98,7 @@ def get_distance_from_A(masks_gt, masks_comp, min_dist=10):
     return distance_masks([A_ben, A_cnmf], [cm_ben, cm_cnmf], min_dist)
 
 
-def nf_match_neurons_in_binary_masks(masks_gt, masks_comp, thresh_cost=.7, min_dist=10, print_assignment=False, D=None, enclosed_thr=None):
+def nf_match_neurons_in_binary_masks(masks_gt, masks_comp, thresh_cost=.7, min_dist=10, D=None, enclosed_thr=None):
     """
     Match neurons expressed as binary masks. Uses Hungarian matching algorithm
 
@@ -115,11 +115,6 @@ def nf_match_neurons_in_binary_masks(masks_gt, masks_comp, thresh_cost=.7, min_d
         max cost accepted 
 
     min_dist: min distance between cm
-
-    print_assignment:
-        for hungarian algorithm
-
-    plot_results: bool    
 
     Cn: 
         correlation image or median
@@ -157,7 +152,7 @@ def nf_match_neurons_in_binary_masks(masks_gt, masks_comp, thresh_cost=.7, min_d
     cm_cnmf = [scipy.ndimage.center_of_mass(mm) for mm in masks_comp]
 
     D = distance_masks([A_ben, A_cnmf], [cm_ben, cm_cnmf], min_dist, enclosed_thr=enclosed_thr) if D is None else D  # find the distance between each mask
-    matches, costs = find_matches(D, print_assignment=print_assignment)
+    matches, costs = find_matches(D)
     matches = matches[0]
     costs = costs[0]
 
@@ -273,39 +268,16 @@ def distance_masks(M_s, cm_s, max_dist, enclosed_thr=None):
     return D_s
 
 
-def find_matches(D_s, print_assignment=False):
-    #todo todocument
+def find_matches(distance_matrix):
+    #todo: todocument
+    if np.any(np.isnan(distance_matrix)):
+        raise ValueError('Distance Matrix may not contain NaN values.')
 
-    matches=[]
-    costs=[]
-    t_start=time.time()
-    for ii,D in enumerate(D_s):
-        #we make a copy not to set changes in the original
-        DD=D.copy()    
-        if np.sum(np.where(np.isnan(DD)))>0:
-            raise Exception('Distance Matrix contains NaN, not allowed!')
-
-        #we do the hungarian
-        indexes = linear_sum_assignment(DD)
-        indexes2=[(ind1,ind2) for ind1,ind2 in zip(indexes[0],indexes[1])]
-        matches.append(indexes)
-        DD=D.copy()   
-        total = []
-        #we want to extract those informations from the hungarian algo
-        for row, column in indexes2:
-            value = DD[row,column]
-            if print_assignment:
-                print(('(%d, %d) -> %f' % (row, column, value)))
-            total.append(value)      
-        print(('FOV: %d, shape: %d,%d total cost: %f' % (ii, DD.shape[0],DD.shape[1], np.sum(total))))
-        print((time.time()-t_start))
-        costs.append(total)      
-        # send back the results in the format we want
-    return matches,costs
+    matches = [optimize.linear_sum_assignment(D) for D in tqdm(distance_matrix)]
+    costs = [D[indices] for D, indices in zip(distance_matrix, matches)]
+    return matches, costs
 
 
-
-#%%
 def link_neurons(matches,costs,max_cost=0.6,min_FOV_present=None):
     """
     Link neurons from different FOVs given matches and costs obtained from the hungarian algorithm
