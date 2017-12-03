@@ -316,10 +316,12 @@ def link_neurons(matches, costs, max_cost=0.6, min_FOV_present=None):
     return neurons
 
 
-def extract_binary_masks_blob(A,  neuron_radius,dims,num_std_threshold=1, minCircularity= 0.5,
-                              minInertiaRatio = 0.2,minConvexity = .8):
+
+
+def extract_binary_masks_blob(A, neuron_radius, dims, num_std_threshold=1, minCircularity=0.5, minInertiaRatio=0.2,
+                              minConvexity=.8):
     """
-    Function to extract masks from data. It will also perform a preliminary selectino of good masks based on criteria like shape and size
+    Function to extract masks from data. It will also perform a preliminary selection of good masks based on criteria like shape and size
 
     Parameters:
     ----------
@@ -356,13 +358,11 @@ def extract_binary_masks_blob(A,  neuron_radius,dims,num_std_threshold=1, minCir
     params.minConvexity = minConvexity
 
     # Change thresholds
-    params.blobColor=255
-
+    params.blobColor = 255
     params.minThreshold = 0
     params.maxThreshold = 255
     params.thresholdStep= 3
-
-    params.minArea = np.pi*((neuron_radius*.75)**2)
+    params.minArea = np.pi * ((neuron_radius * .75) ** 2)
 
     params.filterByColor = True
     params.filterByArea = True
@@ -372,50 +372,38 @@ def extract_binary_masks_blob(A,  neuron_radius,dims,num_std_threshold=1, minCir
 
     detector = cv2.SimpleBlobDetector_create(params)
 
-    masks_ws=[]
-    pos_examples=[]
-    neg_examples=[]
+    masks_ws, pos_examples, neg_examples = [], [], []
+    for count, comp in tqdm(enumerate(A.tocsc()[:].T)):
 
-
-    for count,comp in enumerate(A.tocsc()[:].T):
-
-        print(count)
-        comp_d=np.array(comp.todense())
-        gray_image=np.reshape(comp_d,dims,order='F')
-        gray_image=(gray_image-np.min(gray_image))/(np.max(gray_image)-np.min(gray_image))*255
-        gray_image=gray_image.astype(np.uint8)
+        comp_d = np.array(comp.todense())
+        gray_image = np.reshape(comp_d, dims, order='F')
+        gray_image = (gray_image - np.min(gray_image)) / (np.max(gray_image) - np.min(gray_image)) * 255
+        gray_image = gray_image.astype(np.uint8)
 
         # segment using watershed
         markers = np.zeros_like(gray_image)
         elevation_map = filters.sobel(gray_image)
-        thr_1=np.percentile(gray_image[gray_image>0],50)
-        iqr=np.diff(np.percentile(gray_image[gray_image>0],(25,75)))
-        thr_2=thr_1 + num_std_threshold*iqr/1.35
+        thr_1 = np.percentile(gray_image[gray_image > 0], 50)
+        thr_2 = thr_1 + num_std_threshold * np.diff(np.percentile(gray_image[gray_image > 0], (25, 75))) / 1.35
         markers[gray_image < thr_1] = 1
         markers[gray_image > thr_2] = 2
-        edges = watershed(elevation_map, markers)-1
+        edges = watershed(elevation_map, markers) - 1
+
         # only keep largest object
         label_objects, nb_labels = ndimage.label(edges)
         sizes = np.bincount(label_objects.ravel())
 
-        if len(sizes)>1:
-            idx_largest = np.argmax(sizes[1:])
-            edges=(label_objects==(1+idx_largest))
-            edges=ndimage.binary_fill_holes(edges)
-        else:
-            print('empty component')
-            edges=np.zeros_like(edges)
+        if len(sizes) > 1:
+            idx_largest = np.argmax(sizes[1:]) + 1
+            edges = label_objects == idx_largest
+            edges = ndimage.binary_fill_holes(edges)
+        else:  # empty component
+            edges = np.zeros_like(edges)
 
-        if 1:
-            masks_ws.append(edges)
-            keypoints = detector.detect((edges*200.).astype(np.uint8))
-        else:
-            masks_ws.append(gray_image)
-            keypoints = detector.detect(gray_image)
+        masks_ws.append(edges)
 
-        if len(keypoints)>0:
+        if len(detector.detect((edges * 200.).astype(np.uint8))) > 0:
             pos_examples.append(count)
-
         else:
             neg_examples.append(count)
 
