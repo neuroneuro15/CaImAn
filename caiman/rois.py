@@ -167,15 +167,15 @@ def nf_match_neurons_in_binary_masks(masks_gt, masks_comp, thresh_cost=.7, min_d
     idx_fp_comp =  np.setdiff1d(np.arange(masks_comp.shape[0]), matches[1][idx_tp])
 
     # compute precision and recall
-    TP = np.sum(np.array(costs)<thresh_cost)*1.
+    TP = float(np.sum(np.array(costs) < thresh_cost))
     FN = np.shape(masks_gt)[0] - TP
     FP = np.shape(masks_comp)[0] - TP
     TN = 0  # note: check whether TN should really be set to 0
 
     performance = {
-        'recall': float(TP) / (TP + FN),
-        'precision': float(TP) / (TP + FP),
-        'accuracy': float(TP + TN) / (TP + FP + FN + TN),
+        'recall': TP / (TP + FN),
+        'precision': TP / (TP + FP),
+        'accuracy': (TP + TN) / (TP + FP + FN + TN),
         'f1_score': 2. * TP / (2. * TP + FP + FN),
     }
 
