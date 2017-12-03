@@ -6,16 +6,13 @@ Created on Thu Oct 22 13:22:26 2015
 """
 from __future__ import division, print_function, absolute_import
 
-from scipy.ndimage.filters import gaussian_filter
-from skimage.morphology import remove_small_objects, opening, remove_small_holes, closing, dilation, watershed
-import scipy 
 import numpy as np
-import cv2
-from scipy import optimize
-from skimage.filters import sobel
-from scipy import ndimage as ndi
 import matplotlib.pyplot as plt
+import cv2
+from scipy import optimize, filters, ndimage, sparse
+from skimage.morphology import remove_small_objects, opening, remove_small_holes, closing, dilation, watershed
 from tqdm import tqdm
+
 from .io import nf_read_roi_zip
 
 
@@ -61,7 +58,7 @@ def extract_binary_masks_from_structural_channel(img, min_area_size=30, min_hole
     img = cv2.adaptiveThreshold(img, np.max(img), cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY, gSig, 0)
     img = remove_small_holes(img > 0, min_size=min_hole_size)
     img = remove_small_objects(img, min_size=min_area_size)
-    areas, n_features = ndi.label(img)
+    areas, n_features = ndimage.label(img)
     
     A = np.zeros((np.prod(img.shape), n_features), dtype=bool)
     for i in range(n_features):
@@ -78,7 +75,7 @@ def mask_to_2d(mask):
     if mask.ndim > 2:
         mask = mask[:].transpose([1, 2, 0])
     mask = np.reshape(mask, (np.prod(dims), -1,), order='F')
-    return scipy.sparse.coo_matrix(mask)
+    return sparse.coo_matrix(mask)
 
 
 def get_distance_from_A(masks_gt, masks_comp, min_dist=10):
@@ -87,11 +84,11 @@ def get_distance_from_A(masks_gt, masks_comp, min_dist=10):
     masks_gt_new = np.reshape(masks_gt[:].transpose([1, 2, 0]), (np.prod(dims), -1,), order='F')
     masks_comp_new = np.reshape(masks_comp[:].transpose([1,2,0]), (np.prod(dims), -1,), order='F')
 
-    A_ben = scipy.sparse.csc_matrix(masks_gt_new)
-    A_cnmf = scipy.sparse.csc_matrix(masks_comp_new)
+    A_ben = sparse.csc_matrix(masks_gt_new)
+    A_cnmf = sparse.csc_matrix(masks_comp_new)
 
-    cm_ben = [scipy.ndimage.center_of_mass(mm) for mm in masks_gt]
-    cm_cnmf = [scipy.ndimage.center_of_mass(mm) for mm in masks_comp]
+    cm_ben = [ndimage.center_of_mass(mm) for mm in masks_gt]
+    cm_cnmf = [ndimage.center_of_mass(mm) for mm in masks_comp]
 
     return distance_masks([A_ben, A_cnmf], [cm_ben, cm_cnmf], min_dist)
 
@@ -142,12 +139,12 @@ def nf_match_neurons_in_binary_masks(masks_gt, masks_comp, thresh_cost=.7, min_d
     """
     # transpose to have a sparse list of components, then reshaping it to have a 1D matrix read in the Fortran style
     dims = np.shape(masks_gt)[1:]
-    A_ben = scipy.sparse.csc_matrix(np.reshape(masks_gt.transpose([1, 2, 0]), (np.prod(dims), -1,), order='F'))
-    A_cnmf = scipy.sparse.csc_matrix(np.reshape(masks_comp.transpose([1, 2, 0]), (np.prod(dims), -1,), order='F'))
+    A_ben = sparse.csc_matrix(np.reshape(masks_gt.transpose([1, 2, 0]), (np.prod(dims), -1,), order='F'))
+    A_cnmf = sparse.csc_matrix(np.reshape(masks_comp.transpose([1, 2, 0]), (np.prod(dims), -1,), order='F'))
 
     # have the center of mass of each element of the two masks
-    cm_ben = [scipy.ndimage.center_of_mass(mm) for mm in masks_gt]
-    cm_cnmf = [scipy.ndimage.center_of_mass(mm) for mm in masks_comp]
+    cm_ben = [ndimage.center_of_mass(mm) for mm in masks_gt]
+    cm_cnmf = [ndimage.center_of_mass(mm) for mm in masks_comp]
 
     D = distance_masks([A_ben, A_cnmf], [cm_ben, cm_cnmf], min_dist, enclosed_thr=enclosed_thr) if D is None else D  # find the distance between each mask
     matches, costs = find_matches(D)
@@ -326,7 +323,7 @@ def extract_binary_masks_blob(A,  neuron_radius,dims,num_std_threshold=1, minCir
 
     Parameters:
     ----------
-    A: scipy.sparse matris
+    A: sparse matris
         contains the components as outputed from the CNMF algorithm
 
     neuron_radius: float
@@ -390,7 +387,7 @@ def extract_binary_masks_blob(A,  neuron_radius,dims,num_std_threshold=1, minCir
 
         # segment using watershed
         markers = np.zeros_like(gray_image)
-        elevation_map = sobel(gray_image)
+        elevation_map = filters.sobel(gray_image)
         thr_1=np.percentile(gray_image[gray_image>0],50)
         iqr=np.diff(np.percentile(gray_image[gray_image>0],(25,75)))
         thr_2=thr_1 + num_std_threshold*iqr/1.35
@@ -398,13 +395,13 @@ def extract_binary_masks_blob(A,  neuron_radius,dims,num_std_threshold=1, minCir
         markers[gray_image > thr_2] = 2
         edges = watershed(elevation_map, markers)-1
         # only keep largest object
-        label_objects, nb_labels = ndi.label(edges)
+        label_objects, nb_labels = ndimage.label(edges)
         sizes = np.bincount(label_objects.ravel())
 
         if len(sizes)>1:
             idx_largest = np.argmax(sizes[1:])
             edges=(label_objects==(1+idx_largest))
-            edges=ndi.binary_fill_holes(edges)
+            edges=ndimage.binary_fill_holes(edges)
         else:
             print('empty component')
             edges=np.zeros_like(edges)
@@ -479,7 +476,7 @@ def extractROIsFromPCAICA(spcomps, numSTD=4, gaussiansigmax=2 , gaussiansigmay=2
     maskgrouped=[]
     for k in range(0,numcomps):
         comp=spcomps[k]
-        comp=gaussian_filter(comp,[gaussiansigmay,gaussiansigmax])
+        comp=filters.gaussian_filter(comp,[gaussiansigmay,gaussiansigmax])
 
         q75, q25 = np.percentile(comp, [75 ,25])
         iqr = q75 - q25
@@ -492,7 +489,7 @@ def extractROIsFromPCAICA(spcomps, numSTD=4, gaussiansigmax=2 , gaussiansigmay=2
         else:
             compabspos=comp*(comp>thresh)-comp*(comp<-thresh)
 
-        labeledpos, n = ndi.label(compabspos>0, np.ones((3,3)))
+        labeledpos, n = ndimage.label(compabspos>0, np.ones((3,3)))
         maskgrouped.append(labeledpos)
         for jj in range(1,n+1):
             tmp_mask=np.asarray(labeledpos==jj)
@@ -521,8 +518,8 @@ def detect_duplicates(file_name,dist_thr = 0.1, FOV = (512,512)):
         
     """
     rois = nf_read_roi_zip(file_name,FOV)
-    cm = [scipy.ndimage.center_of_mass(mm) for mm in rois]
-    sp_rois = scipy.sparse.csc_matrix(np.reshape(rois,(rois.shape[0],np.prod(FOV))).T)
+    cm = [ndimage.center_of_mass(mm) for mm in rois]
+    sp_rois = sparse.csc_matrix(np.reshape(rois,(rois.shape[0],np.prod(FOV))).T)
     D = distance_masks([sp_rois,sp_rois],[cm,cm], 10)[0]
     np.fill_diagonal(D,1)
     indeces = np.where(D<dist_thr)      # pairs of duplicate indeces
@@ -582,10 +579,10 @@ def detect_duplicates(file_name,dist_thr = 0.1, FOV = (512,512)):
     #            #create mask by thresholding to 50% of the max
     #            print(idx)
     #            mask=np.reshape(a.todense()>(max_comps[idx]*max_perc),shape)
-    #            label_im, nb_labels = ndi.label(mask)
-    #            sizes = ndi.sum(mask, label_im, list(range(nb_labels + 1)))
+    #            label_im, nb_labels = ndimage.label(mask)
+    #            sizes = ndimage.sum(mask, label_im, list(range(nb_labels + 1)))
     #            l_largest=(label_im==np.argmax(sizes))
-    #            cm.append(scipy.ndimage.measurements.center_of_mass(l_largest,l_largest))
+    #            cm.append(ndimage.measurements.center_of_mass(l_largest,l_largest))
     #            lim[l_largest] = (idx+1)
     #    #       #remove connected components that are too small
     #            mask_size=np.logical_or(sizes<min_size,sizes>max_size)
