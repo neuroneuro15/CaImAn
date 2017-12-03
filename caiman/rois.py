@@ -97,8 +97,7 @@ def get_distance_from_A(masks_gt, masks_comp, min_dist=10):
     return distance_masks([A_ben, A_cnmf], [cm_ben, cm_cnmf], min_dist)
 
 
-def nf_match_neurons_in_binary_masks(masks_gt,masks_comp,thresh_cost=.7, min_dist = 10, print_assignment= False,
-                                     plot_results = False, Cn=None, labels = None, cmap = 'viridis', D = None, enclosed_thr = None):
+def nf_match_neurons_in_binary_masks(masks_gt, masks_comp, thresh_cost=.7, min_dist=10, print_assignment=False, D=None, enclosed_thr=None):
     """
     Match neurons expressed as binary masks. Uses Hungarian matching algorithm
 
@@ -147,91 +146,64 @@ def nf_match_neurons_in_binary_masks(masks_gt,masks_comp,thresh_cost=.7, min_dis
     performance:  
 
     """
-   
-    ncomps,d1,d2 = np.shape(masks_gt)
-    dims = d1,d2
-
     # transpose to have a sparse list of components, then reshaping it to have a 1D matrix red in the Fortran style
-    A_ben = scipy.sparse.csc_matrix(np.reshape(masks_gt[:].transpose([1,2,0]),(np.prod(dims),-1,),order='F'))
-    A_cnmf = scipy.sparse.csc_matrix(np.reshape(masks_comp[:].transpose([1,2,0]),(np.prod(dims),-1,),order='F'))
+    dims = np.shape(masks_gt)[1:]
+    A_ben = scipy.sparse.csc_matrix(np.reshape(masks_gt.transpose([1, 2, 0]), (np.prod(dims), -1,), order='F'))
+    A_cnmf = scipy.sparse.csc_matrix(np.reshape(masks_comp.transpose([1, 2, 0]), (np.prod(dims), -1,), order='F'))
 
     # have the center of mass of each element of the two masks
-    cm_ben = [ scipy.ndimage.center_of_mass(mm) for mm in masks_gt]
-    cm_cnmf = [ scipy.ndimage.center_of_mass(mm) for mm in masks_comp]
+    cm_ben = [scipy.ndimage.center_of_mass(mm) for mm in masks_gt]
+    cm_cnmf = [scipy.ndimage.center_of_mass(mm) for mm in masks_comp]
 
-    
-    if D is None:
-        #% find distances and matches
-        # find the distance between each masks
-        D=distance_masks([A_ben,A_cnmf],[cm_ben,cm_cnmf], min_dist, enclosed_thr = enclosed_thr)  
-        level = 0.98
-    else:
-        level = .98
-        
-        
-          
-    
-    
-        
-    
-    
-    matches,costs=find_matches(D,print_assignment=print_assignment)
-    matches=matches[0]
-    costs=costs[0]
+    D = distance_masks([A_ben, A_cnmf], [cm_ben, cm_cnmf], min_dist, enclosed_thr=enclosed_thr) if D is None else D  # find the distance between each mask
+    matches, costs = find_matches(D, print_assignment=print_assignment)
+    matches = matches[0]
+    costs = costs[0]
 
     #%% compute precision and recall
     TP = np.sum(np.array(costs)<thresh_cost)*1.
     FN = np.shape(masks_gt)[0] - TP
     FP = np.shape(masks_comp)[0] - TP
-    TN = 0
+    TN = 0  # note: check whether TN should really be set to 0
 
-    performance = dict() 
-    performance['recall'] = old_div(TP,(TP+FN))
-    performance['precision'] = old_div(TP,(TP+FP)) 
-    performance['accuracy'] = old_div((TP+TN),(TP+FP+FN+TN))
-    performance['f1_score'] = 2*TP/(2*TP+FP+FN)
+    performance = {
+        'recall': float(TP) / (TP + FN),
+        'precision': float(TP) / (TP + FP),
+        'accuracy': float(TP + TN) / (TP + FP + FN + TN),
+        'f1_score': 2. * TP / (2. * TP + FP + FN),
+    }
     print(performance)
-    #%%
-    idx_tp = np.where(np.array(costs)<thresh_cost)[0]
-    idx_tp_ben = matches[0][idx_tp]    # ground truth
-    idx_tp_cnmf = matches[1][idx_tp]   # algorithm - comp 
 
-    idx_fn = np.setdiff1d(list(range(np.shape(masks_gt)[0])),matches[0][idx_tp])
+    idx_tp = np.where(np.array(costs) < thresh_cost)[0]
+    idx_tp_gt = matches[0][idx_tp]    # ground truth
+    idx_tp_comp = matches[1][idx_tp]   # algorithm - comp
+    idx_fn_gt = np.setdiff1d(np.arange(masks_gt.shape[0]), matches[0][idx_tp])
+    idx_fp_comp =  np.setdiff1d(np.arange(masks_comp.shape[0]), matches[1][idx_tp])
 
-    idx_fp =  np.setdiff1d(list(range(np.shape(masks_comp)[0])),matches[1][idx_tp])
+    return  idx_tp_gt, idx_tp_comp, idx_fn_gt, idx_fp_comp, performance
 
-    idx_fp_cnmf = idx_fp
 
-    idx_tp_gt,idx_tp_comp, idx_fn_gt, idx_fp_comp = idx_tp_ben,idx_tp_cnmf, idx_fn, idx_fp_cnmf
-
-    if plot_results:
-        try : #Plotting function
-            plt.rcParams['pdf.fonttype'] = 42
-            font = {'family': 'Myriad Pro', 'weight': 'regular', 'size': 10}
-            plt.rc('font', **font)
-            lp,hp = np.nanpercentile(Cn,[5,95])
-            plt.subplot(1,2,1)
-            plt.imshow(Cn,vmin=lp,vmax=hp, cmap = cmap)
-            [plt.contour(norm_nrg(mm),levels=[level],colors='w',linewidths=1) for mm in masks_comp[idx_tp_comp]]
-            [plt.contour(norm_nrg(mm),levels=[level],colors='r',linewidths=1) for mm in masks_gt[idx_tp_gt]]
-            if labels is None:
-                plt.title('MATCHES')
-            else:
-                plt.title('MATCHES: '+labels[1]+'(w), ' + labels[0] + '(r)')
-            plt.axis('off')
-            plt.subplot(1,2,2)
-            plt.imshow(Cn,vmin=lp,vmax=hp, cmap = cmap)
-            [plt.contour(norm_nrg(mm),levels=[level],colors='w',linewidths=1) for mm in masks_comp[idx_fp_comp]]
-            [plt.contour(norm_nrg(mm),levels=[level],colors='r',linewidths=1) for mm in masks_gt[idx_fn_gt]]
-            if labels is None:
-                plt.title('FALSE POSITIVE (w), FALSE NEGATIVE (r)')
-            else:
-                plt.title(labels[1]+'(w), ' + labels[0] + '(r)')
-            plt.axis('off')
-        except Exception as e:
-            print("not able to plot precision recall usually because we are on travis")
-            print(e)
-    return  idx_tp_gt,idx_tp_comp, idx_fn_gt, idx_fp_comp, performance 
+def plot_nf_match_neurons_in_binary_masks(masks_gt, masks_comp, idx_tp_gt, idx_fn_gt, idx_tp_comp, idx_fp_comp,
+                                          labels=None, cmap='viridis', Cn=None, level=.98):
+    """The plotting part of the old nf_match_neurons_in_binary_masks() function.  Takes the outputs of that function."""
+    plt.rcParams['pdf.fonttype'] = 42
+    font = {'family': 'Myriad Pro', 'weight': 'regular', 'size': 10}
+    plt.rc('font', **font)
+    lp, hp = np.nanpercentile(Cn, [5, 95])
+    plt.subplot(1, 2, 1)
+    plt.imshow(Cn, vmin=lp, vmax=hp, cmap=cmap)
+    [plt.contour(norm_nrg(mm), levels=[level], colors='w', linewidths=1) for mm in masks_comp[idx_tp_comp]]
+    [plt.contour(norm_nrg(mm), levels=[level], colors='r', linewidths=1) for mm in masks_gt[idx_tp_gt]]
+    title = 'MATCHES' if labels is None else 'MATCHES: {}(w), {}(r)'.format(labels[1], labels[0])
+    plt.title(title)
+    plt.axis('off')
+    plt.subplot(1, 2, 2)
+    plt.imshow(Cn, vmin=lp, vmax=hp, cmap=cmap)
+    [plt.contour(norm_nrg(mm), levels=[level], colors='w', linewidths=1) for mm in masks_comp[idx_fp_comp]]
+    [plt.contour(norm_nrg(mm), levels=[level], colors='r', linewidths=1) for mm in masks_gt[idx_fn_gt]]
+    title = 'FALSE POSITIVE (w), FALSE NEGATIVE (r)' if labels is None else '{}(w), {}(r)'.format(labels[1], labels[0])
+    plt.title(title)
+    plt.axis('off')
 
 
 def norm_nrg(array):
