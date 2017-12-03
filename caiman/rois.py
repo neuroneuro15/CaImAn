@@ -456,34 +456,24 @@ def extractROIsFromPCAICA(spcomps, numSTD=4, gaussiansigmax=2 , gaussiansigmay=2
     spcompomps, 3d array containing the spatial components
 
     numSTD: number of standard deviation above the mean of the spatial component to be considered signiificant
-    """        
+    """
+    maskgrouped, allMasks = [], []
+    for spcomp in spcomps:
+        comp = filters.gaussian_filter(spcomp, [gaussiansigmay, gaussiansigmax])  # note: gaussian_filter() is deprecated.
 
-    numcomps, width, height=spcomps.shape
+        # get both positive and negative large magnitude pixels
+        iqr = np.percentile(comp, 75) - np.percentile(comp, 25)
+        minCompValuePos = thresh if thresh is not None else np.median(comp) + numSTD * iqr / 1.35
+        minCompValueNeg = -thresh if thresh is not None else np.median(comp) - numSTD * iqr / 1.35
+        compabspos = comp * (comp > minCompValuePos) - comp * (comp < minCompValueNeg)
 
-    allMasks=[]
-    maskgrouped=[]
-    for k in range(0,numcomps):
-        comp=spcomps[k]
-        comp=filters.gaussian_filter(comp,[gaussiansigmay,gaussiansigmax])
-
-        q75, q25 = np.percentile(comp, [75 ,25])
-        iqr = q75 - q25
-        minCompValuePos=np.median(comp)+numSTD*iqr/1.35
-        minCompValueNeg=np.median(comp)-numSTD*iqr/1.35
-
-        # got both positive and negative large magnitude pixels
-        if thresh is None:
-            compabspos=comp*(comp>minCompValuePos)-comp*(comp<minCompValueNeg)
-        else:
-            compabspos=comp*(comp>thresh)-comp*(comp<-thresh)
-
-        labeledpos, n = ndimage.label(compabspos>0, np.ones((3,3)))
+        labeledpos, n = ndimage.label(compabspos > 0, np.ones((3, 3)))
         maskgrouped.append(labeledpos)
-        for jj in range(1,n+1):
-            tmp_mask=np.asarray(labeledpos==jj)
+        for jj in range(1, n + 1):
+            tmp_mask= np.asarray(labeledpos == jj)
             allMasks.append(tmp_mask)
 
-    return allMasks,maskgrouped 
+    return allMasks, maskgrouped
 
 
 def detect_duplicates(file_name,dist_thr = 0.1, FOV = (512,512)):
