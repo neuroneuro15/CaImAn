@@ -6,13 +6,11 @@ Created on Thu Oct 22 13:22:26 2015
 """
 from __future__ import division, print_function, absolute_import
 
-from past.utils import old_div
 from scipy.ndimage.filters import gaussian_filter
 from skimage.morphology import remove_small_objects, opening, remove_small_holes, closing, dilation, watershed
 import scipy 
 import numpy as np
 import cv2
-import time
 from scipy import optimize
 from skimage.filters import sobel
 from scipy import ndimage as ndi
@@ -355,7 +353,6 @@ def extract_binary_masks_blob(A,  neuron_radius,dims,num_std_threshold=1, minCir
     neg_examples:
 
     """
-    import cv2
     params = cv2.SimpleBlobDetector_Params()
     params.minCircularity = minCircularity
     params.minInertiaRatio = minInertiaRatio
