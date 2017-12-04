@@ -1586,176 +1586,112 @@ def tile_and_correct(img,template, strides, overlaps,max_shifts, newoverlaps = N
 
 
     """
-    
-            
+
+
 #    if (add_to_movie != 0) and gSig_filt is not None:
 #        raise Exception('When gSig_filt or gSiz_filt are used add_to_movie must be zero!')
-    
-        
-    img = img.astype(np.float64).copy()
-    template = template.astype(np.float64).copy()
-    
-    if gSig_filt is not None:   
-        
+
+    if gSig_filt is not None and not opencv:
+        raise NotImplementedError('The use of FFT and filtering options have not been tested. Set opencv=True')
+
+    if gSig_filt is not None:
         img_orig = img.copy()
-#        template_orig = template.copy()
-        img = low_pass_filter_space(img_orig,gSig_filt)
-        #cv2.GaussianBlur(img_orig, ksize=ksize, sigmaX=gSig_filt[0],sigmaY=gSig_filt[1], borderType=cv2.BORDER_REFLECT) \
-#                            - cv2.boxFilter(img_orig, ddepth=-1,ksize=ksize, borderType=cv2.BORDER_REFLECT)
-#        template = cv2.GaussianBlur(template_orig, ksize=ksize, sigmaX=gSig_filt[0],sigmaY=gSig_filt[1], borderType=cv2.BORDER_REFLECT) \
-#                            - cv2.boxFilter(template_orig, ddepth=-1,ksize=ksize, borderType=cv2.BORDER_REFLECT)
-                            
-    
-    img = img + add_to_movie
-    template = template + add_to_movie
-    
-    
-    # compute rigid shifts
-    rigid_shts,sfr_freq,diffphase = register_translation(img,template,upsample_factor=upsample_factor_fft,max_shifts=max_shifts)
-    
-    if max_deviation_rigid == 0:
-        
-            
-        if shifts_opencv:
-            if gSig_filt is not None:
-                img = img_orig
-        
-            new_img = apply_shift_iteration(img,(-rigid_shts[0],-rigid_shts[1]),border_nan=False)
-        
-        else:
-            
-            if gSig_filt is not None:
-                raise Exception('The use of FFT and filtering options have not been tested. Set opencv=True')
-        
-            new_img = apply_shifts_dft(sfr_freq,(-rigid_shts[0],-rigid_shts[1]),diffphase,border_nan=True)
-            
-            
-        return new_img-add_to_movie, (-rigid_shts[0],-rigid_shts[1]), None, None
+        img = low_pass_filter_space(img_orig, gSig_filt)
     else:
-        # extract patches
-        templates = [it[-1] for it in sliding_window(template,overlaps=overlaps,strides = strides)]
-        xy_grid = [(it[0],it[1]) for it in sliding_window(template,overlaps=overlaps,strides = strides)]
-        num_tiles = np.prod(np.add(xy_grid[-1],1))
-        imgs = [it[-1] for it in sliding_window(img,overlaps=overlaps,strides = strides)]
-        dim_grid = tuple(np.add(xy_grid[-1],1))
+        img = img.astype(np.float64)
 
-        if max_deviation_rigid is not None:
+    img += add_to_movie
+    template = template.astype(np.float64) + add_to_movie
 
-            lb_shifts = np.ceil(np.subtract(rigid_shts,max_deviation_rigid)).astype(int)
-            ub_shifts = np.floor(np.add(rigid_shts,max_deviation_rigid)).astype(int)
-
-        else:
-
-            lb_shifts = None
-            ub_shifts = None
-
-        #extract shifts for each patch
-        shfts_et_all = [register_translation(
-            a,b,c, shifts_lb = lb_shifts, shifts_ub = ub_shifts, max_shifts = max_shifts) for a, b, c in zip (
-            imgs,templates,[upsample_factor_fft]*num_tiles)]
-        shfts = [sshh[0] for sshh in shfts_et_all]
-        diffs_phase = [sshh[2] for sshh in shfts_et_all]
-
-        # create a vector field
-        shift_img_x = np.reshape(np.array(shfts)[:,0],dim_grid)
-        shift_img_y = np.reshape(np.array(shfts)[:,1],dim_grid)
-        diffs_phase_grid = np.reshape(np.array(diffs_phase),dim_grid)
-
-        # create automatically upsample parameters if not passed
-        if newoverlaps is None:
-            newoverlaps = overlaps
-        if newstrides is None:
-            newstrides = tuple(np.round(np.divide(strides,upsample_factor_grid)).astype(np.int))
-
-        newshapes = np.add(newstrides ,newoverlaps)
-
-        imgs = [it[-1] for it in sliding_window(img,overlaps=newoverlaps,strides = newstrides)  ]
-
-        xy_grid = [(it[0],it[1]) for it in sliding_window(img,overlaps=newoverlaps,strides = newstrides)]
-
-        start_step = [(it[2],it[3]) for it in sliding_window(img,overlaps=newoverlaps,strides = newstrides)]
-
-        dim_new_grid = tuple(np.add(xy_grid[-1],1))
-
-        shift_img_x = cv2.resize(shift_img_x,dim_new_grid[::-1],interpolation = cv2.INTER_CUBIC)
-        shift_img_y = cv2.resize(shift_img_y,dim_new_grid[::-1],interpolation = cv2.INTER_CUBIC)
-        diffs_phase_grid_us = cv2.resize(diffs_phase_grid,dim_new_grid[::-1],interpolation = cv2.INTER_CUBIC)
-
-        num_tiles = np.prod(dim_new_grid)
-
-        max_shear  = np.percentile(
-            [np.max(np.abs(np.diff(ssshh,axis = xxsss))) for ssshh, xxsss in itertools.product(
-                [shift_img_x,shift_img_y],[0,1])],75)
-
-        total_shifts = [(-x,-y) for x,y in zip(shift_img_x.reshape(num_tiles),shift_img_y.reshape(num_tiles))]
-        total_diffs_phase = [dfs for dfs in diffs_phase_grid_us.reshape(num_tiles)]
+    # compute rigid shifts
+    rigid_shifts, sfr_freq, diffphase = register_translation(img, template, upsample_factor=upsample_factor_fft, max_shifts=max_shifts)
+    if max_deviation_rigid == 0:
         if shifts_opencv:
-            if gSig_filt is not None:
-                img = img_orig
-                imgs = [it[-1] for it in sliding_window(img,overlaps=newoverlaps,strides = newstrides)  ]
-                
-            imgs = [apply_shift_iteration(im,sh,border_nan=True) for im,sh in zip(imgs, total_shifts)]
-
+            img = img_orig if gSig_filt is not None else img
+            new_img = apply_shift_iteration(img, (-rigid_shifts[0], -rigid_shifts[1]), border_nan=False)
         else:
-            if gSig_filt is not None:
-                raise Exception('The use of FFT and filtering options have not been tested. Set opencv=True')
-                
-            imgs = [apply_shifts_dft(im,(
-                sh[0],sh[1]),dffphs, is_freq = False, border_nan=True)  for im,sh,dffphs in zip(
-                imgs, total_shifts,total_diffs_phase) ]
+            new_img = apply_shifts_dft(sfr_freq,(-rigid_shifts[0], -rigid_shifts[1]), diffphase, border_nan=True)
+        new_img -= add_to_movie
+        return (new_img, (-rigid_shifts[0], -rigid_shifts[1]), None, None)
 
-        normalizer = np.zeros_like(img)*np.nan
-        new_img = np.zeros_like(img)*np.nan
+    # extract patches
+    templates = [it[-1] for it in sliding_window(template, overlaps=overlaps, strides=strides)]
+    xy_grid = [(it[0], it[1]) for it in sliding_window(template, overlaps=overlaps, strides=strides)]
+    num_tiles = np.prod(np.add(xy_grid[-1], 1))
+    dim_grid = tuple(np.add(xy_grid[-1],1))
 
-        weight_matrix = create_weight_matrix_for_blending(img, newoverlaps, newstrides)
+    # create automatically upsampled parameters if not passed
+    if newstrides is None:
+        newstrides = tuple(np.round(np.divide(strides, upsample_factor_grid)).astype(np.int))
+    elif newoverlaps is None:
+        newoverlaps = overlaps
 
-        if max_shear < 0.5:
-            for (x,y),(_,_),im,(_,_),weight_mat in zip(start_step,xy_grid,imgs,total_shifts,weight_matrix):
+    imgs       = [it[-1]         for it in sliding_window(img, overlaps=newoverlaps, strides=newstrides)]
+    xy_grid    = [(it[0], it[1]) for it in sliding_window(img, overlaps=newoverlaps, strides=newstrides)]
+    start_step = [(it[2], it[3]) for it in sliding_window(img, overlaps=newoverlaps, strides=newstrides)]
 
-                prev_val_1 = normalizer[x:x + newshapes[0],y:y + newshapes[1]]
+    #extract shifts for each patch
+    lb_shifts = np.ceil(np.subtract(rigid_shifts, max_deviation_rigid)).astype(int) if max_deviation_rigid is not None else None
+    ub_shifts = np.floor(np.add(rigid_shifts, max_deviation_rigid)).astype(int) if max_deviation_rigid is not None else None
+    shfts_et_all = [register_translation(im, template, upfactor, shifts_lb=lb_shifts, shifts_ub=ub_shifts, max_shifts=max_shifts) for im, template, upfactor in zip(imgs, templates, [upsample_factor_fft] * num_tiles)]
+    shfts = [sshh[0] for sshh in shfts_et_all]
 
-                normalizer[x:x + newshapes[0],y:y + newshapes[1]] = np.nansum(np.dstack([~np.isnan(im)*1*weight_mat,prev_val_1]),-1)
-                prev_val = new_img[x:x + newshapes[0],y:y + newshapes[1]]
-                new_img[x:x + newshapes[0],y:y + newshapes[1]] = np.nansum(np.dstack([im*weight_mat,prev_val]),-1)
+    # create a vector field
+    shift_img_x, shift_img_y = np.reshape(np.array(shfts)[:, 0], dim_grid), np.reshape(np.array(shfts)[:, 1], dim_grid)
+    diffs_phase_grid = np.reshape(np.array([sshh[2] for sshh in shfts_et_all]), dim_grid)
 
+    dim_new_grid = tuple(np.add(xy_grid[-1], 1))[::-1]
+    for array in (shift_img_x, shift_img_y, diffs_phase_grid):
+        array[:] = cv2.resize(array, dim_new_grid, interpolation=cv2.INTER_CUBIC)
 
-            new_img = old_div(new_img,normalizer)
+    num_tiles = np.prod(dim_new_grid)
+    max_shear  = np.percentile([np.max(np.abs(np.diff(ssshh, axis=xxsss))) for ssshh, xxsss in itertools.product([shift_img_x, shift_img_y], [0, 1])], 75)
+    total_shifts = [(-x, -y) for x, y in zip(shift_img_x.reshape(num_tiles),shift_img_y.reshape(num_tiles))]
+    total_diffs_phase = list(diffs_phase_grid.reshape(num_tiles))
 
-        else: # in case the difference in shift between neighboring patches is larger than 0.5 pixels we do not interpolate in the overlaping area
-            half_overlap_x = np.int(newoverlaps[0]/2)
-            half_overlap_y = np.int(newoverlaps[1]/2)
-            for (x,y),(idx_0,idx_1),im,(_,_),weight_mat in zip(start_step,xy_grid,imgs,total_shifts,weight_matrix):
+    if shifts_opencv:
+        if gSig_filt is not None:
+            imgs = [it[-1] for it in sliding_window(img_orig, overlaps=newoverlaps,strides = newstrides)]
+        imgs = [apply_shift_iteration(im,sh,border_nan=True) for im, sh in zip(imgs, total_shifts)]
+    else:
+        imgs = [apply_shifts_dft(im, sh, dffphs, is_freq=False, border_nan=True) for im, sh, dffphs in zip(imgs, total_shifts,total_diffs_phase)]
 
-                if idx_0 == 0:
-                    x_start = x
-                else:
-                    x_start = x + half_overlap_x
+    normalizer, new_img = np.zeros_like(img), np.zeros_like(img)
+    weight_matrix = create_weight_matrix_for_blending(img, newoverlaps, newstrides)
+    newshapes = np.add(newstrides, newoverlaps)
+    if max_shear < 0.5:
+        for (x, y), (_, _), im, (_, _), weight_mat in zip(start_step, xy_grid, imgs, total_shifts, weight_matrix):
+            prev_val_1 = normalizer[x:(x + newshapes[0]), y:(y + newshapes[1])]
+            normalizer[x:(x + newshapes[0]), y:(y + newshapes[1])] = np.nansum(np.dstack([~np.isnan(im) * 1 * weight_mat, prev_val_1]), -1)
+            prev_val = new_img[x:x + newshapes[0],y:y + newshapes[1]]
+            new_img[x:x + newshapes[0], y:y + newshapes[1]] = np.nansum(np.dstack([im * weight_mat, prev_val]), -1)
 
-                if idx_1 == 0:
-                    y_start = y
-                else:
-                    y_start = y + half_overlap_y
+        new_img /= normalizer
 
-                x_end = x + newshapes[0]
-                y_end = y + newshapes[1]
-                new_img[x_start:x_end,y_start:y_end] = im[x_start-x:,y_start-y:]
+    else: # in case the difference in shift between neighboring patches is larger than 0.5 pixels we do not interpolate in the overlaping area
+        half_overlap_x, half_overlap_y = tuple(int(el / 2) for el in newoverlaps)
+        for (x, y), (idx_0, idx_1), im, (_, _), weight_mat in zip(start_step, xy_grid, imgs, total_shifts, weight_matrix):
+            x_start = x if idx_0 == 0 else x + half_overlap_x
+            y_start = y if idx_1 == 0 else y + half_overlap_y
+            x_end = x + newshapes[0]
+            y_end = y + newshapes[1]
+            new_img[x_start:x_end,y_start:y_end] = im[x_start-x:, y_start-y:]
 
+    if show_movie:
+        img = apply_shifts_dft(sfr_freq, (-rigid_shifts[0], -rigid_shifts[1]), diffphase, border_nan=True)
+        img_show = np.vstack([new_img, img])
+        img_show = cv2.resize(img_show, None, fx=1, fy=1)
+        img_show /= np.percentile(template, 99)
 
-        if show_movie:
-            img = apply_shifts_dft(sfr_freq,(-rigid_shts[0],-rigid_shts[1]),diffphase,border_nan=True)
-            img_show = np.vstack([new_img,img])
+        cv2.imshow('frame', img_show)
+        cv2.waitKey(2)
+    else:
+        try:
+            cv2.destroyAllWindows()
+        except:
+            pass
 
-            img_show = cv2.resize(img_show,None,fx=1,fy=1)
-
-            cv2.imshow('frame',old_div(img_show,np.percentile(template,99)))
-            cv2.waitKey(int(1./500*1000))
-
-        else:
-            try:
-                cv2.destroyAllWindows()
-            except:
-                pass
-        return new_img-add_to_movie, total_shifts,start_step,xy_grid
+    return new_img - add_to_movie, total_shifts, start_step, xy_grid
 #%%
 def compute_flow_single_frame(frame,templ,pyr_scale = .5,levels = 3, winsize = 100, iterations = 15, poly_n = 5,
                               poly_sigma = 1.2/5, flags = 0):
@@ -2082,7 +2018,7 @@ def motion_correct_batch_pwrigid(fname, max_shifts, strides, overlaps, add_to_mo
 
 def tile_and_correct_wrapper(params):
     """in parallel"""
-    #todo todocument
+    #todo todocumentd
     img_name,  out_fname, idxs, shape_mov, template, strides, overlaps, max_shifts,\
         add_to_movie,max_deviation_rigid,upsample_factor_grid, newoverlaps, newstrides, \
         shifts_opencv,nonneg_movie, gSig_filt, is_fiji = params
