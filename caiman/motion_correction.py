@@ -1484,15 +1484,8 @@ def sliding_window(image, overlaps, strides):
         for dim_2,y in enumerate(range_2):
             # yield the current window
             yield (dim_1, dim_2 , x, y, image[ x:x + windowSize[0],y:y + windowSize[1]])
-#%%
 
 
-
-def iqr(a):
-    return np.percentile(a,75)-np.percentile(a,25)
-
-
-#%%
 def create_weight_matrix_for_blending(img, overlaps, strides):
     """ create a matrix that is used to normalize the intersection of the stiched patches
 
