@@ -43,10 +43,11 @@ from __future__ import division, print_function, absolute_import
 from past.builtins import basestring
 from past.utils import old_div
 import gc
-import os
+from os import path
 import collections
 import itertools
 import warnings
+from tqdm import tqdm
 
 import numpy as np
 from numpy.fft import ifftshift
@@ -909,7 +910,7 @@ def process_movie_parallel(arg_in):
 
     if template is not None:
         if isinstance(template,basestring):
-            if os.path.exists(template):
+            if path.exists(template):
                 template=Movie.load(template,fr=1)
             else:
                 raise Exception('Path to template does not exist:'+template)                
@@ -1943,7 +1944,7 @@ def motion_correct_batch_rigid(fname, max_shifts, dview = None, splits = 56 ,num
 
         fname_tot_rig, res_rig = motion_correction_piecewise (fname, splits, strides = None, overlaps = None,
                                 add_to_movie=add_to_movie, template = old_templ, max_shifts = max_shifts, max_deviation_rigid = 0,
-                                dview = dview, save_movie = save_movie ,base_name  = os.path.split(fname)[-1][:-4]+ '_rig_',
+                                dview = dview, save_movie = save_movie ,base_name  = path.split(fname)[-1][:-4]+ '_rig_',
                                 num_splits=num_splits_to_process,shifts_opencv=shifts_opencv, nonneg_movie = nonneg_movie, gSig_filt = gSig_filt)
     
     
@@ -2055,7 +2056,7 @@ def motion_correct_batch_pwrigid(fname, max_shifts, strides, overlaps, add_to_mo
                                 max_deviation_rigid = max_deviation_rigid,\
                                 newoverlaps = newoverlaps, newstrides = newstrides,\
                                 upsample_factor_grid = upsample_factor_grid, order = 'F',dview = dview,save_movie = save_movie,
-                                base_name = os.path.split(fname)[-1][:-4] + '_els_',num_splits=num_splits_to_process,
+                                base_name = path.split(fname)[-1][:-4] + '_els_',num_splits=num_splits_to_process,
                                                             shifts_opencv = shifts_opencv, nonneg_movie = nonneg_movie, gSig_filt = gSig_filt)
 
         new_templ = np.nanmedian(np.dstack([r[-1] for r in res_el ]),-1)    
@@ -2079,66 +2080,32 @@ def motion_correct_batch_pwrigid(fname, max_shifts, strides, overlaps, add_to_mo
     return fname_tot_els, total_template, templates, x_shifts, y_shifts, coord_shifts 
 
 
-#%% in parallel
 def tile_and_correct_wrapper(params):
+    """in parallel"""
     #todo todocument
-
-    from skimage.external.tifffile import imread
-    import numpy as np
-    import cv2
-    try:
-        cv2.setNumThreads(1)
-    except:
-        1 #'Open CV is naturally single threaded'
-
-    img_name,  out_fname,idxs, shape_mov, template, strides, overlaps, max_shifts,\
+    img_name,  out_fname, idxs, shape_mov, template, strides, overlaps, max_shifts,\
         add_to_movie,max_deviation_rigid,upsample_factor_grid, newoverlaps, newstrides, \
         shifts_opencv,nonneg_movie, gSig_filt, is_fiji = params
 
-    import os
+    imgs = Movie.load(img_name)
 
-    name, extension = os.path.splitext(img_name)[:2]
-    
-    if extension == '.tif' or extension == '.tiff':  # check if tiff file
-        if is_fiji:
-            imgs = imread(img_name)[idxs]
-        else:
-            imgs = imread(img_name, key=idxs)
-        mc = np.zeros(imgs.shape,dtype = np.float32)
-        shift_info = []
-    elif extension == '.sbx':  # check if sbx file
-        imgs = Movie.from_sbx(name, idxs[0], len(idxs))
-        mc = np.zeros(imgs.shape,dtype = np.float32)
-        shift_info = []
-    elif extension =='.hdf5':
-        imgs = Movie.load(img_name,subindices=list(idxs))
-        mc = np.zeros(imgs.shape,dtype = np.float32)
-        shift_info = []
-    elif extension =='.h5':
-        imgs = Movie.load(img_name,subindices=list(idxs))
-        mc = np.zeros(imgs.shape,dtype = np.float32)
-        shift_info = []    
-    for count, img in enumerate(imgs): 
-        if count % 10 == 0:
-            print(count)
-        mc[count],total_shift,start_step,xy_grid = tile_and_correct(img, template, strides, overlaps,max_shifts,
-                                                                    add_to_movie=add_to_movie, newoverlaps = newoverlaps,
-                                                                    newstrides = newstrides,
-                                                                    upsample_factor_grid= upsample_factor_grid,
-                                                                    upsample_factor_fft=10,show_movie=False,
+    mc = np.zeros(imgs.shape, dtype=np.float32)
+    shift_info = []
+    for count, img in tqdm(enumerate(imgs)):
+        mc[count], total_shift, start_step, xy_grid = tile_and_correct(img, template, strides, overlaps,max_shifts,
+                                                                    add_to_movie=add_to_movie, newoverlaps=newoverlaps,
+                                                                    newstrides=newstrides, upsample_factor_grid=upsample_factor_grid,
+                                                                    upsample_factor_fft=10, show_movie=False,
                                                                     max_deviation_rigid=max_deviation_rigid,
-                                                                    shifts_opencv = shifts_opencv, gSig_filt=gSig_filt)
-        shift_info.append([total_shift,start_step,xy_grid])
+                                                                    shifts_opencv=shifts_opencv, gSig_filt=gSig_filt)
+        shift_info.append([total_shift, start_step, xy_grid])
         
     if out_fname is not None:           
-        outv = np.memmap(out_fname,mode='r+', dtype=np.float32, shape=shape_mov, order='F')
-        if nonneg_movie:
-            bias = np.float32(add_to_movie)
-        else:
-            bias = 0
-        outv[:,idxs] = np.reshape(mc.astype(np.float32),(len(imgs),-1),order = 'F').T + bias
+        outv = np.memmap(out_fname, mode='r+', dtype=np.float32, shape=shape_mov, order='F')
+        bias = np.float32(add_to_movie) if nonneg_movie else 0
+        outv[:, idxs] = np.reshape(mc.astype(np.float32), (len(imgs), -1), order='F').T + bias
 
-    return shift_info, idxs, np.nanmean(mc,0)
+    return shift_info, idxs, np.nanmean(mc, axis=0)
 
 
 #%%
@@ -2152,7 +2119,7 @@ def motion_correction_piecewise(fname, splits, strides, overlaps, add_to_movie=0
     #todo todocument
     import os
     import h5py
-    name, extension = os.path.splitext(fname)[:2]
+    name, extension = path.splitext(fname)[:2]
     is_fiji = False
 
     if extension == '.tif' or extension == '.tiff':  # check if tiff file
@@ -2206,10 +2173,10 @@ def motion_correction_piecewise(fname, splits, strides, overlaps, add_to_movie=0
         
     if save_movie:
        if base_name is None:
-           base_name = os.path.split(fname)[1][:-4]
+           base_name = path.split(fname)[1][:-4]
        fname_tot = base_name + '_d1_' + str(dims[0]) + '_d2_' + str(dims[1]) + '_d3_' + str(
            1 if len(dims) == 2 else dims[2]) + '_order_' + str(order) + '_frames_' + str(T) + '_.mmap'
-       fname_tot = os.path.join(os.path.split(fname)[0],fname_tot) 
+       fname_tot = path.join(path.split(fname)[0],fname_tot)
        np.memmap(fname_tot, mode='w+', dtype=np.float32, shape=shape_mov, order=order)
     else:
         fname_tot = None
