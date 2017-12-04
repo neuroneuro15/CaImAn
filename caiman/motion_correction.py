@@ -1686,15 +1686,14 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, newoverlaps=N
 
 def show_tile_and_correct_movie(img, new_img, str_freq, rigid_shifts, diffphase):
     """Takes the movie returned by tile_and_correct() and displays it in an OpenCV window."""
+    img = apply_shifts_dft(sfr_freq, (-rigid_shifts[0], -rigid_shifts[1]), diffphase, border_nan=True)
+    img_show = np.vstack([new_img, img])
+    img_show = cv2.resize(img_show, None, fx=1, fy=1)
+    img_show /= np.percentile(template, 99)
 
-        img = apply_shifts_dft(sfr_freq, (-rigid_shifts[0], -rigid_shifts[1]), diffphase, border_nan=True)
-        img_show = np.vstack([new_img, img])
-        img_show = cv2.resize(img_show, None, fx=1, fy=1)
-        img_show /= np.percentile(template, 99)
-
-        cv2.imshow('frame', img_show)
-        cv2.waitKey(2)
-        cv2.destroyAllWindows()
+    cv2.imshow('frame', img_show)
+    cv2.waitKey(2)
+    cv2.destroyAllWindows()
 
 #%%
 def compute_flow_single_frame(frame,templ,pyr_scale = .5,levels = 3, winsize = 100, iterations = 15, poly_n = 5,
