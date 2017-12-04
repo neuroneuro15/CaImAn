@@ -63,8 +63,8 @@ def tile_and_correct_wrapper(params):
     for count, img in enumerate(imgs): 
         if count % 10 == 0:
             print(count)
-        mc[count],total_shift,start_step,xy_grid = tile_and_correct(img, template, strides, overlaps,max_shifts, add_to_movie=add_to_movie, newoverlaps = newoverlaps, newstrides = newstrides,\
-                upsample_factor_grid= upsample_factor_grid, upsample_factor_fft=10,show_movie=False,max_deviation_rigid=max_deviation_rigid,shifts_opencv = shifts_opencv)
+        mc[count],total_shift,start_step,xy_grid = tile_and_correct(img, template, strides, overlaps, max_shifts, add_to_movie=add_to_movie, newoverlaps = newoverlaps, strides= newstrides, \
+                                                                    upsample_factor_grid= upsample_factor_grid, upsample_factor_fft=10, show_movie=False, max_deviation_rigid=max_deviation_rigid, shifts_opencv = shifts_opencv)
         shift_info.append([total_shift,start_step,xy_grid])
     if out_fname is not None:           
         outv = np.memmap(out_fname,mode='r+', dtype=np.float32, shape=shape_mov, order='F')

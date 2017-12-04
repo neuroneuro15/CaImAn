@@ -53,9 +53,9 @@ mc = np.zeros(m.shape)
 for count,img in enumerate(np.array(m)):
     if count % 10  == 0:
         print(count)
-    mc[count],total_shift,start_step,xy_grid = tile_and_correct(img, template, strides, overlaps,(12,12), newoverlaps = None, \
-                newstrides = newstrides, upsample_factor_grid=4,\
-                upsample_factor_fft=10,show_movie=False,max_deviation_rigid=2,add_to_movie=add_to_movie)
+    mc[count],total_shift,start_step,xy_grid = tile_and_correct(img, template, strides, overlaps, (12,12), newoverlaps = None, \
+                                                                strides= newstrides, upsample_factor_grid=4, \
+                                                                upsample_factor_fft=10, show_movie=False, max_deviation_rigid=2, add_to_movie=add_to_movie)
 
     total_shifts.append(total_shift)
     start_steps.append(start_step)

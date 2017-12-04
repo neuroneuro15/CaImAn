@@ -1536,8 +1536,7 @@ def low_pass_filter_space(img_orig,gSig_filt):
     #return cv2.sepFilter2D(np.array(img_orig,dtype=np.float32),-1,kernelX = ker, kernelY = ker, borderType=cv2.BORDER_REFLECT)
     return cv2.filter2D(np.array(img_orig,dtype=np.float32),-1,ker2D, borderType=cv2.BORDER_REFLECT)
 #%% 
-def tile_and_correct(img, template, strides, overlaps, max_shifts, newoverlaps=None, newstrides=None, upsample_factor_grid=4,
-                upsample_factor_fft=10, max_deviation_rigid=2, add_to_movie=0, shifts_opencv=False, gSig_filt=None):
+def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_factor_grid=4, upsample_factor_fft=10, max_deviation_rigid=2, add_to_movie=0, shifts_opencv=False, gSig_filt=None):
 
     """ perform piecewise rigid motion correction iteration, by
         1) dividing the FOV in patches
@@ -1615,19 +1614,14 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, newoverlaps=N
         return (new_img, (-rigid_shifts[0], -rigid_shifts[1]), None, None)
 
     # extract patches
-    sliding_template = sliding_window(template, overlaps=overlaps, strides=strides)
-    templates = sliding_template[:, -1].tolist()
-    xy_grid = sliding_template[:, (0, 1)].tolist()
-    dim_grid = tuple(np.add(xy_grid[-1], 1))
+    sliding_template = list(sliding_window(template, overlaps=overlaps, strides=strides))
+    templates = [el[-1] for el in sliding_template]
+    dim_grid = tuple(np.add(sliding_template[-1][:2], 1))
     num_tiles = np.prod(dim_grid)
 
-    # create automatically upsampled parameters if not passed
-    if newstrides is None:
-        newstrides = tuple(np.round(np.divide(strides, upsample_factor_grid)).astype(np.int))
-    elif newoverlaps is None:
-        newoverlaps = overlaps
+    strides = tuple(np.round(np.divide(strides, upsample_factor_grid)).astype(np.int))
 
-    sliding_img = sliding_window(img, overlaps=newoverlaps, strides=newstrides)
+    sliding_img = list(sliding_window(img, overlaps=overlaps, strides=strides))
     imgs       = [it[-1]         for it in sliding_img]
     xy_grid    = [(it[0], it[1]) for it in sliding_img]
     start_step = [(it[2], it[3]) for it in sliding_img]
@@ -1647,20 +1641,20 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, newoverlaps=N
         array[:] = cv2.resize(array, dim_new_grid, interpolation=cv2.INTER_CUBIC)
 
     num_tiles = np.prod(dim_new_grid)
-    max_shear  = np.percentile([np.max(np.abs(np.diff(ssshh, axis=xxsss))) for ssshh, xxsss in itertools.product([shift_img_x, shift_img_y], [0, 1])], 75)
+    max_shear  = np.percentile([np.max(np.abs(np.diff(im, axis=axis))) for im, axis in itertools.product([shift_img_x, shift_img_y], [0, 1])], 75)
     total_shifts = [(-x, -y) for x, y in zip(shift_img_x.reshape(num_tiles),shift_img_y.reshape(num_tiles))]
     total_diffs_phase = list(diffs_phase_grid.reshape(num_tiles))
 
     if shifts_opencv:
         if gSig_filt is not None:
-            imgs = [it[-1] for it in sliding_window(img_orig, overlaps=newoverlaps,strides = newstrides)]
+            imgs = [it[-1] for it in sliding_window(img_orig, overlaps=overlaps, strides = strides)]
         imgs = [apply_shift_iteration(im,sh,border_nan=True) for im, sh in zip(imgs, total_shifts)]
     else:
         imgs = [apply_shifts_dft(im, sh, dffphs, is_freq=False, border_nan=True) for im, sh, dffphs in zip(imgs, total_shifts,total_diffs_phase)]
 
     normalizer, new_img = np.zeros_like(img), np.zeros_like(img)
-    weight_matrix = create_weight_matrix_for_blending(img, newoverlaps, newstrides)
-    newshapes = np.add(newstrides, newoverlaps)
+    weight_matrix = create_weight_matrix_for_blending(img, overlaps, strides)
+    newshapes = np.add(strides, overlaps)
     if max_shear < 0.5:
         for (x, y), (_, _), im, (_, _), weight_mat in zip(start_step, xy_grid, imgs, total_shifts, weight_matrix):
             prev_val_1 = normalizer[x:(x + newshapes[0]), y:(y + newshapes[1])]
@@ -1671,7 +1665,7 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, newoverlaps=N
         new_img /= normalizer
 
     else: # in case the difference in shift between neighboring patches is larger than 0.5 pixels we do not interpolate in the overlaping area
-        half_overlap_x, half_overlap_y = tuple(int(el / 2) for el in newoverlaps)
+        half_overlap_x, half_overlap_y = tuple(int(el / 2) for el in overlaps)
         for (x, y), (idx_0, idx_1), im, (_, _), weight_mat in zip(start_step, xy_grid, imgs, total_shifts, weight_matrix):
             x_start = x if idx_0 == 0 else x + half_overlap_x
             y_start = y if idx_1 == 0 else y + half_overlap_y
@@ -1684,7 +1678,7 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, newoverlaps=N
     return new_img, total_shifts, start_step, xy_grid
 
 
-def show_tile_and_correct_movie(img, new_img, str_freq, rigid_shifts, diffphase):
+def show_tile_and_correct_movie(img, new_img, template, sfr_freq, rigid_shifts, diffphase):
     """Takes the movie returned by tile_and_correct() and displays it in an OpenCV window."""
     img = apply_shifts_dft(sfr_freq, (-rigid_shifts[0], -rigid_shifts[1]), diffphase, border_nan=True)
     img_show = np.vstack([new_img, img])
@@ -2031,12 +2025,12 @@ def tile_and_correct_wrapper(params):
     mc = np.zeros(imgs.shape, dtype=np.float32)
     shift_info = []
     for count, img in tqdm(enumerate(imgs)):
-        mc[count], total_shift, start_step, xy_grid = tile_and_correct(img, template, strides, overlaps,max_shifts,
-                                                                    add_to_movie=add_to_movie, newoverlaps=newoverlaps,
-                                                                    newstrides=newstrides, upsample_factor_grid=upsample_factor_grid,
-                                                                    upsample_factor_fft=10, show_movie=False,
-                                                                    max_deviation_rigid=max_deviation_rigid,
-                                                                    shifts_opencv=shifts_opencv, gSig_filt=gSig_filt)
+        mc[count], total_shift, start_step, xy_grid = tile_and_correct(img, template, strides, overlaps, max_shifts,
+                                                                       add_to_movie=add_to_movie, newoverlaps=newoverlaps,
+                                                                       strides=newstrides, upsample_factor_grid=upsample_factor_grid,
+                                                                       upsample_factor_fft=10, show_movie=False,
+                                                                       max_deviation_rigid=max_deviation_rigid,
+                                                                       shifts_opencv=shifts_opencv, gSig_filt=gSig_filt)
         shift_info.append([total_shift, start_step, xy_grid])
         
     if out_fname is not None:           
