@@ -1615,10 +1615,11 @@ def tile_and_correct(img,template, strides, overlaps,max_shifts, newoverlaps = N
         return (new_img, (-rigid_shifts[0], -rigid_shifts[1]), None, None)
 
     # extract patches
-    templates = [it[-1] for it in sliding_window(template, overlaps=overlaps, strides=strides)]
-    xy_grid = [(it[0], it[1]) for it in sliding_window(template, overlaps=overlaps, strides=strides)]
-    num_tiles = np.prod(np.add(xy_grid[-1], 1))
-    dim_grid = tuple(np.add(xy_grid[-1],1))
+    sliding_template = sliding_window(template, overlaps=overlaps, strides=strides)
+    templates = sliding_template[:, -1].tolist()
+    xy_grid = sliding_template[:, (0, 1)].tolist()
+    dim_grid = tuple(np.add(xy_grid[-1], 1))
+    num_tiles = np.prod(dim_grid)
 
     # create automatically upsampled parameters if not passed
     if newstrides is None:
@@ -1626,9 +1627,10 @@ def tile_and_correct(img,template, strides, overlaps,max_shifts, newoverlaps = N
     elif newoverlaps is None:
         newoverlaps = overlaps
 
-    imgs       = [it[-1]         for it in sliding_window(img, overlaps=newoverlaps, strides=newstrides)]
-    xy_grid    = [(it[0], it[1]) for it in sliding_window(img, overlaps=newoverlaps, strides=newstrides)]
-    start_step = [(it[2], it[3]) for it in sliding_window(img, overlaps=newoverlaps, strides=newstrides)]
+    sliding_img = sliding_window(img, overlaps=newoverlaps, strides=newstrides)
+    imgs       = [it[-1]         for it in sliding_img]
+    xy_grid    = [(it[0], it[1]) for it in sliding_img]
+    start_step = [(it[2], it[3]) for it in sliding_img]
 
     #extract shifts for each patch
     lb_shifts = np.ceil(np.subtract(rigid_shifts, max_deviation_rigid)).astype(int) if max_deviation_rigid is not None else None
