@@ -1536,8 +1536,8 @@ def low_pass_filter_space(img_orig,gSig_filt):
     #return cv2.sepFilter2D(np.array(img_orig,dtype=np.float32),-1,kernelX = ker, kernelY = ker, borderType=cv2.BORDER_REFLECT)
     return cv2.filter2D(np.array(img_orig,dtype=np.float32),-1,ker2D, borderType=cv2.BORDER_REFLECT)
 #%% 
-def tile_and_correct(img,template, strides, overlaps,max_shifts, newoverlaps = None, newstrides = None, upsample_factor_grid=4,
-                upsample_factor_fft=10,show_movie=False,max_deviation_rigid=2,add_to_movie=0, shifts_opencv = False, gSig_filt = None):
+def tile_and_correct(img, template, strides, overlaps, max_shifts, newoverlaps=None, newstrides=None, upsample_factor_grid=4,
+                upsample_factor_fft=10, max_deviation_rigid=2, add_to_movie=0, shifts_opencv=False, gSig_filt=None):
 
     """ perform piecewise rigid motion correction iteration, by
         1) dividing the FOV in patches
@@ -1679,7 +1679,14 @@ def tile_and_correct(img,template, strides, overlaps,max_shifts, newoverlaps = N
             y_end = y + newshapes[1]
             new_img[x_start:x_end,y_start:y_end] = im[x_start-x:, y_start-y:]
 
-    if show_movie:
+    new_img -= add_to_movie
+
+    return new_img, total_shifts, start_step, xy_grid
+
+
+def show_tile_and_correct_movie(img, new_img, str_freq, rigid_shifts, diffphase):
+    """Takes the movie returned by tile_and_correct() and displays it in an OpenCV window."""
+
         img = apply_shifts_dft(sfr_freq, (-rigid_shifts[0], -rigid_shifts[1]), diffphase, border_nan=True)
         img_show = np.vstack([new_img, img])
         img_show = cv2.resize(img_show, None, fx=1, fy=1)
@@ -1687,13 +1694,8 @@ def tile_and_correct(img,template, strides, overlaps,max_shifts, newoverlaps = N
 
         cv2.imshow('frame', img_show)
         cv2.waitKey(2)
-    else:
-        try:
-            cv2.destroyAllWindows()
-        except:
-            pass
+        cv2.destroyAllWindows()
 
-    return new_img - add_to_movie, total_shifts, start_step, xy_grid
 #%%
 def compute_flow_single_frame(frame,templ,pyr_scale = .5,levels = 3, winsize = 100, iterations = 15, poly_n = 5,
                               poly_sigma = 1.2/5, flags = 0):
