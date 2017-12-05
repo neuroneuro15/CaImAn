@@ -314,82 +314,6 @@ def apply_shift_iteration(img,shift,border_nan=False, border_type = cv2.BORDER_R
     return img
 
 
-#%%
-def apply_shift_online(movie_iterable,xy_shifts,save_base_name=None,order='F'):
-    # todo todocument
-
-    if len(movie_iterable) != len(xy_shifts):
-        raise Exception('Number of shifts does not match Movie length!')
-    count=0
-    new_mov=[]
-    dims=(len(movie_iterable),)+movie_iterable[0].shape
-
-    if save_base_name is not None:
-        fname_tot = save_base_name + '_d1_' + str(dims[1]) + '_d2_' + str(dims[2]) + '_d3_' + str(
-                1 if len(dims) == 3 else dims[3]) + '_order_' + str(order) + '_frames_' + str(dims[0]) + '_.mmap'
-
-        big_mov = np.memmap(fname_tot, mode='w+', dtype=np.float32,
-                                shape=(np.prod(dims[1:]), dims[0]), order=order)
-
-    for page,shift in zip(movie_iterable,xy_shifts):
-        if 'tifffile' in str(type(movie_iterable[0])):
-            page=page.asarray()
-
-        img=np.array(page,dtype=np.float32)
-        new_img = apply_shift_iteration(img,shift)
-        if save_base_name is not None:
-            big_mov[:,count] = np.reshape(new_img,np.prod(dims[1:]),order='F')
-        else:
-            new_mov.append(new_img)
-        count+=1
-
-    if save_base_name is not None:
-        big_mov.flush()
-        del big_mov    
-        return fname_tot
-    else:
-        return np.array(new_mov) 
-#%%
-def motion_correct_oneP_rigid(filename,gSig_filt,max_shifts, dview=None, splits_rig = 10, save_movie = True):
-    ''' Perform rigid motion correction on one photon imaging movies
-    filename: str
-        name of the file to correct
-        
-    gSig_filt:
-        size of the filter. If algorithm does not work change this parameters
-        
-    max_shifts: tuple of ints
-        max shifts in x and y allowed
-        
-        
-    dview:
-        handle to cluster
-        
-    splits_rig: int
-        number of chunks for parallelizing motion correction (remember that it should hold that length_movie/num_splits_to_process_rig>100)
-        
-    save_movie: bool
-        whether to save the movie in memory mapped format
-    
-    Returns:
-    --------
-    
-    Motion correction object
-    '''
-    min_mov = np.array([low_pass_filter_space(m_,gSig_filt) for m_ in Movie.load(filename, subindices=range(400))]).min()
-    new_templ = None    
-    
-    # TODO: needinfo how the classes works
-    mc = MotionCorrect(filename, min_mov,
-                       dview=dview, max_shifts=max_shifts, niter_rig=1, splits_rig=splits_rig,
-                       num_splits_to_process_rig=None,
-                       shifts_opencv=True, nonneg_movie=True, gSig_filt = gSig_filt)
-    
-    mc.motion_correct_rigid(save_movie=save_movie,template = new_templ)  
-    
-    return mc
-#%%
-
 def motion_correct_online_multifile(list_files,add_to_movie,order = 'C', **kwargs):
     # todo todocument
 
@@ -903,122 +827,8 @@ def bin_median(mat,window=10,exclude_nans = False ):
 #    H2((0:ns-1)*ns+(1:ns)) = Hd(1:ns)';
 #    H2(((1:ns-1)*ns+(1:ns-1))) = Hd(ns+1:)';
 #    H2(((0:ns-2)*ns+(1:ns-1))+1) = Hd(ns+1:)';
-#%%    
-def process_movie_parallel(arg_in):
-#todo: todocument
-    fname,fr,margins_out,template,max_shift_w, max_shift_h,remove_blanks,apply_smooth,save_hdf5=arg_in
-
-    if template is not None:
-        if isinstance(template,basestring):
-            if path.exists(template):
-                template=Movie.load(template,fr=1)
-            else:
-                raise Exception('Path to template does not exist:'+template)                
-
-    type_input = str(type(fname)) 
-    if 'Movie' in type_input:
-#        print((type(fname)))
-        Yr=fname
-
-    elif ('ndarray' in type_input):        
-        Yr=Movie(np.array(fname, dtype=np.float32), fr=fr)
-    elif isinstance(fname,basestring): 
-        Yr=Movie.load(fname,fr=fr)
-    else:
-        raise Exception('Unkown input type:' + type_input)
-
-    if Yr.ndim>1:
-#        print('loaded')
-        if apply_smooth:
-#            print('applying smoothing')
-            Yr=Yr.bilateral_blur_2D(diameter=10,sigmaColor=10000,sigmaSpace=0)
-
-#        print('Remove BL')
-        if margins_out!=0:
-            Yr=Yr[:,margins_out:-margins_out,margins_out:-margins_out] # borders create troubles
-
-#        print('motion correcting')
-
-        Yr,shifts,xcorrs,template=Yr.motion_correct(max_shift_w=max_shift_w, max_shift_h=max_shift_h,
-                                                    method='opencv',template=template,remove_blanks=remove_blanks)
-        
-        if ('Movie' in type_input) or ('ndarray' in type_input):
-#            print('Returning Values')
-            return Yr, shifts, xcorrs, template
-
-        else:     
-
-#            print('median computing')
-            template=Yr.bin_median()
-#            print('saving')
-            idx_dot=len(fname.split('.')[-1])
-            if save_hdf5:
-                Yr.save(fname[:-idx_dot]+'hdf5')
-#            print('saving 2')
-            np.savez(fname[:-idx_dot]+'npz',shifts=shifts,xcorrs=xcorrs,template=template)
-#            print('deleting')
-            del Yr
-#            print('done!')
-            return fname[:-idx_dot] 
-    else:
-        return None
-
-
 #%%
-def motion_correct_parallel(file_names,fr=10,template=None,margins_out=0,
-                            max_shift_w=5, max_shift_h=5,remove_blanks=False,apply_smooth=False,dview=None,save_hdf5=True):
-    """motion correct many movies usingthe ipyparallel cluster
 
-    Parameters:
-    ----------
-    file_names: list of strings
-        names of he files to be motion corrected
-
-    fr: double
-        fr parameters for calcblitz Movie
-
-    margins_out: int
-        number of pixels to remove from the borders    
-
-    Returns:
-    ------
-    base file names of the motion corrected files
-
-    Raise:
-    -----
-    Empty Exception
-    """
-    args_in=[]
-    for file_idx,f in enumerate(file_names):
-        if type(template) is list:
-            args_in.append((f,fr,margins_out,template[file_idx],max_shift_w, max_shift_h,
-                            remove_blanks,apply_smooth,save_hdf5))
-        else:
-            args_in.append((f,fr,margins_out,template,max_shift_w, max_shift_h,remove_blanks,apply_smooth,save_hdf5))
-
-    try:
-        if dview is not None:
-            if 'multiprocessing' in str(type(dview)):
-                file_res = dview.map_async(process_movie_parallel, args_in).get(4294967)
-            else:
-                file_res = dview.map_sync(process_movie_parallel, args_in)                         
-                dview.results.clear()
-        else:
-            file_res = list(map(process_movie_parallel, args_in))        
-
-    except:
-        try:
-            if (dview is not None) and not ('multiprocessing' in str(type(dview))):
-                dview.results.clear()       
-
-        except UnboundLocalError as uberr:
-            print('could not close client')
-
-        raise
-
-    return file_res 
-
-#%%
 
 def _upsampled_dft(data, upsampled_region_size,
                    upsample_factor=1, axis_offsets=None):
@@ -1153,9 +963,7 @@ def _compute_error(cross_correlation_max, src_amp, target_amp):
     target_amp : float
         The normalized average image intensity of the target image
     """
-    error = 1.0 - cross_correlation_max * cross_correlation_max.conj() /\
-        (src_amp * target_amp)
-    return np.sqrt(np.abs(error))
+    return np.sqrt(np.abs(1.0 - cross_correlation_max * cross_correlation_max.conj() / (src_amp * target_amp)))
 
 #%%
 def register_translation(src_image, target_image, upsample_factor=1,
@@ -1675,12 +1483,11 @@ def show_tile_and_correct_movie(img, new_img, template, sfr_freq, rigid_shifts, 
     cv2.waitKey(2)
     cv2.destroyAllWindows()
 
-#%%
-def compute_flow_single_frame(frame,templ,pyr_scale = .5,levels = 3, winsize = 100, iterations = 15, poly_n = 5,
-                              poly_sigma = 1.2/5, flags = 0):
-    flow = cv2.calcOpticalFlowFarneback(templ,frame,None,pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
-    return flow
-#%%
+
+def compute_flow_single_frame(frame, templ, pyr_scale=.5, levels=3, winsize=100, iterations=15, poly_n=5, poly_sigma=1.2/5, flags=0):
+    return cv2.calcOpticalFlowFarneback(templ, frame, None, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
+
+
 def compute_metrics_motion_correction(fname,final_size_x,final_size_y, swap_dim,pyr_scale = .5,levels = 3,
                                       winsize = 100, iterations = 15, poly_n = 5, poly_sigma = 1.2/5, flags = 0,
                                       play_flow = False, resize_fact_flow = .2,template = None):
