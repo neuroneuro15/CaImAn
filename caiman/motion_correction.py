@@ -50,6 +50,7 @@ from tqdm import tqdm
 import numpy as np
 from numpy.fft import ifftshift
 import matplotlib.pyplot as plt
+from scipy import stats
 import cv2
 
 from .movie import Movie
@@ -1046,90 +1047,66 @@ def compute_flow_single_frame(frame, templ, pyr_scale=.5, levels=3, winsize=100,
     return cv2.calcOpticalFlowFarneback(templ, frame, None, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
 
 
-def compute_metrics_motion_correction(fname,final_size_x,final_size_y, swap_dim,pyr_scale = .5,levels = 3,
-                                      winsize = 100, iterations = 15, poly_n = 5, poly_sigma = 1.2/5, flags = 0,
-                                      play_flow = False, resize_fact_flow = .2,template = None):
+def compute_metrics_motion_correction(movie, final_size_x, final_size_y, swap_dim, pyr_scale=.5, levels = 3,
+                                      winsize=100, iterations=15, poly_n=5, poly_sigma=1.2/5, flags=0,
+                                      resize_fact_flow=.2, template=None):
+
+    if np.any(np.isnan(movie)):
+        raise ValueError('Movie should not contain nan values')
+
     #todo: todocument
-    #cv2.OPTFLOW_FARNEBACK_GAUSSIAN
-    import scipy
-    vmin, vmax = -1, 1
-    m = Movie.load(fname)
+    max_shft_x = int(np.ceil((np.shape(movie)[1] - final_size_x) / 2))
+    max_shft_y = int(np.ceil((np.shape(movie)[2] - final_size_y) / 2))
 
-    max_shft_x = np.int(np.ceil((np.shape(m)[1]-final_size_x)/2))
-    max_shft_y = np.int(np.ceil((np.shape(m)[2]-final_size_y)/2))
-    max_shft_x_1 = - ( (np.shape(m)[1]-max_shft_x)-(final_size_x) )
-    max_shft_y_1 = - ( (np.shape(m)[2]-max_shft_y)-(final_size_y) )
-    if max_shft_x_1 == 0:
-        max_shft_x_1 = None
-        
-    if max_shft_y_1 == 0:
-        max_shft_y_1 = None
-    print ([max_shft_x,max_shft_x_1,max_shft_y,max_shft_y_1])    
-    m = m[:,max_shft_x:max_shft_x_1,max_shft_y:max_shft_y_1]
-    if np.sum(np.isnan(m))>0:
-        print(m.shape)
-        raise Exception('Movie contains nan')
-        
-    print('Local correlations..')
-    img_corr = m.local_correlations(eight_neighbours=True, swap_dim = swap_dim)
-    print (m.shape)
-    if template is None:
-        tmpl = bin_median(m)
-    else:
-        tmpl = template
+    max_shft_x_1 = max_shft_x - np.shape(movie)[1] + final_size_x
+    max_shft_x_1 = None if max_shft_x_1 == 0 else max_shft_x_1
 
+    max_shft_y_1 = max_shft_y - np.shape(movie)[2] + final_size_y
+    max_shft_y_1 = None if max_shft_y_1 == 0 else max_shft_y_1
+
+    movie = movie[:, max_shft_x:max_shft_x_1, max_shft_y:max_shft_y_1]
+
+    # Compute Smoothness
+    smoothness = np.sqrt(np.sum(np.power(np.gradient(np.mean(movie, axis=0)), 2)))
     
-    print('Compute Smoothness.. ')
-    smoothness = np.sqrt(np.sum(np.sum(np.array(np.gradient(np.mean(m,0)))**2,0)))
-    smoothness_corr = np.sqrt(np.sum(np.sum(np.array(np.gradient(img_corr))**2,0)))
-    
-    print('Compute correlations.. ')
-    correlations = []
-    count = 0
-    for fr in m:
-         if count%100 == 0:
-            print(count)   
-        
-         count +=1    
-         correlations.append(scipy.stats.pearsonr(fr.flatten(),tmpl.flatten())[0]) 
-        
-    print('Compute optical flow .. ')
-    
-    m = m.resize(1,1,resize_fact_flow)
-    norms = []
-    flows = []
-    count = 0
-    for fr in m:
-        if count%100 == 0:
-            print(count)   
-        
-        count +=1    
-        flow = cv2.calcOpticalFlowFarneback(tmpl,fr,None,pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
-        
-        if play_flow:
-            plt.subplot(1,3,1)
-            plt.cla()
-            plt.imshow(fr,vmin = 0, vmax = 300, cmap = 'gray' )
-            plt.title('Movie')
-            plt.subplot(1,3,3)
-            plt.cla()
-            plt.imshow(flow[:,:,1],vmin=vmin,vmax=vmax)
-            plt.title('y_flow')
-            
-            plt.subplot(1,3,2)
-            plt.cla()
-            plt.imshow(flow[:,:,0],vmin=vmin,vmax=vmax)
-            plt.title('x_flow')
-            plt.pause(.05)
-            
-            
+    # Compute correlations
+    tmpl = bin_median(movie) if template is None else template
+    correlations = [stats.pearsonr(fr.flatten(), tmpl.flatten())[0] for fr in tqdm(movie)]
+
+    # Compute optical flow
+    movie = movie.resize(1, 1, resize_fact_flow)
+    norms, flows = [], []
+    for fr in tqdm(movie):
+        flow = cv2.calcOpticalFlowFarneback(tmpl, fr, None, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
         n = np.linalg.norm(flow)
         flows.append(flow)
         norms.append(n)
 
-    np.savez(fname[:-4]+'_metrics',flows = flows, norms = norms, correlations = correlations,smoothness=smoothness,
-             tmpl = tmpl, smoothness_corr = smoothness_corr, img_corr = img_corr)
     return tmpl, correlations, flows, norms, smoothness
+
+
+def play_optical_flow_figure_animation(movie, tmpl, fr, resize_fact_flow, vmin, vmax, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags):
+    # Compute optical flow
+    movie = movie.resize(1, 1, resize_fact_flow)
+    for fr in tqdm(movie):
+        flow = cv2.calcOpticalFlowFarneback(tmpl, fr, None, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma,
+                                            flags)
+
+
+        plt.subplot(1, 3, 1)
+        plt.cla()
+        plt.imshow(fr, vmin=0, vmax=300, cmap='gray')
+        plt.title('Movie')
+        plt.subplot(1, 3, 3)
+        plt.cla()
+        plt.imshow(flow[:, :, 1], vmin=vmin, vmax=vmax)
+        plt.title('y_flow')
+
+        plt.subplot(1, 3, 2)
+        plt.cla()
+        plt.imshow(flow[:, :, 0], vmin=vmin, vmax=vmax)
+        plt.title('x_flow')
+        plt.pause(.05)
 
 
 def tile_and_correct_wrapper(params):
