@@ -44,7 +44,7 @@ crd = plot_contours(A.tocsc()[:, idx_components], Cn, thr=params_display['thr_pl
 pl.subplot(1, 2, 2)
 crd = plot_contours(A.tocsc()[:, idx_components_bad], Cn, thr=params_display['thr_plot'], vmax = 0.35)
 #%%
-c, dview, n_processes = cm.cluster.setup_cluster(
+c, dview, n_processes = cm.cluster.setup(
     backend='local', n_processes=None, single_thread=False)
 #%% thredshold components
 min_size_neuro = 5**2*np.pi

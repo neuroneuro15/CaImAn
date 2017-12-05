@@ -26,187 +26,140 @@ import shutil
 from multiprocessing import Pool
 import multiprocessing
 import ipyparallel
-from ipyparallel import Client
 import numpy as np
 
 
-def start_server(slurm_script=None, ipcluster="ipcluster", ncpus = None):
-    """
-    programmatically start the ipyparallel server
-
-    Parameters:
-    ----------
-    ncpus: int
-        number of processors
-
-    ipcluster : str
-        ipcluster binary file name; requires 4 path separators on Windows. ipcluster="C:\\\\Anaconda2\\\\Scripts\\\\ipcluster.exe"
-         Default: "ipcluster"
-    """
-    sys.stdout.write("Starting cluster...")
-    sys.stdout.flush()
-    if ncpus is None:
-        ncpus=psutil.cpu_count()
-
-    if slurm_script is None:
-        if ipcluster == "ipcluster":
-            subprocess.Popen("ipcluster start -n {0}".format(ncpus), shell=True, close_fds=(os.name != 'nt'))
-        else:
-            subprocess.Popen(shlex.split("{0} start -n {1}".format(ipcluster, ncpus)), shell=True, close_fds=(os.name != 'nt'))
-
-        # Check that all processes have started
-        time.sleep(1)
-        client = ipyparallel.Client()
-        while len(client) < ncpus:
-            sys.stdout.write(".")
-            sys.stdout.flush()
-            client.close()
-
-            time.sleep(1)
-            client = ipyparallel.Client()
-        client.close()
-
-    else:
-        shell_source(slurm_script)
-        pdir, profile = os.environ['IPPPDIR'], os.environ['IPPPROFILE']
-        c = Client(ipython_dir=pdir, profile=profile)
-        ee = c[:]
-        ne = len(ee)
-        print(('Running on %d engines.' % (ne)))
-        c.close()
-        sys.stdout.write(" done\n")
+slurm_script = 'SLURM/slurmStart.sh'
 
 
 def shell_source(script):
     """ Run a source-style bash script, copy resulting env vars to current process. """
-    pipe = subprocess.Popen(". %s; env" % script,  stdout=subprocess.PIPE, shell=True)
-    output = pipe.communicate()[0]
-    env = dict()
-    for line in output.splitlines():
-        lsp = line.split("=", 1)
-        if len(lsp) > 1:
-            env[lsp[0]] = lsp[1]
-    os.environ.update(env)
-    pipe.stdout.close()
+    with subprocess.Popen(". %s; env" % script, stdout=subprocess.PIPE, shell=True) as pipe:
+        output = pipe.communicate()[0]
+        env = dict([line.split('=', 1) for line in str(output).splitlines() if '=' in line])
+        os.environ.update(bytes(env))
 
 
-def stop_server(ipcluster='ipcluster',pdir=None,profile=None, dview = None):
-    """
-    programmatically stops the ipyparallel server
+class Cluster(object):
 
-    Parameters:
-     ----------
-     ipcluster : str
-         ipcluster binary file name; requires 4 path separators on Windows
-         Default: "ipcluster"
+    def __init__(self, backend='multiprocessing', n_cpus=psutil.cpu_count(), n_processes=0, startup_script='', ipcluster='ipcluster'):
 
-    """
-    if 'multiprocessing' in str(type(dview)):
-        dview.terminate()
-    else:
-        sys.stdout.write("Stopping cluster...\n")
-        sys.stdout.flush()
-        try:
-            pdir, profile = os.environ['IPPPDIR'], os.environ['IPPPROFILE']
-            is_slurm = True
-        except:
-            print('NOT SLURM')
-            is_slurm = False
-    
-        if is_slurm:
-            if pdir is None and profile is None:
-                pdir, profile = os.environ['IPPPDIR'], os.environ['IPPPROFILE']
-            c = Client(ipython_dir=pdir, profile=profile)
-            ee = c[:]
-            ne = len(ee)
-            print(('Shutting down %d engines.' % (ne)))
+        if backend.lower() not in ['slurm', 'multiprocessing', 'ipyparallel', 'local']:
+            raise ValueError("backend must be either 'slurm', 'multiprocessing', 'ipyparallel', or 'local'.")
+        if backend.lower() == 'slurm' and not startup_script:
+            raise ValueError("a slurm_script must be supplied if using a slurm backend.")
+
+        self.backend = backend.lower()
+        self.startup_script = startup_script
+        self._n_cpus = int(n_cpus)
+        self.setup()
+        self.n_processes = n_processes
+        self.ipcluster = ipcluster
+
+        self.client, self.dview = self.setup()
+
+    def setup(self):
+        # todo: todocument
+
+        if self.backend in ['slurm', 'ipyparallel']:
+            self.stop_server()
+            self.start_server()
+            client = ipyparallel.Client(ipython_dir=self.pdir, profile=self.profile)
+            dview = client[:len(client)]  # is this correct for 'slurm' backend (original code resulted in NameError.)?
+        else:
+            client = None
+            dview = Pool(self.n_processes)
+
+        return client, dview
+
+    @property
+    def is_running(self):
+        if self.backend == 'slurm':
+            pass
+        elif self.backend in ['multiprocessing', 'local']:
+            return len(multiprocessing.active_children()) > 0
+
+    @property
+    def n_cpus(self):
+        return self._n_cpus
+
+    @property
+    def n_processes(self):
+        if not self._n_processes:
+            if self.backend == 'slurm':
+                return np.int(os.environ.get('SLURM_NPROCS'))
+            else:
+                return max(psutil.cpu_count(), 1)
+
+    @n_processes.setter
+    def n_processes(self, value):
+        self._n_processes = int(value)
+
+    @property
+    def pdir(self):
+        return os.environ['IPPPDIR'] if self.backend == 'slurm' else None
+
+    @property
+    def profile(self):
+        return os.environ['IPPPROFILE'] if self.backend == 'slurm' else None
+
+    def start_server(self, ipcluster="ipcluster"):
+        """
+        programmatically start the ipyparallel server
+
+        Parameters:
+        ----------
+        ncpus: int
+            number of processors
+
+        ipcluster : str
+            ipcluster binary file name; requires 4 path separators on Windows. ipcluster="C:\\\\Anaconda2\\\\Scripts\\\\ipcluster.exe"
+             Default: "ipcluster"
+        """
+        print("Starting cluster...", end='\r')
+
+        if self.backend == 'slurm':
+            shell_source(self.startup_script)
+        else:
+            subprocess.Popen(shlex.split("{0} start -n {1}".format(ipcluster, self.n_cpus)), shell=True, close_fds=(os.name != 'nt'))
+            time.sleep(1)
+
+        # Check that all processes have started
+        client = ipyparallel.Client(ipython_dir=self.pdir, profile=self.profile)
+        client.close()
+
+    def stop_server(self):
+        """
+        programmatically stops the ipyparallel server
+
+        Parameters:
+         ----------
+         ipcluster : str
+             ipcluster binary file name; requires 4 path separators on Windows
+             Default: "ipcluster"
+
+        """
+        print("Stopping cluster...\n", end='\r')
+
+        if 'multiprocessing' in str(type(self.dview)):
+            self.dview.terminate()
+            return
+
+        if self.backend == 'slurm':
+            c = ipyparallel.Client(ipython_dir=self.pdir, profile=self.profile)
             c.close()
             c.shutdown(hub=True)
-            shutil.rmtree('profile_' + str(profile))
-            try:
-                shutil.rmtree('./log/')
-            except:
-                print('creating log folder')
-    
-            files = glob.glob('*.log')
-            os.mkdir('./log')
-    
-            for fl in files:
-                shutil.move(fl, './log/')
-    
+            shutil.rmtree('profile_' + self.profile)
+            self.write_log()
         else:
-            if ipcluster == "ipcluster":
-                proc = subprocess.Popen("ipcluster stop", shell=True, stderr=subprocess.PIPE, close_fds=(os.name != 'nt'))
-            else:
-                proc = subprocess.Popen(shlex.split(ipcluster + " stop"),
-                                        shell=True, stderr=subprocess.PIPE, close_fds=(os.name != 'nt'))
-    
-            line_out = proc.stderr.readline()
-            if b'CRITICAL' in line_out:
-                sys.stdout.write("No cluster to stop...")
-                sys.stdout.flush()
-            elif b'Stopping' in line_out:
-                st = time.time()
-                sys.stdout.write('Waiting for cluster to stop...')
-                while (time.time() - st) < 4:
-                    sys.stdout.write('.')
-                    sys.stdout.flush()
-                    time.sleep(1)
-            else:
+            with subprocess.Popen(['ipcluster', 'stop'], shell=True, stderr=subprocess.PIPE, close_fds=(os.name != 'nt')) as proc:
+                line_out = proc.stderr.readline()
                 print(line_out)
-                print('**** Unrecognized Syntax in ipcluster output, waiting for server to stop anyways ****')
-    
-            proc.stderr.close()
+                if b'Stopping' in line_out:
+                    time.sleep(4)
 
-    sys.stdout.write(" done\n")
-
-
-def setup_cluster(backend = 'multiprocessing',n_processes = None,single_thread = False):
-    """ If necessary, restart the pipyparallel cluster. If we have a slurm backend,
-        restart that instead.
-
-    Parameters:
-    ----------
-    backend: str
-        'multiprocessing', 'ipyparallel', and 'SLURM'
-    """
-    #todo: todocument
-
-    if n_processes is None:
-        if backend == 'SLURM':
-            n_processes = np.int(os.environ.get('SLURM_NPROCS'))
-        else:
-            # roughly number of cores on your machine minus 1
-            n_processes = np.maximum(np.int(psutil.cpu_count()), 1)
-
-    if single_thread:
-        dview = None
-        c = None
-    else:
-        sys.stdout.flush()
-
-        if backend == 'SLURM':
-            try:
-                stop_server(is_slurm=True)
-            except:
-                print('Nothing to stop')
-            slurm_script = 'SLURM/slurmStart.sh'
-            start_server(slurm_script=slurm_script, ncpus=n_processes)
-            pdir, profile = os.environ['IPPPDIR'], os.environ['IPPPROFILE']
-            c = Client(ipython_dir=pdir, profile=profile)
-        elif backend is 'ipyparallel':
-            stop_server()
-            start_server(ncpus=n_processes)
-            c = Client()
-            print(('Using ' + str(len(c)) + ' processes'))
-            dview = c[:len(c)]
-
-        elif (backend is 'multiprocessing') or (backend is 'local'):
-            if len (multiprocessing.active_children())>0:
-                raise Exception('A cluster is already runnning. Terminate with dview.terminate() if you want to restart.')
-            c = None
-            dview = Pool(n_processes)
-        else:
-            raise Exception('Unknown Backend')
-        
-    return c,dview,n_processes
+    def write_log(self):
+        shutil.rmtree('./log/', ignore_errors=True)
+        os.mkdir('./log')
+        for fl in glob.glob('*.log'):
+            shutil.move(fl, './log/')
