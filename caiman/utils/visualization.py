@@ -8,17 +8,15 @@
 #\copyright GNU General Public License v2.0
 #\date Created on Tue Jun 30 21:01:17 2016
 #\author: andrea giovannucci
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 from past.utils import old_div
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from tempfile import NamedTemporaryFile
 import sys
 from warnings import warn
 from scipy.sparse import issparse, spdiags, coo_matrix, csc_matrix, hstack
 from matplotlib.widgets import Slider
-from caiman.utils.math import center_of_mass
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage.filters import median_filter
 import matplotlib.cm as cm
@@ -32,7 +30,7 @@ except:
     print("Bokeh could not be loaded. Either it is not installed or you are not running within a notebook")
 
 from ..summary_images import local_correlations
-
+from .math import center_of_mass
 
 #%%
 def view_patches(Yr, A, C, b, f, d1, d2, YrA=None, secs=1):
