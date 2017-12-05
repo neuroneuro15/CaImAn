@@ -490,7 +490,7 @@ for ffll in end_files:  # np.array(fls)[np.array([1,2,3,4,5,-5,-4,-3,-2,-1])]:
 
         if mot_corr:
             templ = cnm2.Ab.dot(cnm2.C_on[:cnm2.M, t - 1]).reshape(cnm2.dims, order='F') * img_norm
-            frame_cor, shift = motion_correct_iteration_fast(frame_, templ, max_shift, max_shift)
+            frame_cor, shift, _ = motion_correct_iteration_fast(frame_, templ, max_shift, max_shift)
             shifts.append(shift)
         else:
             templ = None

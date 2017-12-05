@@ -364,7 +364,7 @@ for whole_frame in m[:]:
         frame_ = frame.copy().astype(np.float32) 
         frame_ -= img_min
         templ = cnm2.Ab.dot(cnm2.C_on[:,t-1]).reshape(cnm2.dims,order = 'F')*img_norm
-        frame_cor,shift = motion_correct_iteration_fast(frame_,templ, max_shifts[0],max_shifts[1])      
+        frame_cor,shift, _ = motion_correct_iteration_fast(frame_,templ, max_shifts[0],max_shifts[1])
         shifts.append(shift)
             
         frame_cor = frame_cor/img_norm

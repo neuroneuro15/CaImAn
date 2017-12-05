@@ -265,45 +265,18 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
     return shifts,xcorrs,template, fname_tot, mov
 
 
-#%%
-def motion_correct_iteration(img,template,frame_num,max_shift_w=25,
+def bilateral_blur_image(img, diameter=10, sigmaColor=10000, sigmaSpace=0):
+    return cv2.bilateralFilter(img, diameter, sigmaColor, sigmaSpace)
+
+
+def motion_correct_iteration(img, template, frame_num, max_shift_w=25,
                              max_shift_h=25,bilateral_blur=False,diameter=10,sigmaColor=10000,sigmaSpace=0):
 #todo todocument
-    h_i, w_i = template.shape
-    ms_h = max_shift_h
-    ms_w = max_shift_w
-
     if bilateral_blur:
-        img=cv2.bilateralFilter(img,diameter,sigmaColor,sigmaSpace)    
-    templ_crop=template[max_shift_h:h_i-max_shift_h,max_shift_w:w_i-max_shift_w].astype(np.float32)
-    res = cv2.matchTemplate(img,templ_crop,cv2.TM_CCORR_NORMED)
+        img = bilateral_blur_image(img, diameter, sigmaColor, sigmaSpace)
 
-    top_left = cv2.minMaxLoc(res)[3]
-    avg_corr=np.max(res)
-    sh_y,sh_x = top_left
-
-    if (0 < top_left[1] < 2 * ms_h-1) & (0 < top_left[0] < 2 * ms_w-1):
-        # if max is internal, check for subpixel shift using gaussian
-        # peak registration
-        log_xm1_y = np.log(res[sh_x-1,sh_y])
-        log_xp1_y = np.log(res[sh_x+1,sh_y])
-        log_x_ym1 = np.log(res[sh_x,sh_y-1])
-        log_x_yp1 = np.log(res[sh_x,sh_y+1])
-        four_log_xy = 4*np.log(res[sh_x,sh_y])
-
-        sh_x_n = -(sh_x - ms_h + old_div((log_xm1_y - log_xp1_y), (2 * log_xm1_y - four_log_xy + 2 * log_xp1_y)))
-        sh_y_n = -(sh_y - ms_w + old_div((log_x_ym1 - log_x_yp1), (2 * log_x_ym1 - four_log_xy + 2 * log_x_yp1)))
-    else:
-        sh_x_n = -(sh_x - ms_h)
-        sh_y_n = -(sh_y - ms_w)
-
-    M = np.float32([[1,0,sh_y_n],[0,1,sh_x_n]])
-    min_,max_ = np.min(img),np.max(img)
-    new_img = np.clip(cv2.warpAffine(img,M,(w_i,h_i),flags=cv2.INTER_CUBIC, borderMode = cv2.BORDER_REFLECT),min_,max_)
-
-    new_templ=template*frame_num/(frame_num + 1) + 1./(frame_num + 1)*new_img     
-    shift=[sh_x_n,sh_y_n]
-
+    new_img, shift, avg_corr = motion_correct_iteration_fast(img, template=template, max_shift_w=max_shift_w, max_shift_h=max_shift_h)
+    new_templ = template * frame_num / (frame_num + 1) + 1. / (frame_num + 1) * new_img
     return new_img,new_templ,shift,avg_corr
 
 
@@ -330,8 +303,10 @@ def motion_correct_iteration_fast(img, template, max_shift_w=10, max_shift_h=10)
 
     M = np.float32([[1, 0, sh_y_n], [0, 1, sh_x_n]])
     new_img = cv2.warpAffine(img, M, (w_i, h_i), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
-
-    return new_img, (sh_x_n, sh_y_n)
+    new_img[:] = np.clip(new_img, img.min(), img.max())
+    shift = (sh_x_n, sh_y_n)
+    avg_corr = np.max(res)
+    return new_img, shift, avg_corr
 
 #%%    
 def bin_median(mat, window=10, exclude_nans=False):

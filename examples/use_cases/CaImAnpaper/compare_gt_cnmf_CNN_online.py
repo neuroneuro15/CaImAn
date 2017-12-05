@@ -364,7 +364,7 @@ for iter in range(epochs):
     
             if mot_corr:                                            # motion correct
                 templ = cnm2.Ab.dot(cnm2.C_on[:cnm2.M, t - 1]).reshape(cnm2.dims, order='F') * img_norm
-                frame_cor, shift = motion_correct_iteration_fast(frame_, templ, max_shift, max_shift)
+                frame_cor, shift, _ = motion_correct_iteration_fast(frame_, templ, max_shift, max_shift)
                 shifts.append(shift)
             else:
                 templ = None
