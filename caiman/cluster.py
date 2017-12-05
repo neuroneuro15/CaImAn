@@ -104,18 +104,7 @@ class Cluster(object):
         return os.environ['IPPPROFILE'] if self.backend == 'slurm' else None
 
     def start_server(self, ipcluster="ipcluster"):
-        """
-        programmatically start the ipyparallel server
-
-        Parameters:
-        ----------
-        ncpus: int
-            number of processors
-
-        ipcluster : str
-            ipcluster binary file name; requires 4 path separators on Windows. ipcluster="C:\\\\Anaconda2\\\\Scripts\\\\ipcluster.exe"
-             Default: "ipcluster"
-        """
+        """start the ipyparallel server"""
         print("Starting cluster...", end='\r')
 
         if self.backend == 'slurm':
@@ -129,16 +118,7 @@ class Cluster(object):
         client.close()
 
     def stop_server(self):
-        """
-        programmatically stops the ipyparallel server
-
-        Parameters:
-         ----------
-         ipcluster : str
-             ipcluster binary file name; requires 4 path separators on Windows
-             Default: "ipcluster"
-
-        """
+        """stops the ipyparallel server"""
         print("Stopping cluster...\n", end='\r')
 
         if 'multiprocessing' in str(type(self.dview)):
