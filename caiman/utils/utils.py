@@ -18,22 +18,16 @@ https://docs.python.org/2/library/urllib.html
 #\pre none
 from __future__ import print_function
 
-
 import numpy as np
 import os
 from scipy.ndimage.filters import gaussian_filter
-import cv2
+
 try:
     from urllib2 import urlopen
 except ImportError:
     from urllib.request import urlopen
 
-try:  # python2
-    import cPickle as pickle
-except ImportError:  # python3
-    import pickle
 
-#%%
 def download_demo(name='Sue_2x_3000_40_-46.tif', save_folder=''):
     """download a file from the file list with the url of its location
 
