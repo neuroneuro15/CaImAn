@@ -351,7 +351,7 @@ def motion_correct_iteration_fast(img,template,max_shift_w=10,max_shift_h=10):
     return new_img, shift
 
 #%%    
-def bin_median(mat,window=10,exclude_nans = False ):
+def bin_median(mat, window=10, exclude_nans=False):
 
     """ compute median of 3D array in along axis o by binning values
 
@@ -369,23 +369,16 @@ def bin_median(mat,window=10,exclude_nans = False ):
     -------
     img: 
         median image
-
-
-    Raise:
-    -----
-    Exception('Path to template does not exist:'+template)
     """
-    
-    T,d1,d2=np.shape(mat)
+    # todo: check logic of this function--it seems pretty strange to me.
+    T, d1, d2 = np.shape(mat)
     if T < window:
         window = T
-    num_windows=np.int(old_div(T,window))
-    num_frames=num_windows*window
-    if exclude_nans:
-        img=np.nanmedian(np.nanmean(np.reshape(mat[:num_frames],(window,num_windows,d1,d2)),axis=0),axis=0)    
-    else:
-        img=np.median(np.mean(np.reshape(mat[:num_frames],(window,num_windows,d1,d2)),axis=0),axis=0)        
-
+    num_windows = int(T / window)
+    num_frames = num_windows * window
+    median = np.nanmedian if exclude_nans else np.median
+    mean = np.nanmean if exclude_nans else np.mean
+    img = median(mean(np.reshape(mat[:num_frames], (window, num_windows, d1, d2)), axis=0), axis=0)
     return img
 
 
