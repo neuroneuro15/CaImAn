@@ -191,26 +191,19 @@ def local_correlations(Y, eight_neighbours=True, swap_dim=True):
         if eight_neighbours:
             rho_d1 = np.mean(np.multiply(w_mov[:, 1:, :-1], w_mov[:, :-1, 1:, ]), axis=0)
             rho_d2 = np.mean(np.multiply(w_mov[:, :-1, :-1], w_mov[:, 1:, 1:, ]), axis=0)
-            rho[:-1, :-1] = rho[:-1, :-1] + rho_d2
-            rho[1:, 1:] = rho[1:, 1:] + rho_d1
-            rho[1:, :-1] = rho[1:, :-1] + rho_d1
-            rho[:-1, 1:] = rho[:-1, 1:] + rho_d2
+            rho[:-1, :-1] += rho_d2
+            rho[1:, 1:] += rho_d1
+            rho[1:, :-1] += rho_d1
+            rho[:-1, 1:] += rho_d2
 
             neighbors = 8 * np.ones(np.shape(Y)[1:3])
-            neighbors[0, :] = neighbors[0, :] - 3
-            neighbors[-1, :] = neighbors[-1, :] - 3
-            neighbors[:, 0] = neighbors[:, 0] - 3
-            neighbors[:, -1] = neighbors[:, -1] - 3
-            neighbors[0, 0] = neighbors[0, 0] + 1
-            neighbors[-1, -1] = neighbors[-1, -1] + 1
-            neighbors[-1, 0] = neighbors[-1, 0] + 1
-            neighbors[0, -1] = neighbors[0, -1] + 1
+            neighbors[[0, -1], :] -= 3
+            neighbors[:, [0, -1]] -= 3
+            neighbors[[0, -1, -1, 0], [0, -1, 0, -1]] += 1
         else:
             neighbors = 4 * np.ones(np.shape(Y)[1:3])
-            neighbors[0, :] = neighbors[0, :] - 1
-            neighbors[-1, :] = neighbors[-1, :] - 1
-            neighbors[:, 0] = neighbors[:, 0] - 1
-            neighbors[:, -1] = neighbors[:, -1] - 1
+            neighbors[(0, -1), :] -= 1
+            neighbors[:, (0, -1)] -= 1
 
     rho = np.divide(rho, neighbors)
 
