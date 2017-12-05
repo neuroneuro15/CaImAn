@@ -586,6 +586,7 @@ def register_translation(src_image, target_image, upsample_factor=1,
     if space.lower() == 'fourier':
         src_freq = src_image
         target_freq = target_image
+
     # real data needs to be fft'd.
     elif space.lower() == 'real':
         if opencv:
@@ -602,98 +603,68 @@ def register_translation(src_image, target_image, upsample_factor=1,
             target_freq = cv2.dft(target_image_cpx)
 
     else:
-        raise ValueError("Error: register_translation only knows the \"real\" "
-                         "and \"fourier\" values for the ``space`` argument.")
+        raise ValueError("register_translation() only knows the 'real' and 'fourier' values for the 'space' argument.")
 
     # Whole-pixel shift - Compute cross-correlation by an IFFT
     shape = src_freq.shape
     image_product = src_freq * target_freq.conj()
     if opencv:
-
-        image_product_cv = np.dstack([np.real(image_product),np.imag(image_product)])
+        image_product_cv = np.dstack([np.real(image_product), np.imag(image_product)])
         cross_correlation = cv2.dft(image_product_cv, flags=cv2.DFT_INVERSE + cv2.DFT_SCALE)
-        cross_correlation = cross_correlation[:,:,0]+1j*cross_correlation[:,:,1]
+        cross_correlation = cross_correlation[:,:,0] + 1j * cross_correlation[:,:,1]
     else:
-        shape = src_freq.shape
-        image_product = src_freq * target_freq.conj()
         cross_correlation = cv2.idft(image_product)
 
     # Locate maximum
     new_cross_corr  = np.abs(cross_correlation)
-
-
     if (shifts_lb is not None) or (shifts_ub is not None):
 
-        if  (shifts_lb[0]<0) and (shifts_ub[0]>=0):
+        if  shifts_lb[0] < 0 and shifts_ub[0] >= 0:
             new_cross_corr[shifts_ub[0]:shifts_lb[0],:] = 0                                                                  
         else:
             new_cross_corr[:shifts_lb[0],:] = 0                
             new_cross_corr[shifts_ub[0]:,:] = 0    
 
-        if  (shifts_lb[1]<0) and (shifts_ub[1]>=0):      
+        if shifts_lb[1] < 0 and shifts_ub[1] >= 0:
             new_cross_corr[:,shifts_ub[1]:shifts_lb[1]] = 0                                                      
         else:
-            new_cross_corr[:,:shifts_lb[1]] = 0    
+            new_cross_corr[:,:shifts_lb[1]] = 0
             new_cross_corr[:,shifts_ub[1]:] = 0
     else:
+        new_cross_corr[max_shifts[0]:-max_shifts[0], :] = 0
+        new_cross_corr[:, max_shifts[1]:-max_shifts[1]] = 0
 
-        new_cross_corr[max_shifts[0]:-max_shifts[0],:] = 0   
-
-        new_cross_corr[:,max_shifts[1]:-max_shifts[1]] = 0
-
-    maxima = np.unravel_index(np.argmax(new_cross_corr),
-                              cross_correlation.shape)
-    midpoints = np.array([np.fix(old_div(axis_size, 2)) for axis_size in shape])
-
+    maxima = np.unravel_index(np.argmax(new_cross_corr), cross_correlation.shape)
     shifts = np.array(maxima, dtype=np.float64)
+    midpoints = np.array([axis_size // 2. for axis_size in shape])
     shifts[shifts > midpoints] -= np.array(shape)[shifts > midpoints]
 
-    if upsample_factor == 1:
-
-        src_amp = old_div(np.sum(np.abs(src_freq) ** 2), src_freq.size)
-        target_amp = old_div(np.sum(np.abs(target_freq) ** 2), target_freq.size)
-        CCmax = cross_correlation.max()
-    # If upsampling > 1, then refine estimate with matrix multiply DFT
-    else:
+    if upsample_factor > 1:  # If upsampling > 1, then refine estimate with matrix multiply DFT
         # Initial shift estimate in upsampled grid
         shifts = old_div(np.round(shifts * upsample_factor), upsample_factor)
         upsampled_region_size = np.ceil(upsample_factor * 1.5)
+
         # Center of output array at dftshift + 1
         dftshift = np.fix(old_div(upsampled_region_size, 2.0))
         upsample_factor = np.array(upsample_factor, dtype=np.float64)
         normalization = (src_freq.size * upsample_factor ** 2)
+
         # Matrix multiply DFT around the current shift estimate
-        sample_region_offset = dftshift - shifts*upsample_factor
+        sample_region_offset = dftshift - shifts * upsample_factor
+        cross_correlation = _upsampled_dft(image_product.conj(), upsampled_region_size, upsample_factor, sample_region_offset).conj() / normalization
 
-        cross_correlation = _upsampled_dft(image_product.conj(),
-                                           upsampled_region_size,
-                                           upsample_factor,
-                                           sample_region_offset).conj()
-        cross_correlation /= normalization
         # Locate maximum and map back to original pixel grid
-        maxima = np.array(np.unravel_index(
-                              np.argmax(np.abs(cross_correlation)),
-                              cross_correlation.shape),
-                          dtype=np.float64)
-        maxima -= dftshift
-        shifts = shifts + old_div(maxima, upsample_factor)
-        CCmax = cross_correlation.max()
-        src_amp = _upsampled_dft(src_freq * src_freq.conj(),
-                                 1, upsample_factor)[0, 0]
-        src_amp /= normalization
-        target_amp = _upsampled_dft(target_freq * target_freq.conj(),
-                                    1, upsample_factor)[0, 0]
-        target_amp /= normalization
+        maxima = np.array(np.unravel_index(np.argmax(np.abs(cross_correlation)), cross_correlation.shape), dtype=np.float64) - dftshift
+        shifts += maxima / upsample_factor
 
-    # If its only one row or column the shift along that dimension has no
-    # effect. We set to zero.
+    CCmax = cross_correlation.max()
+
+    # If its only one row or column the shift along that dimension has no effect. We set to zero.
     for dim in range(src_freq.ndim):
         if shape[dim] == 1:
             shifts[dim] = 0
 
-
-
-    return shifts, src_freq,_compute_phasediff(CCmax)
+    return shifts, src_freq, _compute_phasediff(CCmax)
 
 #%%        
 def apply_shifts_dft(src_freq, shifts, diffphase, is_freq = True, border_nan = False):
