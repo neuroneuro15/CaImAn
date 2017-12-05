@@ -26,7 +26,7 @@ from past.utils import old_div
 from scipy.sparse import spdiags, issparse, csc_matrix
 
 from caiman.io.mmapping import parallel_dot_product
-from caiman.utils.math import com
+from caiman.utils.math import center_of_mass
 from .initialization import greedyROI
 
 
@@ -542,7 +542,7 @@ def manually_refine_components(Y, xxx_todo_changeme, A, C, Cn, thr=0.9, display_
     x, y = np.mgrid[0:d1:1, 0:d2:1]
 
     plt.imshow(Cn, interpolation=None, cmap=cmap)
-    cm = com(A, d1, d2)
+    cm = center_of_mass(A, d1, d2)
 
     Bmat = np.zeros((np.minimum(nr, max_number), d1, d2))
     for i in range(np.minimum(nr, max_number)):

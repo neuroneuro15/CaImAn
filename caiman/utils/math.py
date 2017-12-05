@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def com(A, d1, d2):
+def center_of_mass(A, d1, d2):
     """Calculation of the center of mass for spatial components
 
      Inputs:

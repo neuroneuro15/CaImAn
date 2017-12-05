@@ -18,7 +18,7 @@ import sys
 from warnings import warn
 from scipy.sparse import issparse, spdiags, coo_matrix, csc_matrix, hstack
 from matplotlib.widgets import Slider
-from caiman.utils.math import com
+from caiman.utils.math import center_of_mass
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage.filters import median_filter
 import matplotlib.cm as cm
@@ -666,7 +666,7 @@ def nb_plot_contour(image, A, d1, d2, thr=None, thr_method='max', maxthr=0.2, nr
 
     """
     p = nb_imshow(image, cmap='jet')
-    center = com(A, d1, d2)
+    center = center_of_mass(A, d1, d2)
     p.circle(center[:, 1], center[:, 0], size=10, color="black",
              fill_color=None, line_width=2, alpha=1)
     coors = plot_contours(coo_matrix(A), image, thr=thr,
@@ -893,7 +893,7 @@ def plot_contours(A, Cn, thr=None, thr_method='max', maxthr=0.2, nrgthr=0.9, dis
                   vmin=vmin, vmax=vmax)
 
     coordinates = []
-    cm = com(A, d1, d2)
+    cm = center_of_mass(A, d1, d2)
     for i in range(np.minimum(nr, max_number)):
         pars = dict(kwargs)
         if thr_method == 'nrg':
