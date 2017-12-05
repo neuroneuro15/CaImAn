@@ -15,7 +15,6 @@ Alongside each array x we ensure the value x.dtype which stores the data type.
 
 from __future__ import print_function, division, absolute_import
 
-import sys
 import os
 import subprocess
 import time
@@ -23,7 +22,6 @@ import glob
 import shlex
 import psutil
 import shutil
-from multiprocessing import Pool
 import multiprocessing
 import ipyparallel
 import numpy as np
@@ -68,7 +66,7 @@ class Cluster(object):
             dview = client[:len(client)]  # is this correct for 'slurm' backend (original code resulted in NameError.)?
         else:
             client = None
-            dview = Pool(self.n_processes)
+            dview = multiprocessing.Pool(self.n_processes)
 
         return client, dview
 
@@ -121,16 +119,14 @@ class Cluster(object):
         """stops the ipyparallel server"""
         print("Stopping cluster...\n", end='\r')
 
-        if 'multiprocessing' in str(type(self.dview)):
-            self.dview.terminate()
-            return
-
         if self.backend == 'slurm':
             c = ipyparallel.Client(ipython_dir=self.pdir, profile=self.profile)
             c.close()
             c.shutdown(hub=True)
             shutil.rmtree('profile_' + self.profile)
             self.write_log()
+        elif 'multiprocessing' in str(type(self.dview)):
+            self.dview.terminate()
         else:
             with subprocess.Popen(['ipcluster', 'stop'], shell=True, stderr=subprocess.PIPE, close_fds=(os.name != 'nt')) as proc:
                 line_out = proc.stderr.readline()
