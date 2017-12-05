@@ -322,20 +322,16 @@ def motion_correct_iteration_fast(img, template, max_shift_w=10, max_shift_h=10)
 
     res = cv2.matchTemplate(img, templ_crop, cv2.TM_CCORR_NORMED)
     sh_y, sh_x = cv2.minMaxLoc(res)[3]
-    sh_x_n = max_shift_h - sh_x
-    sh_y_n = max_shift_w - sh_y
+    sh_x_n, sh_y_n = max_shift_h - sh_x, max_shift_w - sh_y
     if (0 < sh_x < 2 * max_shift_h - 1) & (0 < sh_y < 2 * max_shift_w - 1):
         # if max is internal, check for subpixel shift using gaussian peak registration
         dx, dy = get_subpixel_shift(res, sh_x_n, sh_y_n)
-        sh_x_n += dx
-        sh_y_n += dy
+        sh_x_n, sh_y_n = sh_x_n + dx, sh_y_n + dy
 
     M = np.float32([[1, 0, sh_y_n], [0, 1, sh_x_n]])
     new_img = cv2.warpAffine(img, M, (w_i, h_i), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
 
-    shift = [sh_x_n, sh_y_n]
-
-    return new_img, shift
+    return new_img, (sh_x_n, sh_y_n)
 
 #%%    
 def bin_median(mat, window=10, exclude_nans=False):
