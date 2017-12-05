@@ -40,10 +40,8 @@ Copyright (C) 2011, the scikit-image team
 """
 from __future__ import division, print_function, absolute_import
 
-from past.builtins import basestring
 from past.utils import old_div
 import gc
-from os import path
 import collections
 import itertools
 import warnings
@@ -55,243 +53,49 @@ import matplotlib.pyplot as plt
 import cv2
 
 from .movie import Movie
-from .io import tifffile, sbxshape
 
 opencv = True
-    
-#%%
-class MotionCorrect(object):
-     """
-         class implementing motion correction operations
-        
-        
-        Parameters:
-        ----------
-        fname: str
-            path to file to motion correct        
 
-        min_mov: int16 or float32
-            estimated minimum value of the Movie to produce an output that is positive
 
-        dview: ipyparallel view object list
-            to perform parallel computing, if NOne will operate in single thread    
+def apply_shifts_movie(movie, coord_shifts_els, x_shifts_els, y_shifts_els, rigid_shifts=True, shifts_opencv=True, shifts_rig=14):
+    """
+    Applies shifts found by registering one file to a different file. Useful
+    for cases when shifts computed from a structural channel are applied to a
+    functional channel. Currently only application of shifts through openCV is
+    supported.
 
-        max_shifts: tuple
-            maximum allow rigid shift
+    Parameters:
+    -----------
+    fname: str
+        name of the Movie to motion correct. It should not contain nans. All the loadable formats from CaImAn are acceptable
 
-        niter_rig':int
-            maximum number of iterations rigid motion correction, in general is 1. 0
-            will quickly initialize a template with the first frames
+    rigid_shifts: bool
+        apply rigid or pw-rigid shifts (must exist in the mc object)
 
-        splits_rig': int
-             for parallelization split the movies in  num_splits chuncks across time
+    Returns:
+    ----------
+    m_reg: caiman Movie object
+        caiman Movie object with applied shifts (not memory mapped)
+    """
 
-        num_splits_to_process_rig:list,
-            if none all the splits are processed and the Movie is saved, otherwise at each iteration
-            num_splits_to_process_rig are considered
-
-        strides: tuple
-            intervals at which patches are laid out for motion correction
-
-        overlaps: tuple
-            overlap between pathes (size of patch strides+overlaps)
-
-        splits_els':list
-            for parallelization split the movies in  num_splits chuncks across time 
-
-        num_splits_to_process_els:list,
-            if none all the splits are processed and the Movie is saved  otherwise at each iteration
-             num_splits_to_process_els are considered
-
-        upsample_factor_grid:int,
-            upsample factor of shifts per patches to avoid smearing when merging patches
-
-        max_deviation_rigid:int
-            maximum deviation allowed for patch with respect to rigid shift
-
-        shifts_opencv: Bool
-            apply shifts fast way (but smoothing results)
-        
-        nonneg_movie: boolean
-            make the SAVED Movie and template mostly nonnegative by removing min_mov from Movie
-            
-        Returns:
-        -------
-        self
-
-        important fields
-        
-        """
-     def __init__(self, fname, min_mov, dview=None, max_shifts=(6,6), niter_rig=1, splits_rig=14, num_splits_to_process_rig=None, 
-                strides= (96,96), overlaps= (32,32), splits_els=14,num_splits_to_process_els=[7,None], 
-                upsample_factor_grid=4, max_deviation_rigid=3, shifts_opencv = True, nonneg_movie = False, gSig_filt=None): 
-        """
-        Constructor class for motion correction operations
-        
-        """
-        self.fname=fname
-        self.dview=dview
-        self.max_shifts=max_shifts
-        self.niter_rig=niter_rig
-        self.splits_rig=splits_rig
-        self.num_splits_to_process_rig=num_splits_to_process_rig
-        self.strides= strides
-        self.overlaps= overlaps
-        self.splits_els=splits_els
-        self.num_splits_to_process_els=num_splits_to_process_els
-        self.upsample_factor_grid=upsample_factor_grid
-        self.max_deviation_rigid=max_deviation_rigid
-        self.shifts_opencv = shifts_opencv
-        self.min_mov = min_mov
-        self.nonneg_movie  = nonneg_movie
-        self.gSig_filt = gSig_filt
-
-        
-        
-     def motion_correct_rigid(self, template = None, save_movie = False):   
-        """
-        Perform rigid motion correction
-
-        Parameters:
-        ----------
-        template: ndarray 2D
-            if known, one can pass a template to register the frames to             
-
-        save_movie_rigid:Bool
-            save the movies vs just get the template
-        
-        Returns:
-        --------
-        self
-
-        important fields:
-
-        self.fname_tot_rig: name of the mmap file saved
-
-        self.total_template_rig: template updated by iterating  over the chunks
-
-        self.templates_rig: list of templates. one for each chunk
-
-        self.shifts_rig: shifts in x and y per frame
-        """
-        print('Rigid Motion Correction')
-        print(-self.min_mov)
-        self.fname_tot_rig, self.total_template_rig, self.templates_rig, self.shifts_rig =motion_correct_batch_rigid(
-            self.fname,self.max_shifts, dview = self.dview, splits = self.splits_rig ,
-            num_splits_to_process = self.num_splits_to_process_rig,num_iter = self.niter_rig, template = template,
-            shifts_opencv = self.shifts_opencv , save_movie_rigid = save_movie, add_to_movie= -self.min_mov,
-            nonneg_movie = self.nonneg_movie, gSig_filt=self.gSig_filt)
-        
-        return self
-
-        
-    
-     def motion_correct_pwrigid(self,save_movie = True, template=None, show_template = False):  
-        """Perform pw-rigid motion correction
-
-        Parameters:
-        ----------
-        template: ndarray 2D
-            if known, one can pass a template to register the frames to             
-
-        save_movie:Bool
-            save the movies vs just get the template
-
-        show_template: boolean
-            whether to show the updated template at each iteration
-        
-        Returns:
-        --------
-
-        self
-
-        important fields:
-            self.fname_tot_els: name of the mmap file saved
-            self.templates_els: template updated by iterating  over the chunks
-            self.x_shifts_els: shifts in x per frame per patch
-            self.y_shifts_els: shifts in y per frame per patch
-            self.coord_shifts_els: coordinates associated to the patch for values in x_shifts_els and y_shifts_els
-            self.total_template_els: list of templates. one for each chunk
-
-        Raise:
-        -----
-            Exception('Template contains NaNs, something went wrong. Reconsider the parameters')
-
-        """
-        num_iter = 1
-        if template is None:
-             print('generating template by rigid motion correction')
-             self = self.motion_correct_rigid()   
-             self.total_template_els = self.total_template_rig.copy()
-#             plt.imshow(self.total_template_els)
-#             plt.pause(1)
+    if rigid_shifts:
+        if shifts_opencv:
+            m_reg = [apply_shift_iteration(img, shift) for img, shift in zip(movie, shifts_rig)]
         else:
-             self.total_template_els = template
-            
-        for num_splits_to_process in self.num_splits_to_process_els:
-            self.fname_tot_els, new_template_els, self.templates_els,\
-            self.x_shifts_els, self.y_shifts_els, self.coord_shifts_els  = motion_correct_batch_pwrigid(
-                self.fname, self.max_shifts, self.strides, self.overlaps, -self.min_mov,
-                dview = self.dview, upsample_factor_grid = self.upsample_factor_grid,
-                max_deviation_rigid = self.max_deviation_rigid, splits = self.splits_els ,
-                num_splits_to_process = num_splits_to_process, num_iter = num_iter, template =  self.total_template_els,
-                shifts_opencv = self.shifts_opencv, save_movie = save_movie, nonneg_movie = self.nonneg_movie, gSig_filt=self.gSig_filt)
-            if show_template:
-                plt.imshow(new_template_els)
-                plt.pause(.5)
-            if np.isnan(np.sum(new_template_els)):
-                raise Exception('Template contains NaNs, something went wrong. Reconsider the parameters')
-                
-            self.total_template_els = new_template_els
-        
-        return self
+            m_reg = [apply_shifts_dft(img, (sh[0], sh[1]), 0, is_freq=False, border_nan=True)  for img, sh in zip(movie, shifts_rig)]
+    else:
+        dims_grid = tuple(np.max(np.stack(coord_shifts_els[0],axis=1),axis=1) - np.min(np.stack(coord_shifts_els[0],axis=1),axis=1) + 1)
+        shifts_x = np.stack([np.reshape(_sh_,dims_grid,order='C').astype(np.float32) for _sh_ in x_shifts_els], axis = 0)
+        shifts_y = np.stack([np.reshape(_sh_,dims_grid,order='C').astype(np.float32) for _sh_ in y_shifts_els], axis = 0)
+        dims = movie.shape[1:]
+        x_grid, y_grid = np.meshgrid(np.arange(0., dims[0]).astype(np.float32), np.arange(0., dims[1]).astype(np.float32))
+        m_reg = [cv2.remap(img,
+                    -np.resize(shiftY, dims)+x_grid, -np.resize(shiftX, dims)+y_grid, cv2.INTER_CUBIC)
+                    for img, shiftX, shiftY in zip(movie, shifts_x, shifts_y)]
 
-     
-     def apply_shifts_movie(self, fname, rigid_shifts = True):
-        """
-        Applies shifts found by registering one file to a different file. Useful 
-        for cases when shifts computed from a structural channel are applied to a 
-        functional channel. Currently only application of shifts through openCV is 
-        supported.
-    
-        Parameters:
-        -----------
-        fname: str
-            name of the Movie to motion correct. It should not contain nans. All the loadable formats from CaImAn are acceptable
-            
-        rigid_shifts: bool
-            apply rigid or pw-rigid shifts (must exist in the mc object)    
-        
-        Returns:
-        ----------
-        m_reg: caiman Movie object
-            caiman Movie object with applied shifts (not memory mapped)
-        """
-        
-        Y = Movie.load(fname)
-        
-        if rigid_shifts is True:
-            if self.shifts_opencv:
-                m_reg = [apply_shift_iteration(img, shift) for img, shift in zip(Y, self.shifts_rig)]
-            else:
-                m_reg = [apply_shifts_dft(img,(
-                            sh[0],sh[1]), 0, is_freq = False, border_nan=True)  for img, sh in zip(
-                            Y, self.shifts_rig) ]
-        else:
-            dims_grid = tuple(np.max(np.stack(self.coord_shifts_els[0],axis=1),axis=1) - np.min(np.stack(self.coord_shifts_els[0],axis=1),axis=1) + 1)
-            shifts_x = np.stack([np.reshape(_sh_,dims_grid,order='C').astype(np.float32) for _sh_ in self.x_shifts_els], axis = 0)
-            shifts_y = np.stack([np.reshape(_sh_,dims_grid,order='C').astype(np.float32) for _sh_ in self.y_shifts_els], axis = 0)
-            dims = Y.shape[1:]
-            x_grid, y_grid = np.meshgrid(np.arange(0., dims[0]).astype(np.float32), np.arange(0., dims[1]).astype(np.float32))
-            m_reg = [cv2.remap(img, 
-                        -np.resize(shiftY, dims)+x_grid, -np.resize(shiftX, dims)+y_grid, cv2.INTER_CUBIC) 
-                        for img, shiftX, shiftY in zip(Y, shifts_x, shifts_y)]
-            
-        return Movie(np.stack(m_reg, axis=0))
+    return Movie(np.stack(m_reg, axis=0))
 
 
-
-#%%
 def apply_shift_iteration(img,shift,border_nan=False, border_type = cv2.BORDER_REFLECT):
     # todo todocument
 
@@ -314,7 +118,6 @@ def apply_shift_iteration(img,shift,border_nan=False, border_type = cv2.BORDER_R
     return img
 
 
-#%%
 def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h=25,save_base_name=None,order = 'C',
                         init_frames_template=100, show_movie=False, bilateral_blur=False,template=None, min_count=1000,
                         border_to_0=0, n_iter = 1, remove_blanks=False,show_template=False,return_mov=False,
