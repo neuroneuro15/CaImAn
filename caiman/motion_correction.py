@@ -306,42 +306,34 @@ def motion_correct_iteration(img,template,frame_num,max_shift_w=25,
 
     return new_img,new_templ,shift,avg_corr
 
-#%%
-def motion_correct_iteration_fast(img,template,max_shift_w=10,max_shift_h=10):
+
+def get_subpixel_shift(img, x, y):
+    """takes a 2D array 'img' about index [x, y]', to check for subpixel shift using gaussian peak registration."""
+    log_xm_y, log_xp_y, log_x_ym, log_x_yp, log_xy = np.log(img[(x-1, x+1, x, x, x), (y, y, y-1, y+1, y)])
+    dx = .5 * (log_xp_y - log_xm_y) / (log_xm_y + log_xp_y - 2 * log_xy)
+    dy = .5 * (log_x_yp - log_x_ym) / (log_x_ym + log_x_yp - 2 * log_xy)
+    return dx, dy
+
+
+def motion_correct_iteration_fast(img, template, max_shift_w=10, max_shift_h=10):
     """ For using in online realtime scenarios """
     h_i, w_i = template.shape
-    ms_h = max_shift_h
-    ms_w = max_shift_w
+    templ_crop = template[max_shift_h:(h_i-max_shift_h), max_shift_w:(w_i-max_shift_w)].astype(np.float32)
 
-    templ_crop=template[max_shift_h:h_i-max_shift_h,max_shift_w:w_i-max_shift_w].astype(np.float32)
+    res = cv2.matchTemplate(img, templ_crop, cv2.TM_CCORR_NORMED)
+    sh_y, sh_x = cv2.minMaxLoc(res)[3]
+    sh_x_n = max_shift_h - sh_x
+    sh_y_n = max_shift_w - sh_y
+    if (0 < sh_x < 2 * max_shift_h - 1) & (0 < sh_y < 2 * max_shift_w - 1):
+        # if max is internal, check for subpixel shift using gaussian peak registration
+        dx, dy = get_subpixel_shift(res, sh_x_n, sh_y_n)
+        sh_x_n += dx
+        sh_y_n += dy
 
-    h,w = templ_crop.shape
+    M = np.float32([[1, 0, sh_y_n], [0, 1, sh_x_n]])
+    new_img = cv2.warpAffine(img, M, (w_i, h_i), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
 
-    res = cv2.matchTemplate(img,templ_crop,cv2.TM_CCORR_NORMED)
-    top_left = cv2.minMaxLoc(res)[3]
-
-    sh_y,sh_x = top_left
-
-    if (0 < top_left[1] < 2 * ms_h-1) & (0 < top_left[0] < 2 * ms_w-1):
-        # if max is internal, check for subpixel shift using gaussian
-        # peak registration
-        log_xm1_y = np.log(res[sh_x-1,sh_y]);
-        log_xp1_y = np.log(res[sh_x+1,sh_y]);
-        log_x_ym1 = np.log(res[sh_x,sh_y-1]);
-        log_x_yp1 = np.log(res[sh_x,sh_y+1]);
-        four_log_xy = 4*np.log(res[sh_x,sh_y]);
-
-        sh_x_n = -(sh_x - ms_h + old_div((log_xm1_y - log_xp1_y), (2 * log_xm1_y - four_log_xy + 2 * log_xp1_y)))
-        sh_y_n = -(sh_y - ms_w + old_div((log_x_ym1 - log_x_yp1), (2 * log_x_ym1 - four_log_xy + 2 * log_x_yp1)))
-    else:
-        sh_x_n = -(sh_x - ms_h)
-        sh_y_n = -(sh_y - ms_w)
-
-    M = np.float32([[1,0,sh_y_n],[0,1,sh_x_n]])
-    
-    new_img = cv2.warpAffine(img,M,(w_i,h_i),flags=cv2.INTER_CUBIC, borderMode = cv2.BORDER_REFLECT)
-
-    shift=[sh_x_n,sh_y_n]
+    shift = [sh_x_n, sh_y_n]
 
     return new_img, shift
 
