@@ -1614,11 +1614,6 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
         return (new_img, (-rigid_shifts[0], -rigid_shifts[1]), None, None)
 
     # extract patches
-    sliding_template = list(sliding_window(template, overlaps=overlaps, strides=strides))
-    templates = [el[-1] for el in sliding_template]
-    dim_grid = tuple(np.add(sliding_template[-1][:2], 1))
-    num_tiles = np.prod(dim_grid)
-
     strides = tuple(np.round(np.divide(strides, upsample_factor_grid)).astype(np.int))
 
     sliding_img = list(sliding_window(img, overlaps=overlaps, strides=strides))
@@ -1626,22 +1621,25 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
     xy_grid    = [(it[0], it[1]) for it in sliding_img]
     start_step = [(it[2], it[3]) for it in sliding_img]
 
+    sliding_template = list(sliding_window(template, overlaps=overlaps, strides=strides))
+    dim_grid = tuple(np.add(sliding_template[-1][:2], 1))
+    num_tiles = np.prod(dim_grid)
+
     #extract shifts for each patch
     lb_shifts = np.ceil(np.subtract(rigid_shifts, max_deviation_rigid)).astype(int) if max_deviation_rigid is not None else None
     ub_shifts = np.floor(np.add(rigid_shifts, max_deviation_rigid)).astype(int) if max_deviation_rigid is not None else None
-    shfts_et_all = [register_translation(im, template, upfactor, shifts_lb=lb_shifts, shifts_ub=ub_shifts, max_shifts=max_shifts) for im, template, upfactor in zip(imgs, templates, [upsample_factor_fft] * num_tiles)]
-    shfts = [sshh[0] for sshh in shfts_et_all]
+    shfts_et_all = [register_translation(im, template, upfactor, shifts_lb=lb_shifts, shifts_ub=ub_shifts, max_shifts=max_shifts)[0, 2] for im, template, upfactor in zip(imgs, [el[-1] for el in sliding_template], [upsample_factor_fft] * num_tiles)]
+    shfts = np.array([sshh[0] for sshh in shfts_et_all])
 
     # create a vector field
-    shift_img_x, shift_img_y = np.reshape(np.array(shfts)[:, 0], dim_grid), np.reshape(np.array(shfts)[:, 1], dim_grid)
-    diffs_phase_grid = np.reshape(np.array([sshh[2] for sshh in shfts_et_all]), dim_grid)
+    shift_img_x, shift_img_y = np.reshape(shfts[:, 0], dim_grid), np.reshape(shfts[:, 1], dim_grid)
+    diffs_phase_grid = np.reshape(np.array([sshh[1] for sshh in shfts_et_all]), dim_grid)
 
     dim_new_grid = tuple(np.add(xy_grid[-1], 1))[::-1]
     for array in (shift_img_x, shift_img_y, diffs_phase_grid):
         array[:] = cv2.resize(array, dim_new_grid, interpolation=cv2.INTER_CUBIC)
 
     num_tiles = np.prod(dim_new_grid)
-    max_shear  = np.percentile([np.max(np.abs(np.diff(im, axis=axis))) for im, axis in itertools.product([shift_img_x, shift_img_y], [0, 1])], 75)
     total_shifts = [(-x, -y) for x, y in zip(shift_img_x.reshape(num_tiles),shift_img_y.reshape(num_tiles))]
     total_diffs_phase = list(diffs_phase_grid.reshape(num_tiles))
 
@@ -1655,23 +1653,17 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
     normalizer, new_img = np.zeros_like(img), np.zeros_like(img)
     weight_matrix = create_weight_matrix_for_blending(img, overlaps, strides)
     newshapes = np.add(strides, overlaps)
-    if max_shear < 0.5:
+    if np.percentile([np.max(np.abs(np.diff(im, axis=axis))) for im, axis in itertools.product([shift_img_x, shift_img_y], [0, 1])], 75) < 0.5:  # calculate max_shear
         for (x, y), (_, _), im, (_, _), weight_mat in zip(start_step, xy_grid, imgs, total_shifts, weight_matrix):
-            prev_val_1 = normalizer[x:(x + newshapes[0]), y:(y + newshapes[1])]
-            normalizer[x:(x + newshapes[0]), y:(y + newshapes[1])] = np.nansum(np.dstack([~np.isnan(im) * 1 * weight_mat, prev_val_1]), -1)
-            prev_val = new_img[x:x + newshapes[0],y:y + newshapes[1]]
-            new_img[x:x + newshapes[0], y:y + newshapes[1]] = np.nansum(np.dstack([im * weight_mat, prev_val]), -1)
-
+            normalizer[x:(x + newshapes[0]), y:(y + newshapes[1])] = np.nansum(np.dstack([~np.isnan(im) * 1 * weight_mat, normalizer[x:(x + newshapes[0]), y:(y + newshapes[1])]]), -1)
+            new_img[x:x + newshapes[0], y:y + newshapes[1]] = np.nansum(np.dstack([im * weight_mat, new_img[x:x + newshapes[0],y:y + newshapes[1]]]), -1)
         new_img /= normalizer
-
     else: # in case the difference in shift between neighboring patches is larger than 0.5 pixels we do not interpolate in the overlaping area
         half_overlap_x, half_overlap_y = tuple(int(el / 2) for el in overlaps)
-        for (x, y), (idx_0, idx_1), im, (_, _), weight_mat in zip(start_step, xy_grid, imgs, total_shifts, weight_matrix):
+        for (x, y), (idx_0, idx_1), im in zip(start_step, xy_grid, imgs):
             x_start = x if idx_0 == 0 else x + half_overlap_x
             y_start = y if idx_1 == 0 else y + half_overlap_y
-            x_end = x + newshapes[0]
-            y_end = y + newshapes[1]
-            new_img[x_start:x_end,y_start:y_end] = im[x_start-x:, y_start-y:]
+            new_img[x_start:(x + newshapes[0]), y_start:(y + newshapes[1])] = im[x_start-x:, y_start-y:]
 
     new_img -= add_to_movie
 
