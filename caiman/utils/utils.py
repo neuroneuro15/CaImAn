@@ -285,17 +285,3 @@ def gen_data(dims=(48, 48), N=10, sig=(3, 3), tau=1., noise=.3, T=2000,
         plt.title('Correlation')
         plt.show()
     return Yr, trueC, trueS, trueA, trueb, truef, centers, dims
-
-
-#%%
-def save_object(obj, filename):
-    with open(filename, 'wb') as output:
-        pickle.dump(obj, output, pickle.HIGHEST_PROTOCOL)
-
-
-def load_object(filename):
-    with open(filename, 'rb') as input_obj:
-        obj = pickle.load(input_obj)
-    return obj
-
-
