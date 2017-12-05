@@ -5,3 +5,4 @@ from .imagej import nf_read_roi, nf_read_roi_zip, nf_merge_roi_zip
 from .neurofinder import neurofinder_format_masks, neurofinder_load_masks_from_json, neurofinder_masks_to_json
 from .matlab import loadmat
 from .pickle import save_object, load_object
+from .demo_data import download_demo, demo_files

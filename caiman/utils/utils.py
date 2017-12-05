@@ -19,70 +19,7 @@ https://docs.python.org/2/library/urllib.html
 from __future__ import print_function
 
 import numpy as np
-import os
 from scipy.ndimage.filters import gaussian_filter
-
-try:
-    from urllib2 import urlopen
-except ImportError:
-    from urllib.request import urlopen
-
-
-def download_demo(name='Sue_2x_3000_40_-46.tif', save_folder=''):
-    """download a file from the file list with the url of its location
-
-
-    using urllib, you can add you own name and location in this global parameter
-
-        Parameters:
-        -----------
-
-        name: str
-            the path of the file correspondong to a file in the filelist (''Sue_2x_3000_40_-46.tif' or 'demoMovieJ.tif')
-
-        save_folder: str
-            folder inside ./example_movies to which the files will be saved. Will be created if it doesn't exist
-
-    Raise:
-    ---------
-        WrongFolder Exception
-
-
-    """
-
-    #\bug
-    #\warning
-
-    file_dict = {'Sue_2x_3000_40_-46.tif': 'https://www.dropbox.com/s/09z974vkeg3t5gn/Sue_2x_3000_40_-46.tif?dl=1',
-                 'demoMovieJ.tif': 'https://www.dropbox.com/s/8j1cnqubye3asmu/demoMovieJ.tif?dl=1',
-                 'demo_behavior.h5': 'https://www.dropbox.com/s/53jmhc9sok35o82/movie_behavior.h5?dl=1',
-                 'Tolias_mesoscope_1.hdf5': 'https://www.dropbox.com/s/t1yt35u0x72py6r/Tolias_mesoscope_1.hdf5?dl=1',
-                 'Tolias_mesoscope_2.hdf5': 'https://www.dropbox.com/s/i233b485uxq8wn6/Tolias_mesoscope_2.hdf5?dl=1',
-                 'Tolias_mesoscope_3.hdf5': 'https://www.dropbox.com/s/4fxiqnbg8fovnzt/Tolias_mesoscope_3.hdf5?dl=1',
-                 'data_endoscope.tif':'https://www.dropbox.com/s/dcwgwqiwpaz4qgc/data_endoscope.tif?dl=1'}
-    #          ,['./example_movies/demoMovie.tif','https://www.dropbox.com/s/obmtq7305ug4dh7/demoMovie.tif?dl=1']]
-    base_folder = './example_movies'
-    if os.path.exists(base_folder):
-        if not os.path.isdir(os.path.join(base_folder, save_folder)):
-            os.makedirs(os.path.join(base_folder, save_folder))
-        path_movie = os.path.join(base_folder, save_folder, name)
-        if not os.path.exists(path_movie):
-            url = file_dict[name]
-            print("downloading " + name + "with urllib")
-            f = urlopen(url)
-            data = f.read()
-            with open(path_movie, "wb") as code:
-                code.write(data)
-        else:
-
-            print("File already downloaded")
-    else:
-
-        raise Exception('You must be in caiman folder')
-#    print("downloading with requests")
-#    r = requests.get(url)
-#    with open("code3.tif", "wb") as code:
-#        code.write(r.content)
 
 
 #%% Generate data
