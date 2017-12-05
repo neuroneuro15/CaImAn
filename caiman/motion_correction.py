@@ -1501,22 +1501,22 @@ def create_weight_matrix_for_blending(img, overlaps, strides):
     --------
     weight_mat: normalizing weight matrix    
     """
-    shapes = np.add(strides,overlaps)
-
-    max_grid_1,max_grid_2 =  np.max(np.array([it[:2] for it in  sliding_window(img, overlaps, strides)]),0)
-
+    shapes = np.add(strides, overlaps)
+    y_overlap, x_overlap = overlaps
+    max_grid_1, max_grid_2 = np.max([it[:2] for it in sliding_window(img, overlaps, strides)], axis=0)
     for grid_1, grid_2 , x, y, _ in sliding_window(img, overlaps, strides):
 
-        weight_mat = np.ones(shapes)  
+        weight_mat = np.ones(shapes)
 
-        if grid_1 > 0:
-            weight_mat[:overlaps[0],:] = np.linspace(0,1,overlaps[0])[:,None]
-        if grid_1 < max_grid_1: 
-            weight_mat[-overlaps[0]:,:] = np.linspace(1,0,overlaps[0])[:,None]
-        if grid_2 > 0:
-            weight_mat[:,:overlaps[1]] = weight_mat[:,:overlaps[1]]*np.linspace(0,1,overlaps[1])[None,:]
-        if grid_2 < max_grid_2: 
-            weight_mat[:,-overlaps[1]:] = weight_mat[:,-overlaps[1]:]*np.linspace(1,0,overlaps[1])[None,:]
+        if grid_1 < max_grid_1:
+            weight_mat[-y_overlap, :] = np.linspace(1, 0, y_overlap)[:, np.newaxis]
+        elif grid_1 > 0:
+            weight_mat[:y_overlap, :] = np.linspace(0, 1, y_overlap)[:, np.newaxis]
+
+        if grid_2 < max_grid_2:
+            weight_mat[:, -x_overlap:] = weight_mat[:,-x_overlap:] * np.linspace(1, 0, x_overlap)[np.newaxis, :]
+        elif grid_2 > 0:
+            weight_mat[:, :x_overlap] = weight_mat[:,:x_overlap]*np.linspace(0, 1, y_overlap)[np.newaxis, :]
 
         yield weight_mat
 
