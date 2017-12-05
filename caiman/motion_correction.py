@@ -314,34 +314,6 @@ def apply_shift_iteration(img,shift,border_nan=False, border_type = cv2.BORDER_R
     return img
 
 
-def motion_correct_online_multifile(list_files,add_to_movie,order = 'C', **kwargs):
-    # todo todocument
-
-    kwargs['order'] = order
-    all_names  = []   
-    all_shifts = [] 
-    all_xcorrs = []
-    all_templates = []
-    template = None
-    kwargs_=kwargs.copy()
-    kwargs_['order'] = order
-    total_frames = 0
-    for file_ in list_files:
-        print(('Processing:' + file_))
-        kwargs_['template'] = template
-        kwargs_['save_base_name'] = file_[:-4]
-        tffl = tifffile.TiffFile(file_)
-        shifts,xcorrs,template, fname_tot  =  motion_correct_online(tffl,add_to_movie,**kwargs_)[0:4]
-        all_names.append(fname_tot)
-        all_shifts.append(shifts)
-        all_xcorrs.append(xcorrs)
-        all_templates.append(template)
-        total_frames = total_frames + len(shifts)
-
-    return all_names, all_shifts, all_xcorrs, all_templates
-
-
-
 #%%
 def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h=25,save_base_name=None,order = 'C',
                         init_frames_template=100, show_movie=False, bilateral_blur=False,template=None, min_count=1000,
