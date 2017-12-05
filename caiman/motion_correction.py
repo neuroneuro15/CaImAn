@@ -138,9 +138,9 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
         else:
             init_mov=[m.asarray() for m in movie_iterable[:init_frames_template]]
     else:
-        init_mov=movie_iterable[slice(0,init_frames_template,1)]
+        init_mov = movie_iterable[slice(0, init_frames_template, 1)]
 
-    dims=(len(movie_iterable),)+movie_iterable[0].shape 
+    dims = (len(movie_iterable),) + movie_iterable[0].shape
     print(("dimensions:" + str(dims)))
 
     if use_median_as_template:
@@ -148,30 +148,26 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
 
     if template is None:        
         template = bin_median(init_mov)
-        count=init_frames_template
+        count = init_frames_template
         if np.percentile(template, 1) + add_to_movie < - 10:
             raise Exception('Movie too negative, You need to add a larger value to the Movie (add_to_movie)')
         template=np.array(template + add_to_movie,dtype=np.float32)    
     else:
         if np.percentile(template, 1) < - 10:
             raise Exception('Movie too negative, You need to add a larger value to the Movie (add_to_movie)')
-        count=min_count
+        count = min_count
 
     min_mov = 0
-    buffer_size_frames=100          
-    buffer_size_template=100     
-    buffer_frames=collections.deque(maxlen=buffer_size_frames)  
-    buffer_templates=collections.deque(maxlen=buffer_size_template)  
-    max_w,max_h,min_w,min_h=0,0,0,0
+    buffer_size_frames = 100
+    buffer_size_template = 100
+    buffer_frames = collections.deque(maxlen=buffer_size_frames)
+    buffer_templates = collections.deque(maxlen=buffer_size_template)
+    max_w, max_h, min_w, min_h = 0, 0, 0, 0
 
     big_mov = None
-    if return_mov:
-        mov=[]   
-    else:
-        mov = None
-
+    mov = [] if return_mov else None
     for n in range(n_iter):
-        if n>0:
+        if n > 0:
             count = init_frames_template
 
         if (save_base_name is not None) and (big_mov is None) and (n_iter == (n+1)):  
@@ -186,9 +182,8 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
         else:
             fname_tot = None  
 
-        shifts_tmp = []
-        xcorr_tmp = []
-        for idx_frame,page in enumerate(movie_iterable):  
+        shifts_tmp, xcorr_tmp = [], []
+        for idx_frame, page in enumerate(movie_iterable):
 
             if 'tifffile' in str(type(movie_iterable[0])):
                 page=page.asarray()
@@ -209,7 +204,7 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
                 template_old=template
             buffer_frames.append(new_img)
 
-            if count%100 == 0:
+            if count % 100 == 0:
                 if count >= (buffer_size_frames + init_frames_template):
                     buffer_templates.append(np.mean(buffer_frames,0))                     
                     template = np.median(buffer_templates,0)
@@ -243,18 +238,18 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
 
             if (save_base_name is not None) and (n_iter == (n+1)):
 
-                big_mov[:,idx_frame] = np.reshape(new_img,np.prod(dims[1:]),order='F')
+                big_mov[:, idx_frame] = np.reshape(new_img,np.prod(dims[1:]),order='F')
 
             if return_mov and (n_iter == (n+1)):
                 mov.append(new_img)
 
             if show_movie:
-                cv2.imshow('frame',old_div(new_img,500))
+                cv2.imshow('frame', old_div(new_img,500))
                 print(shift)
                 if not np.any(np.remainder(shift,1) == (0,0)):
                     cv2.waitKey(int(1./500*1000))
 
-            count+=1
+            count += 1
         shifts.append(shifts_tmp)
         xcorrs.append(xcorr_tmp)
 
