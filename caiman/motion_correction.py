@@ -83,40 +83,43 @@ def apply_shifts_movie(movie, coord_shifts_els, x_shifts_els, y_shifts_els, rigi
         if shifts_opencv:
             m_reg = [apply_shift_iteration(img, shift) for img, shift in zip(movie, shifts_rig)]
         else:
-            m_reg = [apply_shifts_dft(img, (sh[0], sh[1]), 0, is_freq=False, border_nan=True)  for img, sh in zip(movie, shifts_rig)]
+            m_reg = [apply_shifts_dft(img, (sh[0], sh[1]), 0, is_freq=False, border_nan=True) for img, sh in zip(movie, shifts_rig)]
     else:
-        dims_grid = tuple(np.max(np.stack(coord_shifts_els[0],axis=1),axis=1) - np.min(np.stack(coord_shifts_els[0],axis=1),axis=1) + 1)
-        shifts_x = np.stack([np.reshape(_sh_,dims_grid,order='C').astype(np.float32) for _sh_ in x_shifts_els], axis = 0)
-        shifts_y = np.stack([np.reshape(_sh_,dims_grid,order='C').astype(np.float32) for _sh_ in y_shifts_els], axis = 0)
+        dims_grid = tuple(np.max(np.stack(coord_shifts_els[0], axis=1), axis=1) - np.min(np.stack(coord_shifts_els[0], axis=1), axis=1) + 1)
+        shifts_x = np.stack([np.reshape(_sh_,dims_grid,order='C').astype(np.float32) for _sh_ in x_shifts_els], axis=0)
+        shifts_y = np.stack([np.reshape(_sh_,dims_grid,order='C').astype(np.float32) for _sh_ in y_shifts_els], axis=0)
         dims = movie.shape[1:]
-        x_grid, y_grid = np.meshgrid(np.arange(0., dims[0]).astype(np.float32), np.arange(0., dims[1]).astype(np.float32))
-        m_reg = [cv2.remap(img,
-                    -np.resize(shiftY, dims)+x_grid, -np.resize(shiftX, dims)+y_grid, cv2.INTER_CUBIC)
-                    for img, shiftX, shiftY in zip(movie, shifts_x, shifts_y)]
+        x_grid, y_grid = np.meshgrid(np.arange(dims[0]).astype(np.float32), np.arange(dims[1]).astype(np.float32))
+        m_reg = []
+        for img, shiftX, shiftY in zip(movie, shifts_x, shifts_y):
+            remapped = cv2.remap(img, x_grid - np.reshape(shiftY, dims), y_grid - np.reshape(shiftX, dims), cv2.INTER_CUBIC)
+            m_reg.append(remapped)
 
     return Movie(np.stack(m_reg, axis=0))
 
 
-def apply_shift_iteration(img,shift,border_nan=False, border_type = cv2.BORDER_REFLECT):
+def apply_shift_iteration(img, shift, border_nan=False, border_type=cv2.BORDER_REFLECT):
     # todo todocument
 
-    sh_x_n,sh_y_n = shift
-    w_i,h_i=img.shape
-    M = np.float32([[1,0,sh_y_n],[0,1,sh_x_n]])    
-    min_,max_ = np.min(img),np.max(img)
-    img = np.clip(cv2.warpAffine(img,M,(h_i,w_i),flags=cv2.INTER_CUBIC, borderMode = border_type),min_,max_)
-    if border_nan:  
-        max_w,max_h,min_w,min_h=0,0,0,0
-        max_h,max_w = np.ceil(np.maximum((max_h,max_w),shift)).astype(np.int)
-        min_h,min_w = np.floor(np.minimum((min_h,min_w),shift)).astype(np.int)
-        img[:max_h,:] = np.nan
-        if min_h < 0:
-            img[min_h:,:] = np.nan
-        img[:,:max_w] = np.nan 
-        if min_w < 0:
-            img[:,min_w:] = np.nan
+    sh_x_n, sh_y_n = shift
+    M = np.float32([[1, 0, sh_y_n], [0, 1, sh_x_n]])
+    warped_img = cv2.warpAffine(img, M, img.shape[::-1], flags=cv2.INTER_CUBIC, borderMode=border_type)
+    warped_img = np.clip(warped_img, np.min(img), np.max(img))
 
-    return img
+    if border_nan:
+        max_h, max_w = np.ceil(np.maximum((0, 0), shift)).astype(np.int)
+        min_h, min_w = np.floor(np.minimum((0, 0), shift)).astype(np.int)
+
+        # todo: check logic here--it looks like some circumstances can result in all-nan images.
+        warped_img[:max_h, :] = np.nan
+        if min_h < 0:
+            warped_img[min_h:, :] = np.nan
+
+        warped_img[:, :max_w] = np.nan
+        if min_w < 0:
+            warped_img[:, min_w:] = np.nan
+
+    return warped_img
 
 
 def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h=25,save_base_name=None,order = 'C',
