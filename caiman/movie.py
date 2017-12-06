@@ -385,7 +385,7 @@ class Movie(object):
 
         X = self.reshape((self.shape[0], -1), order='F')
         time_comps, V = spams.nmf(X, return_lasso=True, K=n_components, numThreads=4, iter=iterations, **kwargs)
-        space_comps = np.array(np.reshape(mm.todense(), self.shape[1:], order='F' for mm in V)
+        space_comps = np.array(np.reshape(mm.todense(), self.shape[1:], order='F') for mm in V)
         return time_comps, space_comps
 
     def NNSC_online(self, n_components=30, lambda1=100, iterations=-5, model=None, **kwargs):
@@ -418,7 +418,7 @@ class Movie(object):
 
         X = self.reshape(self.shape[0], -1, order='F')
         time_comps, V = spams.nnsc(X, return_lasso=True, K=n_components, lambda1=lambda1, iter=iterations, model=model, **kwargs)
-        space_comps = np.array(np.reshape(mm.todense(), self.shape[1:], order='F' for mm in V)
+        space_comps = np.array(np.reshape(mm.todense(), self.shape[1:], order='F') for mm in V)
         return time_comps, space_comps
 
 
