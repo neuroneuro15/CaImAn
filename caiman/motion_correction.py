@@ -971,33 +971,3 @@ def compute_metrics_motion_correction(movie, final_size_x, final_size_y, swap_di
         norms.append(n)
 
     return tmpl, correlations, flows, norms, smoothness
-
-
-
-def tile_and_correct_wrapper(params):
-    """in parallel"""
-    #todo todocumentd
-    img_name,  out_fname, idxs, shape_mov, template, strides, overlaps, max_shifts,\
-        add_to_movie,max_deviation_rigid,upsample_factor_grid, newoverlaps, newstrides, \
-        shifts_opencv,nonneg_movie, gSig_filt, is_fiji = params
-
-    imgs = Movie.load(img_name)
-
-    mc = np.zeros(imgs.shape, dtype=np.float32)
-    shift_info = []
-    for count, img in tqdm(enumerate(imgs)):
-        mc[count], total_shift, start_step, xy_grid = tile_and_correct(img, template, strides, overlaps, max_shifts,
-                                                                       add_to_movie=add_to_movie, newoverlaps=newoverlaps,
-                                                                       strides=newstrides, upsample_factor_grid=upsample_factor_grid,
-                                                                       upsample_factor_fft=10, show_movie=False,
-                                                                       max_deviation_rigid=max_deviation_rigid,
-                                                                       shifts_opencv=shifts_opencv, gSig_filt=gSig_filt)
-        shift_info.append([total_shift, start_step, xy_grid])
-        
-    if out_fname is not None:           
-        outv = np.memmap(out_fname, mode='r+', dtype=np.float32, shape=shape_mov, order='F')
-        bias = np.float32(add_to_movie) if nonneg_movie else 0
-        outv[:, idxs] = np.reshape(mc.astype(np.float32), (len(imgs), -1), order='F').T + bias
-
-    return shift_info, idxs, np.nanmean(mc, axis=0)
-
