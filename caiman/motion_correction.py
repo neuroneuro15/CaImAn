@@ -56,6 +56,9 @@ from .utils.stats import compute_phasediff
 opencv = True
 
 
+def compute_bilateral_blur(img, diameter=10, sigmaColor=10000, sigmaSpace=0):
+    return cv2.bilateralFilter(img, diameter, sigmaColor, sigmaSpace)
+
 
 def compute_flow(frame, templ, pyr_scale=.5, levels=3, winsize=100, iterations=15, poly_n=5, poly_sigma=1.2/5, flags=0):
     return cv2.calcOpticalFlowFarneback(templ, frame, None, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
@@ -80,6 +83,47 @@ def compute_subpixel_shift(img, x, y):
     dx = .5 * (log_xp_y - log_xm_y) / (log_xm_y + log_xp_y - 2 * log_xy)
     dy = .5 * (log_x_yp - log_x_ym) / (log_x_ym + log_x_yp - 2 * log_xy)
     return dx, dy
+
+
+def low_pass_filter(img, gSig_filt):
+    filt = gSig_filt[0]
+    ker = cv2.getGaussianKernel((3 * filt) // 2 * 2 + 1, filt)
+    ker2D = np.dot(ker, ker.T)
+    ker2D[ker2D < np.max(ker2D[:,0])] = 0
+    ker2D[ker2D != 0] -= np.mean(ker2D[ker2D != 0])
+    return cv2.filter2D(np.array(img, dtype=np.float32), -1, ker2D, borderType=cv2.BORDER_REFLECT)
+
+
+
+def bin_median(mat, window=10, exclude_nans=False):
+
+    """ compute median of 3D array in along axis o by binning values
+
+    Parameters:
+    ----------
+
+    mat: ndarray
+        input 3D matrix, time along first dimension
+
+    window: int
+        number of frames in a bin
+
+
+    Returns:
+    -------
+    img:
+        median image
+    """
+    # todo: check logic of this function--it seems pretty strange to me.
+    T, d1, d2 = np.shape(mat)
+    if T < window:
+        window = T
+    num_windows = int(T / window)
+    num_frames = num_windows * window
+    median = np.nanmedian if exclude_nans else np.median
+    mean = np.nanmean if exclude_nans else np.mean
+    img = median(mean(np.reshape(mat[:num_frames], (window, num_windows, d1, d2)), axis=0), axis=0)
+    return img
 
 
 def apply_shift_iteration(img, shift, border_nan=False, border_type=cv2.BORDER_REFLECT):
@@ -252,15 +296,13 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
     return shifts,xcorrs,template, fname_tot, mov
 
 
-def bilateral_blur_image(img, diameter=10, sigmaColor=10000, sigmaSpace=0):
-    return cv2.bilateralFilter(img, diameter, sigmaColor, sigmaSpace)
 
 
 def motion_correct_iteration(img, template, frame_num, max_shift_w=25,
                              max_shift_h=25,bilateral_blur=False,diameter=10,sigmaColor=10000,sigmaSpace=0):
 #todo todocument
     if bilateral_blur:
-        img = bilateral_blur_image(img, diameter, sigmaColor, sigmaSpace)
+        img = compute_bilateral_blur(img, diameter, sigmaColor, sigmaSpace)
 
     new_img, shift, avg_corr = motion_correct_iteration_fast(img, template=template, max_shift_w=max_shift_w, max_shift_h=max_shift_h)
     new_templ = template * frame_num / (frame_num + 1) + 1. / (frame_num + 1) * new_img
@@ -286,37 +328,6 @@ def motion_correct_iteration_fast(img, template, max_shift_w=10, max_shift_h=10)
     shift = (sh_x_n, sh_y_n)
     avg_corr = np.max(res)
     return new_img, shift, avg_corr
-
-#%%    
-def bin_median(mat, window=10, exclude_nans=False):
-
-    """ compute median of 3D array in along axis o by binning values
-
-    Parameters:
-    ----------
-
-    mat: ndarray
-        input 3D matrix, time along first dimension
-
-    window: int
-        number of frames in a bin
-
-
-    Returns:
-    -------
-    img: 
-        median image
-    """
-    # todo: check logic of this function--it seems pretty strange to me.
-    T, d1, d2 = np.shape(mat)
-    if T < window:
-        window = T
-    num_windows = int(T / window)
-    num_frames = num_windows * window
-    median = np.nanmedian if exclude_nans else np.median
-    mean = np.nanmean if exclude_nans else np.mean
-    img = median(mean(np.reshape(mat[:num_frames], (window, num_windows, d1, d2)), axis=0), axis=0)
-    return img
 
 
 def _upsampled_dft(data, upsampled_region_size,
@@ -764,15 +775,6 @@ def create_weight_matrix_for_blending(img, overlaps, strides):
         yield weight_mat
 
 
-def low_pass_filter_space(img_orig, gSig_filt):
-    filt = gSig_filt[0]
-    ker = cv2.getGaussianKernel((3 * filt) // 2 * 2 + 1, filt)
-    ker2D = np.dot(ker, ker.T)
-    ker2D[ker2D < np.max(ker2D[:,0])] = 0
-    ker2D[ker2D != 0] -= np.mean(ker2D[ker2D != 0])
-    return cv2.filter2D(np.array(img_orig, dtype=np.float32), -1, ker2D, borderType=cv2.BORDER_REFLECT)
-
-
 def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_factor_grid=4, upsample_factor_fft=10, max_deviation_rigid=2, add_to_movie=0, shifts_opencv=False, gSig_filt=None):
 
     """ perform piecewise rigid motion correction iteration, by
@@ -832,7 +834,7 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
 
     if gSig_filt is not None:
         img_orig = img.copy()
-        img = low_pass_filter_space(img_orig, gSig_filt)
+        img = low_pass_filter(img_orig, gSig_filt)
     else:
         img = img.astype(np.float64)
 
