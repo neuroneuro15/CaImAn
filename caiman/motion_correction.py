@@ -62,46 +62,6 @@ def compute_flow_single_frame(frame, templ, pyr_scale=.5, levels=3, winsize=100,
     return cv2.calcOpticalFlowFarneback(templ, frame, None, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
 
 
-def apply_shifts_movie(movie, coord_shifts_els, x_shifts_els, y_shifts_els, rigid_shifts=True, shifts_opencv=True, shifts_rig=14):
-    """
-    Applies shifts found by registering one file to a different file. Useful
-    for cases when shifts computed from a structural channel are applied to a
-    functional channel. Currently only application of shifts through openCV is
-    supported.
-
-    Parameters:
-    -----------
-    fname: str
-        name of the Movie to motion correct. It should not contain nans. All the loadable formats from CaImAn are acceptable
-
-    rigid_shifts: bool
-        apply rigid or pw-rigid shifts (must exist in the mc object)
-
-    Returns:
-    ----------
-    m_reg: caiman Movie object
-        caiman Movie object with applied shifts (not memory mapped)
-    """
-
-    if rigid_shifts:
-        if shifts_opencv:
-            m_reg = [apply_shift_iteration(img, shift) for img, shift in zip(movie, shifts_rig)]
-        else:
-            m_reg = [apply_shifts_dft(img, (sh[0], sh[1]), 0, is_freq=False, border_nan=True) for img, sh in zip(movie, shifts_rig)]
-    else:
-        dims_grid = tuple(np.max(np.stack(coord_shifts_els[0], axis=1), axis=1) - np.min(np.stack(coord_shifts_els[0], axis=1), axis=1) + 1)
-        shifts_x = np.stack([np.reshape(_sh_,dims_grid,order='C').astype(np.float32) for _sh_ in x_shifts_els], axis=0)
-        shifts_y = np.stack([np.reshape(_sh_,dims_grid,order='C').astype(np.float32) for _sh_ in y_shifts_els], axis=0)
-        dims = movie.shape[1:]
-        x_grid, y_grid = np.meshgrid(np.arange(dims[0]).astype(np.float32), np.arange(dims[1]).astype(np.float32))
-        m_reg = []
-        for img, shiftX, shiftY in zip(movie, shifts_x, shifts_y):
-            remapped = cv2.remap(img, x_grid - np.reshape(shiftY, dims), y_grid - np.reshape(shiftX, dims), cv2.INTER_CUBIC)
-            m_reg.append(remapped)
-
-    return Movie(np.stack(m_reg, axis=0))
-
-
 def apply_shift_iteration(img, shift, border_nan=False, border_type=cv2.BORDER_REFLECT):
     # todo todocument
 
