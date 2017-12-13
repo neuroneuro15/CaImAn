@@ -153,14 +153,8 @@ def motion_correct_online(movie_iterable, add_to_movie, n_iter=1, max_shift_w=25
             new_img, shift, avg_corr = motion_correct_iteration_fast(img, template=template, max_shift_w=max_shift_w, max_shift_h=max_shift_h)
             template_tmp = template * count / (count + 1) + 1. / (count + 1) * new_img
 
-            max_h,max_w = np.ceil(np.maximum((max_h,max_w),shift)).astype(np.int)
-            min_h,min_w = np.floor(np.minimum((min_h,min_w),shift)).astype(np.int)
-
             if count < (100 + init_frames_template):
-                template_old=template
                 template = template_tmp
-            else:
-                template_old=template
             buffer_frames.append(new_img)
 
             if count % 100 == 0:
@@ -182,6 +176,8 @@ def motion_correct_online(movie_iterable, add_to_movie, n_iter=1, max_shift_w=25
             shifts_tmp.append(shift)
             xcorr_tmp.append(avg_corr)
 
+            max_h, max_w = np.ceil(np.maximum((max_h, max_w), shift)).astype(np.int)
+            min_h, min_w = np.floor(np.minimum((min_h, min_w), shift)).astype(np.int)
             if remove_blanks and n > 0 and (n_iter == (n+1)):
                 new_img = new_img[max_h:(new_img.shape[0] - abs(min_h)), max_w:(new_img.shape[1] - abs(min_w))]
 
