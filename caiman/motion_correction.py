@@ -85,29 +85,15 @@ def bin_median(movie, window=10):
     return np.median(np.mean(np.array_split(movie, window // movie.shape[0] + 1, axis=1), axis=0))
 
 
-def motion_correct_online(movie_iterable, add_to_movie, n_iter=1, max_shift_w=25, max_shift_h=25, save_base_name=None, order='C',
+def motion_correct_online(movie, add_to_movie, n_iter=1, max_shift_w=25, max_shift_h=25, save_base_name=None, order='C',
                           init_frames_template=100, bilateral_blur=False, diameter=10, sigmaColor=10000, sigmaSpace=0,
-                          template=None, border_to_0=0, remove_blanks=False, return_mov=False, use_median_as_template = False):
+                          template=None, border_to_0=0, remove_blanks=False, return_mov=False):
     # todo todocument
-
-    shifts, xcorrs = [], []  # store the amount of shift in each frame
     if remove_blanks and n_iter == 1:
         raise ValueError('In order to remove blanks you need at least two iterations n_iter=2')
 
-    if 'tifffile' in str(type(movie_iterable[0])):   
-        if len(movie_iterable)==1:
-            warnings.warn('NEED TO LOAD IN MEMORY SINCE SHAPE OF PAGE IS THE FULL MOVIE')
-            movie_iterable = movie_iterable.asarray()
-            init_mov=movie_iterable[:init_frames_template]
-        else:
-            init_mov=[m.asarray() for m in movie_iterable[:init_frames_template]]
-    else:
-        init_mov = movie_iterable[slice(0, init_frames_template, 1)]
-
-    dims = (len(movie_iterable),) + movie_iterable[0].shape
-
-    if use_median_as_template:
-        template = bin_median(movie_iterable)
+    init_mov = movie[:init_frames_template, :, :]
+    dims = (len(movie),) + movie[0].shape
 
     if template is None:        
         template = (bin_median(init_mov) + add_to_movie).astype(np.float32)
@@ -115,6 +101,7 @@ def motion_correct_online(movie_iterable, add_to_movie, n_iter=1, max_shift_w=25
     if np.percentile(template, 1) < - 10:
         raise ValueError('Movie too negative, You need to add a larger value to the Movie (add_to_movie)')
 
+    shifts, xcorrs = [], []  # store the amount of shift in each frame
     buffer_frames, buffer_templates = collections.deque(maxlen=100), collections.deque(maxlen=100)
     max_w, max_h, min_w, min_h = 0, 0, 0, 0
     big_mov, mov = None, []
@@ -134,14 +121,11 @@ def motion_correct_online(movie_iterable, add_to_movie, n_iter=1, max_shift_w=25
 
         count = init_frames_template - 1
         shifts_tmp, xcorr_tmp = [], []
-        for idx_frame, page in tqdm(enumerate(movie_iterable)):
+        for idx_frame, frame in tqdm(enumerate(movie)):
             count += 1
 
-            if 'tifffile' in str(type(movie_iterable[0])):
-                page=page.asarray()
-
-            img=np.array(page,dtype=np.float32)
-            img=img+add_to_movie
+            img = np.array(frame, dtype=np.float32)
+            img += add_to_movie
 
             if bilateral_blur:
                 img = compute_bilateral_blur(img, diameter, sigmaColor, sigmaSpace)
