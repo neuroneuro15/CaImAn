@@ -40,14 +40,12 @@ Copyright (C) 2011, the scikit-image team
 """
 from __future__ import division, print_function, absolute_import
 
-from past.utils import old_div
 import gc
 import collections
 import warnings
 from tqdm import tqdm
 
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy import stats
 import cv2
 
@@ -88,10 +86,8 @@ def bin_median(movie, window=10):
 
 
 def motion_correct_online(movie_iterable, add_to_movie, n_iter=1, max_shift_w=25, max_shift_h=25, save_base_name=None, order='C',
-                          init_frames_template=100, show_movie=False,
-                          bilateral_blur=False, diameter=10, sigmaColor=10000, sigmaSpace=0,
-                          template=None, border_to_0=0, remove_blanks=False,
-                          show_template=False, return_mov=False, use_median_as_template = False):
+                          init_frames_template=100, bilateral_blur=False, diameter=10, sigmaColor=10000, sigmaSpace=0,
+                          template=None, border_to_0=0, remove_blanks=False, return_mov=False, use_median_as_template = False):
     # todo todocument
 
     shifts, xcorrs = [], []  # store the amount of shift in each frame
@@ -162,11 +158,6 @@ def motion_correct_online(movie_iterable, add_to_movie, n_iter=1, max_shift_w=25
                     buffer_templates.append(np.mean(buffer_frames,0))                     
                     template = np.median(buffer_templates,0)
 
-                if show_template:
-                    plt.cla()
-                    plt.imshow(template,cmap='gray',vmin=250,vmax=350,interpolation='none')
-                    plt.pause(.001)
-
             if border_to_0 > 0:
                 new_img[:border_to_0,:] = 0
                 new_img[:,:border_to_0] = 0
@@ -186,12 +177,6 @@ def motion_correct_online(movie_iterable, add_to_movie, n_iter=1, max_shift_w=25
 
             if return_mov and (n_iter == (n+1)):
                 mov.append(new_img)
-
-            if show_movie:
-                cv2.imshow('frame', old_div(new_img,500))
-                print(shift)
-                if not np.any(np.remainder(shift, 1) == (0, 0)):
-                    cv2.waitKey(int(1./500*1000))
 
         shifts.append(shifts_tmp)
         xcorrs.append(xcorr_tmp)
