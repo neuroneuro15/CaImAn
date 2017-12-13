@@ -49,6 +49,8 @@ import numpy as np
 from scipy import stats
 import cv2
 
+from . import io
+
 
 def compute_bilateral_blur(img, diameter=10, sigmaColor=10000, sigmaSpace=0):
     return cv2.bilateralFilter(img, diameter, sigmaColor, sigmaSpace)
@@ -93,7 +95,6 @@ def motion_correct_online(movie, add_to_movie, n_iter=1, max_shift_w=25, max_shi
         raise ValueError('In order to remove blanks you need at least two iterations n_iter=2')
 
     init_mov = movie[:init_frames_template, :, :]
-    dims = (len(movie),) + movie[0].shape
 
     if template is None:        
         template = (bin_median(init_mov) + add_to_movie).astype(np.float32)
@@ -108,14 +109,9 @@ def motion_correct_online(movie, add_to_movie, n_iter=1, max_shift_w=25, max_shi
     for n in range(n_iter):
 
         if (save_base_name is not None) and not return_mov and (n_iter == (n+1)):
-
-            if remove_blanks:
-                dims = (dims[0], (dims[1] + min_h - max_h), (dims[2] + min_w - max_w))
-
-            fname_tot = save_base_name + '_d1_' + str(dims[1]) + '_d2_' + str(dims[2]) + '_d3_' + str(
-                1 if len(dims) == 3 else dims[3]) + '_order_' + str(order) + '_frames_' + str(dims[0]) + '_.mmap'
-            big_mov = np.memmap(fname_tot, mode='w+', dtype=np.float32, shape=(np.prod(dims[1:]), dims[0]), order=order)
-
+            dims = movie.shape if not remove_blanks else (dims[0], (dims[1] + min_h - max_h), (dims[2] + min_w - max_w))
+            fname_tot = io.gen_memmap_fname(base_filename=save_base_name, shape=movie.shape, order=order)
+            big_mov = io.load_memmap(fname_tot, mode='w+')
         else:
             fname_tot = None
 
