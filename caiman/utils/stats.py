@@ -73,3 +73,35 @@ def _hsm(data):
                 j = i
 
         return _hsm(data[j:j + N])    
+
+
+
+def compute_error(cross_correlation_max, src_amp, target_amp):
+    """
+    Compute RMS error metric between ``src_image`` and ``target_image``.
+
+    Parameters:
+    ----------
+    cross_correlation_max : complex
+        The complex value of the cross correlation at its maximum point.
+
+    src_amp : float
+        The normalized average image intensity of the source image
+
+    target_amp : float
+        The normalized average image intensity of the target image
+    """
+    return np.sqrt(np.abs(1.0 - cross_correlation_max * cross_correlation_max.conj() / (src_amp * target_amp)))
+
+
+
+def compute_phasediff(cross_correlation_max):
+    """
+    Compute global phase difference between the two images (should be zero if images are non-negative).
+
+    Parameters:
+    ----------
+    cross_correlation_max : complex
+        The complex value of the cross correlation at its maximum point.
+    """
+    return np.arctan2(cross_correlation_max.imag, cross_correlation_max.real)

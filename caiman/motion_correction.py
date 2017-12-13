@@ -48,14 +48,18 @@ import warnings
 from tqdm import tqdm
 
 import numpy as np
-from numpy.fft import ifftshift
 import matplotlib.pyplot as plt
 from scipy import stats
 import cv2
 
-from .movie import Movie
-
+from . import Movie
+from .utils.stats import compute_phasediff
 opencv = True
+
+
+
+def compute_flow_single_frame(frame, templ, pyr_scale=.5, levels=3, winsize=100, iterations=15, poly_n=5, poly_sigma=1.2/5, flags=0):
+    return cv2.calcOpticalFlowFarneback(templ, frame, None, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
 
 
 def apply_shifts_movie(movie, coord_shifts_els, x_shifts_els, y_shifts_els, rigid_shifts=True, shifts_opencv=True, shifts_rig=14):
@@ -434,14 +438,14 @@ def _upsampled_dft(data, upsampled_region_size,
 
     col_kernel = np.exp(
         (-1j * 2 * np.pi / (data.shape[1] * upsample_factor)) *
-        (ifftshift(np.arange(data.shape[1]))[:, None] -
+        (np.fft.ifftshift(np.arange(data.shape[1]))[:, None] -
          np.floor(old_div(data.shape[1], 2))).dot(
              np.arange(upsampled_region_size[1])[None, :] - axis_offsets[1])
     )
     row_kernel = np.exp(
         (-1j * 2 * np.pi / (data.shape[0] * upsample_factor)) *
         (np.arange(upsampled_region_size[0])[:, None] - axis_offsets[0]).dot(
-            ifftshift(np.arange(data.shape[0]))[None, :] -
+            np.fft.ifftshift(np.arange(data.shape[0]))[None, :] -
             np.floor(old_div(data.shape[0], 2)))
     )
 
@@ -449,34 +453,7 @@ def _upsampled_dft(data, upsampled_region_size,
     return row_kernel.dot(data).dot(col_kernel)
 
 
-def _compute_phasediff(cross_correlation_max):
-    """
-    Compute global phase difference between the two images (should be zero if images are non-negative).
 
-    Parameters:
-    ----------
-    cross_correlation_max : complex
-        The complex value of the cross correlation at its maximum point.
-    """
-    return np.arctan2(cross_correlation_max.imag, cross_correlation_max.real)
-
-
-def _compute_error(cross_correlation_max, src_amp, target_amp):
-    """
-    Compute RMS error metric between ``src_image`` and ``target_image``.
-
-    Parameters:
-    ----------
-    cross_correlation_max : complex
-        The complex value of the cross correlation at its maximum point.
-
-    src_amp : float
-        The normalized average image intensity of the source image
-
-    target_amp : float
-        The normalized average image intensity of the target image
-    """
-    return np.sqrt(np.abs(1.0 - cross_correlation_max * cross_correlation_max.conj() / (src_amp * target_amp)))
 
 #%%
 def register_translation(src_image, target_image, upsample_factor=1,
@@ -667,7 +644,9 @@ def register_translation(src_image, target_image, upsample_factor=1,
         if shape[dim] == 1:
             shifts[dim] = 0
 
-    return shifts, src_freq, _compute_phasediff(CCmax)
+    phase_diff = compute_phasediff(CCmax)
+
+    return shifts, src_freq, phase_diff
 
 #%%        
 def apply_shifts_dft(src_freq, shifts, diffphase, is_freq = True, border_nan = False):
@@ -722,8 +701,8 @@ def apply_shifts_dft(src_freq, shifts, diffphase, is_freq = True, border_nan = F
         src_freq   = np.array(src_freq, dtype=np.complex128, copy=False)          
 
     nc,nr = np.shape(src_freq)
-    Nr = ifftshift(np.arange(-np.fix(old_div(nr,2.)),np.ceil(old_div(nr,2.))))
-    Nc = ifftshift(np.arange(-np.fix(old_div(nc,2.)),np.ceil(old_div(nc,2.))))
+    Nr = np.fft.ifftshift(np.arange(-np.fix(old_div(nr,2.)),np.ceil(old_div(nr,2.))))
+    Nc = np.fft.ifftshift(np.arange(-np.fix(old_div(nc,2.)),np.ceil(old_div(nc,2.))))
     Nr,Nc = np.meshgrid(Nr,Nc)
 
     Greg = src_freq*np.exp(1j*2*np.pi*(-shifts[0]*1.*Nr/nr-shifts[1]*1.*Nc/nc))
@@ -956,22 +935,6 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
     return new_img, total_shifts, start_step, xy_grid
 
 
-def show_tile_and_correct_movie(img, new_img, template, sfr_freq, rigid_shifts, diffphase):
-    """Takes the movie returned by tile_and_correct() and displays it in an OpenCV window."""
-    img = apply_shifts_dft(sfr_freq, (-rigid_shifts[0], -rigid_shifts[1]), diffphase, border_nan=True)
-    img_show = np.vstack([new_img, img])
-    img_show = cv2.resize(img_show, None, fx=1, fy=1)
-    img_show /= np.percentile(template, 99)
-
-    cv2.imshow('frame', img_show)
-    cv2.waitKey(2)
-    cv2.destroyAllWindows()
-
-
-def compute_flow_single_frame(frame, templ, pyr_scale=.5, levels=3, winsize=100, iterations=15, poly_n=5, poly_sigma=1.2/5, flags=0):
-    return cv2.calcOpticalFlowFarneback(templ, frame, None, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
-
-
 def compute_metrics_motion_correction(movie, final_size_x, final_size_y, swap_dim, pyr_scale=.5, levels = 3,
                                       winsize=100, iterations=15, poly_n=5, poly_sigma=1.2/5, flags=0,
                                       resize_fact_flow=.2, template=None):
@@ -1009,29 +972,6 @@ def compute_metrics_motion_correction(movie, final_size_x, final_size_y, swap_di
 
     return tmpl, correlations, flows, norms, smoothness
 
-
-def play_optical_flow_figure_animation(movie, tmpl, fr, resize_fact_flow, vmin, vmax, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags):
-    # Compute optical flow
-    movie = movie.resize(1, 1, resize_fact_flow)
-    for fr in tqdm(movie):
-        flow = cv2.calcOpticalFlowFarneback(tmpl, fr, None, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma,
-                                            flags)
-
-
-        plt.subplot(1, 3, 1)
-        plt.cla()
-        plt.imshow(fr, vmin=0, vmax=300, cmap='gray')
-        plt.title('Movie')
-        plt.subplot(1, 3, 3)
-        plt.cla()
-        plt.imshow(flow[:, :, 1], vmin=vmin, vmax=vmax)
-        plt.title('y_flow')
-
-        plt.subplot(1, 3, 2)
-        plt.cla()
-        plt.imshow(flow[:, :, 0], vmin=vmin, vmax=vmax)
-        plt.title('x_flow')
-        plt.pause(.05)
 
 
 def tile_and_correct_wrapper(params):
