@@ -87,20 +87,20 @@ def bin_median(movie, window=10):
     return np.median(np.mean(np.array_split(movie, window // movie.shape[0] + 1, axis=1), axis=0))
 
 
-def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h=25,save_base_name=None,order = 'C',
-                          init_frames_template=100, show_movie=False, bilateral_blur=False, diameter=10, sigmaColor=10000, sigmaSpace=0,
-                          template=None, min_count=1000, border_to_0=0, n_iter = 1, remove_blanks=False,show_template=False, return_mov=False,
-                          use_median_as_template = False):
+def motion_correct_online(movie_iterable, add_to_movie, n_iter=1, max_shift_w=25, max_shift_h=25, save_base_name=None, order='C',
+                          init_frames_template=100, show_movie=False,
+                          bilateral_blur=False, diameter=10, sigmaColor=10000, sigmaSpace=0,
+                          template=None, border_to_0=0, remove_blanks=False,
+                          show_template=False, return_mov=False, use_median_as_template = False):
     # todo todocument
 
-    shifts=[]  # store the amount of shift in each frame
-    xcorrs=[]
-    if remove_blanks and n_iter==1:
-        raise Exception('In order to remove blanks you need at least two iterations n_iter=2')
+    shifts, xcorrs = [], []  # store the amount of shift in each frame
+    if remove_blanks and n_iter == 1:
+        raise ValueError('In order to remove blanks you need at least two iterations n_iter=2')
 
     if 'tifffile' in str(type(movie_iterable[0])):   
         if len(movie_iterable)==1:
-            print('******** WARNING ****** NEED TO LOAD IN MEMORY SINCE SHAPE OF PAGE IS THE FULL MOVIE')
+            warnings.warn('NEED TO LOAD IN MEMORY SINCE SHAPE OF PAGE IS THE FULL MOVIE')
             movie_iterable = movie_iterable.asarray()
             init_mov=movie_iterable[:init_frames_template]
         else:
@@ -109,49 +109,37 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
         init_mov = movie_iterable[slice(0, init_frames_template, 1)]
 
     dims = (len(movie_iterable),) + movie_iterable[0].shape
-    print(("dimensions:" + str(dims)))
 
     if use_median_as_template:
         template = bin_median(movie_iterable)
 
     if template is None:        
-        template = bin_median(init_mov)
-        count = init_frames_template
-        if np.percentile(template, 1) + add_to_movie < - 10:
-            raise Exception('Movie too negative, You need to add a larger value to the Movie (add_to_movie)')
-        template=np.array(template + add_to_movie,dtype=np.float32)    
-    else:
-        if np.percentile(template, 1) < - 10:
-            raise Exception('Movie too negative, You need to add a larger value to the Movie (add_to_movie)')
-        count = min_count
+        template = (bin_median(init_mov) + add_to_movie).astype(np.float32)
 
-    min_mov = 0
-    buffer_size_frames = 100
-    buffer_size_template = 100
-    buffer_frames = collections.deque(maxlen=buffer_size_frames)
-    buffer_templates = collections.deque(maxlen=buffer_size_template)
+    if np.percentile(template, 1) < - 10:
+        raise ValueError('Movie too negative, You need to add a larger value to the Movie (add_to_movie)')
+
+    buffer_frames, buffer_templates = collections.deque(maxlen=100), collections.deque(maxlen=100)
     max_w, max_h, min_w, min_h = 0, 0, 0, 0
-
-    big_mov = None
-    mov = [] if return_mov else None
+    big_mov, mov = None, []
     for n in range(n_iter):
-        if n > 0:
-            count = init_frames_template
 
-        if (save_base_name is not None) and (big_mov is None) and (n_iter == (n+1)):  
+        if (save_base_name is not None) and not return_mov and (n_iter == (n+1)):
 
             if remove_blanks:
-                dims = (dims[0],dims[1]+min_h-max_h,dims[2]+min_w-max_w)
+                dims = (dims[0], (dims[1] + min_h - max_h), (dims[2] + min_w - max_w))
 
             fname_tot = save_base_name + '_d1_' + str(dims[1]) + '_d2_' + str(dims[2]) + '_d3_' + str(
                 1 if len(dims) == 3 else dims[3]) + '_order_' + str(order) + '_frames_' + str(dims[0]) + '_.mmap'
             big_mov = np.memmap(fname_tot, mode='w+', dtype=np.float32, shape=(np.prod(dims[1:]), dims[0]), order=order)
 
         else:
-            fname_tot = None  
+            fname_tot = None
 
+        count = init_frames_template - 1
         shifts_tmp, xcorr_tmp = [], []
-        for idx_frame, page in enumerate(movie_iterable):
+        for idx_frame, page in tqdm(enumerate(movie_iterable)):
+            count += 1
 
             if 'tifffile' in str(type(movie_iterable[0])):
                 page=page.asarray()
@@ -168,7 +156,7 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
             max_h,max_w = np.ceil(np.maximum((max_h,max_w),shift)).astype(np.int)
             min_h,min_w = np.floor(np.minimum((min_h,min_w),shift)).astype(np.int)
 
-            if count < (buffer_size_frames + init_frames_template):
+            if count < (100 + init_frames_template):
                 template_old=template
                 template = template_tmp
             else:
@@ -176,7 +164,7 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
             buffer_frames.append(new_img)
 
             if count % 100 == 0:
-                if count >= (buffer_size_frames + init_frames_template):
+                if count >= (100 + init_frames_template):
                     buffer_templates.append(np.mean(buffer_frames,0))                     
                     template = np.median(buffer_templates,0)
 
@@ -185,30 +173,19 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
                     plt.imshow(template,cmap='gray',vmin=250,vmax=350,interpolation='none')
                     plt.pause(.001)
 
-                print(('Relative change in template:' + str(
-                    old_div(np.sum(np.abs(template-template_old)),np.sum(np.abs(template))))))
-                print(('Iteration:'+ str(count)))
-
             if border_to_0 > 0:
-                new_img[:border_to_0,:]=min_mov
-                new_img[:,:border_to_0]=min_mov
-                new_img[:,-border_to_0:]=min_mov
-                new_img[-border_to_0:,:]=min_mov
+                new_img[:border_to_0,:] = 0
+                new_img[:,:border_to_0] = 0
+                new_img[:,-border_to_0:] = 0
+                new_img[-border_to_0:,:] = 0
 
             shifts_tmp.append(shift)
             xcorr_tmp.append(avg_corr)
 
-            if remove_blanks and n>0  and (n_iter == (n+1)):
-
-                new_img = new_img[max_h:,:]
-                if min_h < 0:
-                    new_img = new_img[:min_h,:]
-                new_img = new_img[:,max_w:] 
-                if min_w < 0:
-                    new_img = new_img[:,:min_w]
+            if remove_blanks and n > 0 and (n_iter == (n+1)):
+                new_img = new_img[max_h:(new_img.shape[0] - abs(min_h)), max_w:(new_img.shape[1] - abs(min_w))]
 
             if (save_base_name is not None) and (n_iter == (n+1)):
-
                 big_mov[:, idx_frame] = np.reshape(new_img,np.prod(dims[1:]),order='F')
 
             if return_mov and (n_iter == (n+1)):
@@ -217,10 +194,9 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
             if show_movie:
                 cv2.imshow('frame', old_div(new_img,500))
                 print(shift)
-                if not np.any(np.remainder(shift,1) == (0,0)):
+                if not np.any(np.remainder(shift, 1) == (0, 0)):
                     cv2.waitKey(int(1./500*1000))
 
-            count += 1
         shifts.append(shifts_tmp)
         xcorrs.append(xcorr_tmp)
 
@@ -233,7 +209,7 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
     if mov is not None:
         mov = np.dstack(mov).transpose([2,0,1]) 
         
-    return shifts,xcorrs,template, fname_tot, mov
+    return shifts, xcorrs, template, fname_tot, mov
 
 
 def motion_correct_iteration_fast(img, template, max_shift_w=10, max_shift_h=10):
