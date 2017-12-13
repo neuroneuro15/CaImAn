@@ -52,14 +52,27 @@ import matplotlib.pyplot as plt
 from scipy import stats
 import cv2
 
-from . import Movie
 from .utils.stats import compute_phasediff
 opencv = True
 
 
 
-def compute_flow_single_frame(frame, templ, pyr_scale=.5, levels=3, winsize=100, iterations=15, poly_n=5, poly_sigma=1.2/5, flags=0):
+def compute_flow(frame, templ, pyr_scale=.5, levels=3, winsize=100, iterations=15, poly_n=5, poly_sigma=1.2/5, flags=0):
     return cv2.calcOpticalFlowFarneback(templ, frame, None, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
+
+
+def compute_flow_normed(*args, **kwargs):
+    return np.linalg.norm(compute_flow(*args, **kwargs))
+
+
+def compute_correlations_with_template(movie, template):
+    """Returns array of correlations between each frame of 'movie' with a same-shape template image."""
+    return np.array([stats.pearsonr(frame.flatten(), template.flatten())[0] for frame in tqdm(movie)])
+
+
+def compute_smoothness(movie):
+    return np.sqrt(np.sum(np.power(np.gradient(np.mean(movie, axis=0)), 2)))
+
 
 
 def apply_shift_iteration(img, shift, border_nan=False, border_type=cv2.BORDER_REFLECT):
@@ -894,40 +907,3 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
 
     return new_img, total_shifts, start_step, xy_grid
 
-
-def compute_metrics_motion_correction(movie, final_size_x, final_size_y, swap_dim, pyr_scale=.5, levels = 3,
-                                      winsize=100, iterations=15, poly_n=5, poly_sigma=1.2/5, flags=0,
-                                      resize_fact_flow=.2, template=None):
-
-    if np.any(np.isnan(movie)):
-        raise ValueError('Movie should not contain nan values')
-
-    #todo: todocument
-    max_shft_x = int(np.ceil((np.shape(movie)[1] - final_size_x) / 2))
-    max_shft_y = int(np.ceil((np.shape(movie)[2] - final_size_y) / 2))
-
-    max_shft_x_1 = max_shft_x - np.shape(movie)[1] + final_size_x
-    max_shft_x_1 = None if max_shft_x_1 == 0 else max_shft_x_1
-
-    max_shft_y_1 = max_shft_y - np.shape(movie)[2] + final_size_y
-    max_shft_y_1 = None if max_shft_y_1 == 0 else max_shft_y_1
-
-    movie = movie[:, max_shft_x:max_shft_x_1, max_shft_y:max_shft_y_1]
-
-    # Compute Smoothness
-    smoothness = np.sqrt(np.sum(np.power(np.gradient(np.mean(movie, axis=0)), 2)))
-    
-    # Compute correlations
-    tmpl = bin_median(movie) if template is None else template
-    correlations = [stats.pearsonr(fr.flatten(), tmpl.flatten())[0] for fr in tqdm(movie)]
-
-    # Compute optical flow
-    movie = movie.resize(1, 1, resize_fact_flow)
-    norms, flows = [], []
-    for fr in tqdm(movie):
-        flow = cv2.calcOpticalFlowFarneback(tmpl, fr, None, pyr_scale, levels, winsize, iterations, poly_n, poly_sigma, flags)
-        n = np.linalg.norm(flow)
-        flows.append(flow)
-        norms.append(n)
-
-    return tmpl, correlations, flows, norms, smoothness
