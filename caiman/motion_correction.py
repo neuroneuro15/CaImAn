@@ -74,6 +74,13 @@ def compute_smoothness(movie):
     return np.sqrt(np.sum(np.power(np.gradient(np.mean(movie, axis=0)), 2)))
 
 
+def compute_subpixel_shift(img, x, y):
+    """takes a 2D array 'img' about index [x, y]', to check for subpixel shift using gaussian peak registration."""
+    log_xm_y, log_xp_y, log_x_ym, log_x_yp, log_xy = np.log(img[(x-1, x+1, x, x, x), (y, y, y-1, y+1, y)])
+    dx = .5 * (log_xp_y - log_xm_y) / (log_xm_y + log_xp_y - 2 * log_xy)
+    dy = .5 * (log_x_yp - log_x_ym) / (log_x_ym + log_x_yp - 2 * log_xy)
+    return dx, dy
+
 
 def apply_shift_iteration(img, shift, border_nan=False, border_type=cv2.BORDER_REFLECT):
     # todo todocument
@@ -260,14 +267,6 @@ def motion_correct_iteration(img, template, frame_num, max_shift_w=25,
     return new_img,new_templ,shift,avg_corr
 
 
-def get_subpixel_shift(img, x, y):
-    """takes a 2D array 'img' about index [x, y]', to check for subpixel shift using gaussian peak registration."""
-    log_xm_y, log_xp_y, log_x_ym, log_x_yp, log_xy = np.log(img[(x-1, x+1, x, x, x), (y, y, y-1, y+1, y)])
-    dx = .5 * (log_xp_y - log_xm_y) / (log_xm_y + log_xp_y - 2 * log_xy)
-    dy = .5 * (log_x_yp - log_x_ym) / (log_x_ym + log_x_yp - 2 * log_xy)
-    return dx, dy
-
-
 def motion_correct_iteration_fast(img, template, max_shift_w=10, max_shift_h=10):
     """ For using in online realtime scenarios """
     h_i, w_i = template.shape
@@ -278,7 +277,7 @@ def motion_correct_iteration_fast(img, template, max_shift_w=10, max_shift_h=10)
     sh_x_n, sh_y_n = max_shift_h - sh_x, max_shift_w - sh_y
     if (0 < sh_x < 2 * max_shift_h - 1) & (0 < sh_y < 2 * max_shift_w - 1):
         # if max is internal, check for subpixel shift using gaussian peak registration
-        dx, dy = get_subpixel_shift(res, sh_x_n, sh_y_n)
+        dx, dy = compute_subpixel_shift(res, sh_x_n, sh_y_n)
         sh_x_n, sh_y_n = sh_x_n + dx, sh_y_n + dy
 
     M = np.float32([[1, 0, sh_y_n], [0, 1, sh_x_n]])
