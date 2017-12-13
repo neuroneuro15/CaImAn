@@ -82,35 +82,9 @@ def compute_subpixel_shift(img, x, y):
 
 
 
-def bin_median(mat, window=10, exclude_nans=False):
-
-    """ compute median of 3D array in along axis o by binning values
-
-    Parameters:
-    ----------
-
-    mat: ndarray
-        input 3D matrix, time along first dimension
-
-    window: int
-        number of frames in a bin
-
-
-    Returns:
-    -------
-    img:
-        median image
-    """
-    # todo: check logic of this function--it seems pretty strange to me.
-    T, d1, d2 = np.shape(mat)
-    if T < window:
-        window = T
-    num_windows = int(T / window)
-    num_frames = num_windows * window
-    median = np.nanmedian if exclude_nans else np.median
-    mean = np.nanmean if exclude_nans else np.mean
-    img = median(mean(np.reshape(mat[:num_frames], (window, num_windows, d1, d2)), axis=0), axis=0)
-    return img
+def bin_median(movie, window=10):
+    """Returns median image of the frames of a movie after finding the mean bins of window lenght 'window'."""
+    return np.median(np.mean(np.array_split(movie, window // movie.shape[0] + 1, axis=1), axis=0))
 
 
 def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h=25,save_base_name=None,order = 'C',
