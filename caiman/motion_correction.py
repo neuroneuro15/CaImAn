@@ -88,9 +88,9 @@ def bin_median(movie, window=10):
 
 
 def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h=25,save_base_name=None,order = 'C',
-                        init_frames_template=100, show_movie=False, bilateral_blur=False,template=None, min_count=1000,
-                        border_to_0=0, n_iter = 1, remove_blanks=False,show_template=False,return_mov=False,
-                        use_median_as_template = False):
+                          init_frames_template=100, show_movie=False, bilateral_blur=False, diameter=10, sigmaColor=10000, sigmaSpace=0,
+                          template=None, min_count=1000, border_to_0=0, n_iter = 1, remove_blanks=False,show_template=False, return_mov=False,
+                          use_median_as_template = False):
     # todo todocument
 
     shifts=[]  # store the amount of shift in each frame
@@ -159,8 +159,11 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
             img=np.array(page,dtype=np.float32)
             img=img+add_to_movie
 
-            new_img,template_tmp,shift,avg_corr = motion_correct_iteration(
-                img,template,count,max_shift_w=max_shift_w,max_shift_h=max_shift_h,bilateral_blur=bilateral_blur)
+            if bilateral_blur:
+                img = compute_bilateral_blur(img, diameter, sigmaColor, sigmaSpace)
+
+            new_img, shift, avg_corr = motion_correct_iteration_fast(img, template=template, max_shift_w=max_shift_w, max_shift_h=max_shift_h)
+            template_tmp = template * count / (count + 1) + 1. / (count + 1) * new_img
 
             max_h,max_w = np.ceil(np.maximum((max_h,max_w),shift)).astype(np.int)
             min_h,min_w = np.floor(np.minimum((min_h,min_w),shift)).astype(np.int)
@@ -231,19 +234,6 @@ def motion_correct_online(movie_iterable,add_to_movie,max_shift_w=25,max_shift_h
         mov = np.dstack(mov).transpose([2,0,1]) 
         
     return shifts,xcorrs,template, fname_tot, mov
-
-
-
-
-def motion_correct_iteration(img, template, frame_num, max_shift_w=25,
-                             max_shift_h=25,bilateral_blur=False,diameter=10,sigmaColor=10000,sigmaSpace=0):
-#todo todocument
-    if bilateral_blur:
-        img = compute_bilateral_blur(img, diameter, sigmaColor, sigmaSpace)
-
-    new_img, shift, avg_corr = motion_correct_iteration_fast(img, template=template, max_shift_w=max_shift_w, max_shift_h=max_shift_h)
-    new_templ = template * frame_num / (frame_num + 1) + 1. / (frame_num + 1) * new_img
-    return new_img,new_templ,shift,avg_corr
 
 
 def motion_correct_iteration_fast(img, template, max_shift_w=10, max_shift_h=10):
