@@ -194,8 +194,21 @@ def _upsampled_dft(data, upsampled_region_size,
     return row_kernel.dot(data).dot(col_kernel)
 
 
+def dft(img):
+    """Returns a frequency-space-transformed image using the discrete fourier transform."""
+    freq_img = np.dstack([np.real(img), np.imag(img)])
+    freq_img = cv2.dft(freq_img, flags=cv2.DFT_COMPLEX_OUTPUT + cv2.DFT_SCALE)
+    freq_img = np.array(freq_img[:, :, 0] + 1j * freq_img[:, :, 1], dtype=np.complex128, copy=False)
+    return freq_img
 
-def apply_shifts_dft(src_freq, shifts, diffphase, is_freq=True):
+
+def idft(freq_img):
+    """Returns an image from a frequency-space-transformed image using the inverse discrete fourier transform."""
+    img = cv2.idft(np.dstack([np.real(freq_img), np.imag(freq_img)]))[:, :, 0]
+    return img
+
+
+def apply_shift_dft(img, dx, dy, diffphase):
     """
     apply shifts using inverse dft
 
@@ -241,24 +254,13 @@ def apply_shifts_dft(src_freq, shifts, diffphase, is_freq=True):
     IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
     """
-    shifts = shifts[::-1]
-
-    if not is_freq:
-        src_freq = np.dstack([np.real(src_freq),np.imag(src_freq)])
-        src_freq = cv2.dft(src_freq, flags=cv2.DFT_COMPLEX_OUTPUT + cv2.DFT_SCALE)
-        src_freq = src_freq[:,:,0]+1j*src_freq[:, :, 1]
-        src_freq = np.array(src_freq, dtype=np.complex128, copy=False)
-
-    nc, nr = np.shape(src_freq)
+    freq_img = dft(img)
+    nc, nr = np.shape(freq_img)
     Nr, Nc = np.meshgrid(np.fft.ifftshift(np.arange(-np.fix(nr / 2.), np.ceil(nr / 2.))),
                          np.fft.ifftshift(np.arange(-np.fix(nc / 2.), np.ceil(nc / 2.))))
-
-    Greg = src_freq*np.exp(1j*2*np.pi*(-shifts[0]*1.*Nr/nr-shifts[1]*1.*Nc/nc))
-    Greg = Greg.dot(np.exp(1j*diffphase))
-    Greg = np.dstack([np.real(Greg),np.imag(Greg)])
-    new_img = cv2.idft(Greg)[:, :, 0]
-
-    return new_img
+    Greg = np.dot(freq_img * np.exp(1j * 2 * np.pi * (-dy * 1. * Nr / nr - dx * 1. * Nc / nc)), np.exp(1j * diffphase))
+    shifted_img = idft(Greg)
+    return shifted_img
 
 
 def register_translation(src_image, target_image, upsample_factor=1,
@@ -542,7 +544,7 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
         imgs = [it[-1] for it in sliding_window(img, overlaps=overlaps, strides = strides)]
         imgs = [apply_shift(im, *sh) for im, sh in zip(imgs, total_shifts)]
     else:
-        imgs = [apply_shifts_dft(im, sh, dffphs, is_freq=False) for im, sh, dffphs in zip(imgs, total_shifts,total_diffs_phase)]
+        imgs = [apply_shift_dft(im, *sh, diffphase=dffphs) for im, sh, dffphs in zip(imgs, total_shifts, total_diffs_phase)]
 
     if border_nan:
         imgs = [make_border_nan(img, *sh) for im, sh in zip(imgs, total_shifts)]
