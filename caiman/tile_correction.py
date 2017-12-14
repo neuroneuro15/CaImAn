@@ -284,8 +284,7 @@ def register_translation(src_image, target_image, upsample_factor=1,
     """
     # images must be the same shape
     if src_image.shape != target_image.shape:
-        raise ValueError("Error: images must really be same size for "
-                         "register_translation")
+        raise ValueError("src_image and target_image must be the same size.")
 
     if space.lower() not in ['fourier', 'real']:
         raise ValueError("register_translation() only knows the 'real' and 'fourier' values for the 'space' argument.")
