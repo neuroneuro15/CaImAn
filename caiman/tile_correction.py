@@ -195,7 +195,7 @@ def _upsampled_dft(data, upsampled_region_size,
 
 
 
-def apply_shifts_dft(src_freq, shifts, diffphase, is_freq=True, border_nan=False):
+def apply_shifts_dft(src_freq, shifts, diffphase, is_freq=True):
     """
     apply shifts using inverse dft
 
@@ -257,9 +257,6 @@ def apply_shifts_dft(src_freq, shifts, diffphase, is_freq=True, border_nan=False
     Greg = Greg.dot(np.exp(1j*diffphase))
     Greg = np.dstack([np.real(Greg),np.imag(Greg)])
     new_img = cv2.idft(Greg)[:, :, 0]
-
-    if border_nan:
-        new_img = make_border_nan(img=new_img, *shifts)
 
     return new_img
 
@@ -458,7 +455,7 @@ def register_translation(src_image, target_image, upsample_factor=1,
 
 
 def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_factor_grid=4, upsample_factor_fft=10,
-                     max_deviation_rigid=2, shifts_opencv=False):
+                     max_deviation_rigid=2, shifts_opencv=False, border_nan=True):
 
     """ perform piecewise rigid motion correction iteration, by
         1) dividing the FOV in patches
@@ -543,9 +540,12 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
 
     if shifts_opencv:
         imgs = [it[-1] for it in sliding_window(img, overlaps=overlaps, strides = strides)]
-        imgs = [apply_shift(im, *sh, border_nan=True) for im, sh in zip(imgs, total_shifts)]
+        imgs = [apply_shift(im, *sh) for im, sh in zip(imgs, total_shifts)]
     else:
-        imgs = [apply_shifts_dft(im, sh, dffphs, is_freq=False, border_nan=True) for im, sh, dffphs in zip(imgs, total_shifts,total_diffs_phase)]
+        imgs = [apply_shifts_dft(im, sh, dffphs, is_freq=False) for im, sh, dffphs in zip(imgs, total_shifts,total_diffs_phase)]
+
+    if border_nan:
+        imgs = [make_border_nan(img, *sh) for im, sh in zip(imgs, total_shifts)]
 
     normalizer, new_img = np.zeros_like(img), np.zeros_like(img)
     weight_matrix = create_weight_matrix_for_blending(img, overlaps, strides)

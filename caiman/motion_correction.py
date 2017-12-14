@@ -109,13 +109,9 @@ def make_border_nan(img, y, x):
     return new_img
 
 
-def apply_shift(img, dx, dy, border_nan=False, border_type=cv2.BORDER_REFLECT):
+def apply_shift(img, dx, dy, border_type=cv2.BORDER_REFLECT):
     """Shifts an image by dx, dy.  This value is usually calculated from compute_motion_shift_between_frames()."""
     M = np.float32([[1, 0, dy], [0, 1, dx]])
     warped_img = cv2.warpAffine(img, M, img.shape, flags=cv2.INTER_CUBIC, borderMode=border_type)
     warped_img[:] = np.clip(warped_img, img.min(), img.max())
-
-    if border_nan:
-        warped_img = make_border_nan(warped_img, y=dy, x=dx)
-
     return warped_img
