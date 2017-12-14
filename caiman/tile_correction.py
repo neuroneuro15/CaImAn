@@ -5,7 +5,7 @@ import itertools
 import numpy as np
 import cv2
 from .utils.stats import compute_phasediff
-from .motion_correction import apply_shift
+from .motion_correction import apply_shift, make_border_nan
 
 opencv = True
 
@@ -194,8 +194,17 @@ def _upsampled_dft(data, upsampled_region_size,
     return row_kernel.dot(data).dot(col_kernel)
 
 
-def apply_shifts_dft(src_freq, shifts, diffphase, is_freq = True, border_nan = False):
+
+def apply_shifts_dft(src_freq, shifts, diffphase, is_freq=True, border_nan=False):
     """
+    apply shifts using inverse dft
+
+    src_freq: ndarray
+        if is_freq it is fourier transform image else original image
+    shifts: shifts to apply
+    diffphase: comes from the register_translation output
+
+
     adapted from SIMA (https://github.com/losonczylab) and the
     scikit-image (http://scikit-image.org/) package.
 
@@ -231,39 +240,26 @@ def apply_shifts_dft(src_freq, shifts, diffphase, is_freq = True, border_nan = F
     STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
     IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
-    apply shifts using inverse dft
-    src_freq: ndarray
-        if is_freq it is fourier transform image else original image
-    shifts: shifts to apply
-    diffphase: comes from the register_translation output
-
     """
     shifts = shifts[::-1]
+
     if not is_freq:
         src_freq = np.dstack([np.real(src_freq),np.imag(src_freq)])
         src_freq = cv2.dft(src_freq, flags=cv2.DFT_COMPLEX_OUTPUT + cv2.DFT_SCALE)
-        src_freq  = src_freq[:,:,0]+1j*src_freq[:,:,1]
-        src_freq   = np.array(src_freq, dtype=np.complex128, copy=False)
+        src_freq = src_freq[:,:,0]+1j*src_freq[:, :, 1]
+        src_freq = np.array(src_freq, dtype=np.complex128, copy=False)
 
-    nc,nr = np.shape(src_freq)
-    Nr = np.fft.ifftshift(np.arange(-np.fix(old_div(nr,2.)),np.ceil(old_div(nr,2.))))
-    Nc = np.fft.ifftshift(np.arange(-np.fix(old_div(nc,2.)),np.ceil(old_div(nc,2.))))
-    Nr,Nc = np.meshgrid(Nr,Nc)
+    nc, nr = np.shape(src_freq)
+    Nr, Nc = np.meshgrid(np.fft.ifftshift(np.arange(-np.fix(nr / 2.), np.ceil(nr / 2.))),
+                         np.fft.ifftshift(np.arange(-np.fix(nc / 2.), np.ceil(nc / 2.))))
 
     Greg = src_freq*np.exp(1j*2*np.pi*(-shifts[0]*1.*Nr/nr-shifts[1]*1.*Nc/nc))
     Greg = Greg.dot(np.exp(1j*diffphase))
     Greg = np.dstack([np.real(Greg),np.imag(Greg)])
     new_img = cv2.idft(Greg)[:, :, 0]
+
     if border_nan:
-        max_w,max_h,min_w,min_h=0,0,0,0
-        max_h,max_w = np.ceil(np.maximum((max_h,max_w),shifts)).astype(np.int)
-        min_h,min_w = np.floor(np.minimum((min_h,min_w),shifts)).astype(np.int)
-        new_img[:max_h,:] = np.nan
-        if min_h < 0:
-            new_img[min_h:,:] = np.nan
-        new_img[:,:max_w] = np.nan
-        if min_w < 0:
-            new_img[:,min_w:] = np.nan
+        new_img = make_border_nan(img=new_img, *shifts)
 
     return new_img
 

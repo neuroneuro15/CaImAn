@@ -95,6 +95,20 @@ def compute_motion_shift_between_frames(img, template, max_shift_w=10, max_shift
     return sh_x_n, sh_y_n
 
 
+def make_border_nan(img, y, x):
+    """Replace a border of the image with  NaNs, depending on """
+    new_img = img.copy()
+    max_h, max_w = np.ceil(np.maximum((0, 0), (y, x))).astype(np.int)
+    min_h, min_w = np.floor(np.minimum((0, 0), (y, x))).astype(np.int)
+    new_img[:max_h, :] = np.nan
+    if min_h < 0:
+        new_img[min_h:, :] = np.nan
+    new_img[:, :max_w] = np.nan
+    if min_w < 0:
+        new_img[:, min_w:] = np.nan
+    return new_img
+
+
 def apply_shift(img, dx, dy, border_nan=False, border_type=cv2.BORDER_REFLECT):
     """Shifts an image by dx, dy.  This value is usually calculated from compute_motion_shift_between_frames()."""
     M = np.float32([[1, 0, dy], [0, 1, dx]])
@@ -102,16 +116,6 @@ def apply_shift(img, dx, dy, border_nan=False, border_type=cv2.BORDER_REFLECT):
     warped_img[:] = np.clip(warped_img, img.min(), img.max())
 
     if border_nan:
-        max_h, max_w = np.ceil(np.maximum((0, 0), (dx, dy))).astype(np.int)
-        min_h, min_w = np.floor(np.minimum((0, 0), (dx, dy))).astype(np.int)
-
-        # todo: check logic here--it looks like some circumstances can result in all-nan images.
-        warped_img[:max_h, :] = np.nan
-        if min_h < 0:
-            warped_img[min_h:, :] = np.nan
-
-        warped_img[:, :max_w] = np.nan
-        if min_w < 0:
-            warped_img[:, min_w:] = np.nan
+        warped_img = make_border_nan(warped_img, y=dy, x=dx)
 
     return warped_img
