@@ -33,7 +33,6 @@ from tqdm import tqdm
 
 from .io import sbxreadskip, tifffile, load_memmap, save_memmap
 from .summary_images import local_correlations
-from .motion_correction import motion_correct_online
 
 
 class Movie(object):
@@ -135,129 +134,6 @@ class Movie(object):
         """ Return the median image as an array."""
         warnings.warn("Movie.bin_median() deprecated. Use numpy.median(movie) instead.", DeprecationWarning)
         return np.nanmedian(self, axis=0)
-
-    def motion_correction_online(self,max_shift_w=25,max_shift_h=25,init_frames_template=100,
-                                 show_movie=False,bilateral_blur=False,template=None,min_count=1000):
-        return motion_correct_online(self,max_shift_w=max_shift_w,max_shift_h=max_shift_h,
-                                     init_frames_template=init_frames_template,show_movie=show_movie,
-                                     bilateral_blur=bilateral_blur,template=template,min_count=min_count)
-
-    def motion_correct(self, max_shift_w=5, max_shift_h=5, template=None, method='opencv',
-                       remove_blanks=False,interpolation='cubic'):
-        """
-        Extract shifts and motion corrected Movie automatically.
-        (DEPRECATED: Use Movie.extract_motion() and Movie.apply_motion_correction() in sequence to perform same task.)
-        """
-        raise DeprecationWarning("Use Movie.extract_motion() and Movie.apply_motion_correction() in sequence to perform same task.)")
-
-    def extract_motion(self, max_shift_w=5, max_shift_h=5, template=None, method='opencv'):
-        """
-        Performs motion correction using the opencv or scikit-image matchtemplate function. At every iteration a template is built by taking the median of all frames and then used to align the other frames.
-
-        Parameters:
-        ----------
-        max_shift_w,max_shift_h: maximum pixel shifts allowed when correcting in the width and height direction
-
-        template: if a good template for frame by frame correlation is available it can be passed. If None it is automatically computed
-
-        method: depends on what is installed 'opencv' or 'skimage'. 'skimage' is an order of magnitude slower
-
-        Returns:
-        -------
-        shifts : tuple, contains shifts in x and y and correlation with template
-
-        xcorrs: cross correlation of the movies with the template
-        """
-
-        data = self.astype(np.float32) if self.dtype != np.float32 else self
-
-        # Build/Adjust template image
-        template_img = np.median(data, axis=0) if type(template) == type(None) else template
-        if np.min(template_img) < 0.:
-            raise ValueError("All Pixels in Template Array must be greater or equal to zero.")
-        template_img = template_img.astype(np.float32)
-        template_img = template_img[max_shift_h:(-max_shift_h + 1), max_shift_w:(-max_shift_w + 1)]
-
-        #% run algorithm, press q to stop it
-        if method.lower() == 'opencv':
-            match_template = lambda img: cv2.matchTemplate(img, template_img, cv2.TM_CCORR_NORMED)
-            get_top_left = lambda img: cv2.minMaxLoc(res)[3]
-        elif method.lower() == 'skimage':
-            match_template = lambda img: feature.match_template(frame, template_img)
-            get_top_left = lambda img: np.unravel_index(np.argmax(res), res.shape)[::-1]
-        else:
-            raise ValueError("Method must be 'opencv' or 'skimage'.")
-
-        shifts, xcorrs = [], []  # store the amount of shift in each frame
-        for frame in tqdm(data):
-            res = match_template(frame)
-
-            avg_corr = np.mean(res)
-            xcorrs.append([avg_corr])
-
-            shift_y, shift_x = get_top_left(frame)
-            if (0 < shift_x < 2 * max_shift_h - 1) & (0 < shift_y < 2 * max_shift_w - 1):
-                # if max is internal, check for subpixel shift using gaussian
-                # peak registration
-                log_xm1_y = np.log(res[shift_x - 1., shift_y])
-                log_xp1_y = np.log(res[shift_x + 1., shift_y])
-                log_x_ym1 = np.log(res[shift_x, shift_y - 1.])
-                log_x_yp1 = np.log(res[shift_x, shift_y + 1.])
-                four_log_xy = 4. * np.log(res[shift_x, shift_y])
-
-                sh_x_n = max_shift_h - shift_x - (log_xp1_y - log_xm1_y) / (2. * (log_xm1_y - four_log_xy + log_xp1_y))
-                sh_y_n = max_shift_w - shift_y - (log_x_yp1 - log_x_ym1) / (2. * (log_x_ym1 - four_log_xy + log_x_yp1))
-            else:
-                sh_x_n = max_shift_h - shift_x
-                sh_y_n = max_shift_w - shift_y
-
-            shifts.append((sh_x_n, sh_y_n))
-
-        return (shifts, xcorrs)
-
-    def apply_motion_correction(self, shifts, interpolation='linear', package='opencv'):
-        """
-        Return a Movie with precomputed shifts applied (can be gotten from Movie.extract_motion()).
-
-        Parameters:
-        ------------
-        shifts: array of tuples representing x and y shifts for each frame
-
-        interpolation: 'linear', 'cubic', 'nearest' or 'lanczos4'
-
-        Returns:
-        -------
-        self
-
-        Raise:
-        -----
-        Exception('Interpolation method not available')
-
-        Exception('Method not defined')
-        """
-        if package.lower() == 'opencv':
-            interp_enum = getattr(cv2, 'INTER_{}'.format(interpolation))
-        elif package.lower() == 'skimage':
-            interp_enum = {'nearest': 0, 'linear': 1, 'cubic': 3, 'lanczos4': 4}[interpolation]
-        else:
-            raise ValueError("'package' argument must be 'opencv' or 'skimage'.")
-
-        if len(shifts) != self.shape[0]:
-            raise ValueError("'shifts' argument must have same length as number of frames in movie.")
-
-        t, h, w = self.shape
-        shift_mat = np.array([[1, 0, 0], [0, 1, 0]], dtype=np.float32)
-        movie = self.copy()
-        for frame, (shift_y, shift_x) in tqdm(zip(movie, shifts)):
-            if package.lower() == 'opencv':
-                shift_mat[:, 2] = shift_x, shift_y
-                frame[:] = cv2.warpAffine(frame, shift_mat, (w, h), flags=interp_enum, borderMode=cv2.BORDER_REFLECT)
-                frame[:] = np.clip(frame[:], np.min(frame), np.max(frame))
-            elif package.lower() == 'skimage':
-                tform = transform.AffineTransform(translation=(-shift_x, -shift_y))
-                frame[:] = transform.warp(frame, tform, preserve_range=True, order=interp_enum, mode='reflect')
-
-        return movie
 
     def debleach(self, model='exponential'):
         """

@@ -40,17 +40,11 @@ Copyright (C) 2011, the scikit-image team
 """
 from __future__ import division, print_function, absolute_import
 
-import gc
-import collections
-import warnings
 from tqdm import tqdm
 
 import numpy as np
 from scipy import stats
 import cv2
-
-from . import io
-
 
 def compute_bilateral_blur(img, diameter=10, sigmaColor=10000, sigmaSpace=0):
     return cv2.bilateralFilter(img, diameter, sigmaColor, sigmaSpace)
@@ -87,7 +81,7 @@ def bin_median(movie, window=10):
     return np.median(np.mean(np.array_split(movie, window // movie.shape[0] + 1, axis=1), axis=0))
 
 
-def motion_correct_iteration_fast(img, template, max_shift_w=10, max_shift_h=10):
+def motion_correct(img, template, max_shift_w=10, max_shift_h=10):
     """ For using in online realtime scenarios """
     h_i, w_i = template.shape
     templ_crop = template[max_shift_h:(h_i-max_shift_h), max_shift_w:(w_i-max_shift_w)].astype(np.float32)
@@ -103,6 +97,6 @@ def motion_correct_iteration_fast(img, template, max_shift_w=10, max_shift_h=10)
     M = np.float32([[1, 0, sh_y_n], [0, 1, sh_x_n]])
     new_img = cv2.warpAffine(img, M, (w_i, h_i), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
     new_img[:] = np.clip(new_img, img.min(), img.max())
-    shift = (sh_x_n, sh_y_n)
-    avg_corr = np.max(res)
-    return new_img, shift, avg_corr
+    shift = (sh_x_n, sh_y_n)  # used to be returned.
+    avg_corr = np.max(res)  # used to be returned.
+    return new_img
