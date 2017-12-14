@@ -43,7 +43,7 @@ import pylab as pl
     import scipy
 
     from caiman.utils.visualization import plot_contours, view_patches_bar
-from caiman.source_extraction.cnmf import cnmf as cnmf
+    from caiman.cnmf import cnmf as cnmf
     from caiman.components_evaluation import estimate_components_quality
 
     #%%
@@ -231,7 +231,7 @@ t1 = time.time()
 cnm = cnmf.CNMF(n_processes=1, k=K, gSig=gSig, merge_thresh=params_movie['merge_thresh'], p=params_movie['p'],
                 dview=dview, rf=rf, stride=stride_cnmf, memory_fact=1,
                 method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=params_movie['only_init_patch'],
-                gnb=params_movie['gnb'], method_deconvolution='oasis',border_pix =  params_movie['crop_pix'], low_rank_background = params_movie['low_rank_background']) 
+                gnb=params_movie['gnb'], method_deconvolution='oasis', border_pix =  params_movie['crop_pix'], low_rank_background = params_movie['low_rank_background'])
 cnm = cnm.fit(images)
 
 A_tot = cnm.A
@@ -271,7 +271,7 @@ C_tot = C_tot[idx_components]
 t1 = time.time()
 cnm = cnmf.CNMF(n_processes=1, k=A_tot.shape, gSig=gSig, merge_thresh=merge_thresh, p=p, dview=dview, Ain=A_tot,
                 Cin=C_tot, b_in = b_tot,
-                f_in=f_tot, rf=None, stride=None, method_deconvolution='oasis',gnb = params_movie['gnb'],
+                f_in=f_tot, rf=None, stride=None, method_deconvolution='oasis', gnb = params_movie['gnb'],
                 low_rank_background = params_movie['low_rank_background'], update_background_components = params_movie['update_background_components'])
 
 cnm = cnm.fit(images)

@@ -34,7 +34,7 @@ import numpy as np
 import pylab as pl
 import caiman as cm
 import scipy
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 from caiman.utils.visualization import plot_contours,view_patches_bar
 
 #%%

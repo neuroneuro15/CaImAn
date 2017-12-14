@@ -1,20 +1,20 @@
 from __future__ import division, print_function
-from past.builtins import basestring
-from past.utils import old_div
-import numpy as np
 
-from scipy.ndimage.filters import gaussian_filter
 from math import sqrt
 
-import caiman as cm
-from .initialization import imblur, initialize_components, hals
+import numpy as np
 import scipy
+from past.utils import old_div
+from scipy.ndimage.filters import gaussian_filter
 from scipy.sparse import coo_matrix, csc_matrix
-from caiman.components_evaluation import compute_event_exceptionality
-from .utilities import update_order
-from caiman.source_extraction.cnmf import oasis
 from sklearn.decomposition import NMF
 from sklearn.preprocessing import normalize
+
+import caiman as cm
+from caiman.cnmf import oasis
+from caiman.components_evaluation import compute_event_exceptionality
+from .initialization import imblur, initialize_components, hals
+from .utilities import update_order
 
 
 def bare_initialization(Y, init_batch = 1000, k = 1, method_init = 'greedy_roi', gnb = 1,
@@ -66,7 +66,7 @@ def bare_initialization(Y, init_batch = 1000, k = 1, method_init = 'greedy_roi',
     AA = scipy.sparse.spdiags(old_div(1.,nA),0,nr,nr)*(Ain.T.dot(Ain))
     YrA = YA - AA.T.dot(Cin)
     
-    cnm_init = cm.source_extraction.cnmf.cnmf.CNMF(2, k=k, gSig=gSig, Ain=Ain, Cin=Cin, b_in=np.array(b_in), f_in=f_in, method_init = method_init, p = p, **kwargs)
+    cnm_init = caiman.cnmf.cnmf.CNMF(2, k=k, gSig=gSig, Ain=Ain, Cin=Cin, b_in=np.array(b_in), f_in=f_in, method_init = method_init, p = p, **kwargs)
     cnm_init.A, cnm_init.C, cnm_init.b, cnm_init.f, cnm_init.S, cnm_init.YrA = Ain, Cin, b_in, f_in, np.maximum(np.atleast_2d(Cin),0), YrA
     #cnm_init.g = np.array([-np.poly([0.9]*max(p,1))[1:] for gg in np.ones(k)])
     cnm_init.g = np.array([-np.poly([0.9,0.5][:max(1,p)])[1:] for gg in np.ones(k)])
@@ -149,7 +149,7 @@ def seeded_initialization(Y, Ain, dims = None, init_batch = 1000, gnb = 1, p = 1
     AA = scipy.sparse.spdiags(old_div(1.,nA),0,nr,nr)*(Ain.T.dot(Ain))
     YrA = YA - AA.T.dot(Cin)
     
-    cnm_init = cm.source_extraction.cnmf.cnmf.CNMF(2, Ain=Ain, Cin=Cin, b_in=np.array(b_in), f_in=f_in, p = 1, **kwargs)
+    cnm_init = caiman.cnmf.cnmf.CNMF(2, Ain=Ain, Cin=Cin, b_in=np.array(b_in), f_in=f_in, p = 1, **kwargs)
     cnm_init.A, cnm_init.C, cnm_init.b, cnm_init.f, cnm_init.S, cnm_init.YrA = Ain, Cin, b_in, f_in, np.fmax(np.atleast_2d(Cin),0), YrA
 #    cnm_init.g = np.array([[gg] for gg in np.ones(nr)*0.9])
     cnm_init.g = np.array([-np.poly([0.9]*max(p,1))[1:] for gg in np.ones(nr)])
@@ -575,7 +575,7 @@ def update_num_components(t, sv, Ab, Cf, Yres_buf, Y_buf, rho_buf,
     #                    sn_ = sqrt((ain**2).dot(sn[indeces]**2)) / sqrt(1 - g**2)
                         sn_ = std_rr
                         oas = oasis.OASIS(np.ravel(g)[0], 3 * sn_ /
-                                          (sqrt(1 - g**2) if np.size(g) == 1 else 
+                                                          (sqrt(1 - g**2) if np.size(g) == 1 else
                                             sqrt((1 + g[1]) * ((1 - g[1])**2 - g[0]**2) / (1-g[1])))
                                           if s_min == 0 else 0,
                                           s_min, num_empty_samples=t + 1 - len(cin_res),

@@ -50,8 +50,8 @@ import copy
 from caiman.utils.utils import download_demo
 from caiman.rois import extract_binary_masks_blob
 from caiman.utils.visualization import plot_contours, view_patches_bar
-from caiman.source_extraction.cnmf import cnmf as cnmf
-from caiman.motion_correction import MotionCorrect
+    from caiman.cnmf import cnmf as cnmf
+    from caiman.motion_correction import MotionCorrect
 from caiman.components_evaluation import estimate_components_quality
 
 from caiman.components_evaluation import evaluate_components

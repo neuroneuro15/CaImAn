@@ -41,7 +41,7 @@ from skimage.external.tifffile import TiffFile
 from caiman.motion_correction import tile_and_correct#, motion_correction_piecewise
 #%%
 import caiman as cm
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
 
@@ -259,7 +259,7 @@ save_results = False
 #%% RUN ALGORITHM ON PATCHES
 
 cnm = cnmf.CNMF(n_processes, k=K, gSig=gSig, merge_thresh=0.8, p=0, dview=dview, Ain=None, rf=rf, stride=stride, memory_fact=memory_fact,
-                method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=1,method_deconvolution='oasis')
+                method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=1, method_deconvolution='oasis')
 cnm = cnm.fit(images)
 
 A_tot = cnm.A

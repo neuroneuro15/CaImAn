@@ -33,7 +33,7 @@ import pylab as pl
 pl.ion()
 #%%
 import caiman as cm
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
 from caiman.rois import extract_binary_masks_blob
@@ -107,7 +107,7 @@ if not is_patches:
     merge_thresh = 0.8  # merging threshold, max correlation allowed
     p = 2  # order of the autoregressive system
     cnm = cnmf.CNMF(n_processes, method_init=init_method, k=K, gSig=gSig, merge_thresh=merge_thresh,
-                    p=p, dview=dview, Ain=None,method_deconvolution='oasis',skip_refinement = False)
+                    p=p, dview=dview, Ain=None, method_deconvolution='oasis', skip_refinement = False)
     cnm = cnm.fit(images)
     crd = plot_contours(cnm.A, Cn, thr=0.9)
 #%%
@@ -138,8 +138,8 @@ else:
             'SigmaMask' : 3  # if not [], then update masks so that they are non-zero a radius of SigmaMasks around previous non-zero support of shapes            
             }
     
-    cnm = cnmf.CNMF(n_processes, k=K, gSig=gSig, ssub=1, tsub = 10,p_ssub=1, p_tsub = 10, merge_thresh=0.8, p=0, dview=dview, Ain=None, rf=rf, stride=stride, memory_fact=1,
-                    method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=1,method_deconvolution='oasis', normalize_init = False, options_local_NMF = options_local_NMF)
+    cnm = cnmf.CNMF(n_processes, k=K, gSig=gSig, ssub=1, tsub = 10, p_ssub=1, p_tsub = 10, merge_thresh=0.8, p=0, dview=dview, Ain=None, rf=rf, stride=stride, memory_fact=1,
+                    method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=1, method_deconvolution='oasis', normalize_init = False, options_local_NMF = options_local_NMF)
     cnm = cnm.fit(images)
 
     A_tot = cnm.A

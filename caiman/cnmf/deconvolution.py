@@ -6,15 +6,14 @@ Created on Tue Sep  1 16:11:25 2015
 """
 from __future__ import division, print_function
 
-from past.utils import old_div
-import numpy as np
-import scipy.signal
-import scipy.linalg
-
-from warnings import warn
-from math import log, sqrt, exp
-
 import sys
+from math import log, sqrt, exp
+from warnings import warn
+
+import numpy as np
+import scipy.linalg
+import scipy.signal
+from past.utils import old_div
 #%%
 
 
@@ -138,7 +137,7 @@ def constrained_foopsi(fluor, bl=None,  c1=None, g=None,  sn=None, p=None, metho
                 fluor, g, sn, b=bl, c1=c1, bas_nonneg=bas_nonneg, solvers=solvers)
 
         elif method == 'oasis':
-            from caiman.source_extraction.cnmf.oasis import constrained_oasisAR1
+            from caiman.cnmf.oasis import constrained_oasisAR1
             if p == 1:
                 if bl is None:
                     #Infer the most likely discretized spike train underlying an AR(1) fluorescence trace
@@ -728,7 +727,7 @@ def constrained_oasisAR2(y, g, sn, optimize_b=True, b_nonneg=True, optimize_g=0,
 
     # get initial estimate of b and lam on downsampled data using AR1 model
     if decimate > 0:
-        from caiman.source_extraction.cnmf.oasis import oasisAR1, constrained_oasisAR1
+        from caiman.cnmf.oasis import oasisAR1, constrained_oasisAR1
         _, s, b, aa, lam = constrained_oasisAR1(
             y[:len(y) // decimate * decimate].reshape(-1, decimate).mean(1),
             d**decimate, sn / sqrt(decimate),

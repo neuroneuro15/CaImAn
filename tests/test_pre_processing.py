@@ -1,7 +1,5 @@
-import numpy.testing as npt
 import numpy as np
-from caiman.source_extraction import cnmf as cnmf
-
+import numpy.testing as npt
 
 # at this stage interpolate_missing_data returns alsways an error when
 # having missing values, so ignore the test below
@@ -29,7 +27,7 @@ def test_interpolate_missing_data():
 def test_axcov():
     data = np.random.randn(1000)
     maxlag = 5
-    C = cnmf.pre_processing.axcov(data, maxlag)
+    C = caiman.cnmf.pre_processing.axcov(data, maxlag)
     print(C)
 
     npt.assert_allclose(C, np.concatenate((np.zeros(maxlag), np.array([1]), np.zeros(maxlag))), atol=1)

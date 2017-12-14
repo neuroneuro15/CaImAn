@@ -27,7 +27,7 @@ from caiman.motion_correction import motion_correct_iteration_fast
 import cv2
 from caiman.utils.visualization import plot_contours
 import glob
-from caiman.source_extraction.cnmf.online_cnmf import bare_initialization
+from caiman.cnmf.online_cnmf import bare_initialization
 from copy import deepcopy
 
 #%%  download and list all files to be processed

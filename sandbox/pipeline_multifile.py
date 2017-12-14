@@ -41,7 +41,7 @@ import scipy
 import glob
 #%%
 from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
 from caiman.base.rois import extract_binary_masks_blob
@@ -255,8 +255,8 @@ block_size = 50000
 
 
 cnm = cnmf.CNMF(n_processes, k=K, gSig=gSig, merge_thresh=0.8, p=0, dview=dview, Ain=None, rf=rf, stride=stride, memory_fact=1,
-                    method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=1,method_deconvolution='oasis', n_pixels_per_process = n_pixels_per_process, p_ssub=2, p_tsub=2,
-                    block_size = block_size, check_nan = False)
+                method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=1, method_deconvolution='oasis', n_pixels_per_process = n_pixels_per_process, p_ssub=2, p_tsub=2,
+                block_size = block_size, check_nan = False)
 cnm = cnm.fit(images)
 
 A_tot = cnm.A
@@ -302,8 +302,8 @@ block_size = 20000
 
 t1 = time.time()
 cnm = cnmf.CNMF(n_processes, k=A_tot.shape, gSig=gSig, merge_thresh=merge_thresh, p=p, dview=dview, Ain=A_tot, Cin=C_tot,
-                    f_in=f_tot, rf=None, stride=None,method_deconvolution='oasis',n_pixels_per_process = n_pixels_per_process, 
-                    block_size = block_size, check_nan = False, skip_refinement = True)
+                f_in=f_tot, rf=None, stride=None, method_deconvolution='oasis', n_pixels_per_process = n_pixels_per_process,
+                block_size = block_size, check_nan = False, skip_refinement = True)
 cnm = cnm.fit(images)
 t_cnmf_refine = time.time() - t1
 

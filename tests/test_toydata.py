@@ -1,6 +1,7 @@
-import numpy.testing as npt
 import numpy as np
+import numpy.testing as npt
 from scipy.ndimage.filters import gaussian_filter
+
 from caiman.source_extraction import cnmf as cnmf
 
 
@@ -38,7 +39,7 @@ def pipeline(D):
     K = 4  # number of neurons expected per patch
     gSig = [2, 2, 2][:D]  # expected half size of neurons
     p = 1  # order of the autoregressive system
-    options = cnmf.utilities.CNMFSetParms(Y, n_processes, p=p, gSig=gSig, K=K)
+    options = caiman.cnmf.utilities.CNMFSetParms(Y, n_processes, p=p, gSig=gSig, K=K)
     options['preprocess_params']['n_pixels_per_process'] = np.prod(dims)
     options['spatial_params']['n_pixels_per_process'] = np.prod(dims)
     options['spatial_params']['thr_method'] = 'nrg'
@@ -47,7 +48,7 @@ def pipeline(D):
     options['temporal_params']['block_size'] = np.prod(dims)
 
     # PREPROCESS DATA AND INITIALIZE COMPONENTS
-    Yr, sn, g, psx = cnmf.pre_processing.preprocess_data(
+    Yr, sn, g, psx = caiman.cnmf.pre_processing.preprocess_data(
         Yr, dview=None, **options['preprocess_params'])
     Ain, Cin, b_in, f_in, center = cnmf.initialization.initialize_components(
         Y, **options['init_params'])

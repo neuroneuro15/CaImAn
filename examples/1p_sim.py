@@ -4,15 +4,17 @@ try:
 except:
     print('NOT IPYTHON')
 
+import itertools
+from operator import itemgetter
+
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat
-from operator import itemgetter
-import matplotlib.pyplot as plt
 from scipy.ndimage import center_of_mass
-import itertools
+
 import caiman as cm
+from caiman.cnmf.utilities import compute_residuals
 from caiman.source_extraction import cnmf
-from caiman.source_extraction.cnmf.utilities import compute_residuals
 
 
 #%%

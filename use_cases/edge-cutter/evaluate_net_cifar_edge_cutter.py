@@ -50,8 +50,6 @@ import numpy as np
 import os
 import time
 import pylab as pl
-import psutil
-import sys
 from ipyparallel import Client
 from skimage.external.tifffile import TiffFile
 import scipy
@@ -59,8 +57,7 @@ import copy
 
 from caiman.utils.utils import download_demo
 from caiman.base.rois import extract_binary_masks_blob
-from caiman.utils.visualization import plot_contours, view_patches_bar
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 from caiman.motion_correction import MotionCorrect
 from caiman.components_evaluation import estimate_components_quality
 
@@ -72,10 +69,8 @@ import keras
 from keras.datasets import mnist
 from keras.models import Sequential
 
-from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras import backend as K
-from sklearn.model_selection import train_test_split
 from keras.layers import Dense, Dropout, Activation, Flatten
 
 import json as simplejson
@@ -84,9 +79,8 @@ from sklearn.utils import class_weight as cw
 from caiman.utils.image_preprocessing_keras import ImageDataGenerator
 from keras.layers import merge
 from keras.layers.core import Lambda
-from keras.models import Model
 
-import tensorflow as tf
+
 #%% model FULL FOV
 #def get_conv(input_shape=(48,48,1), filename=None):
 #    model = Sequential()

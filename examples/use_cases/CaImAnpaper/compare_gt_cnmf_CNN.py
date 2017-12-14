@@ -36,7 +36,7 @@ import time
 import pylab as pl
 import scipy
 from caiman.utils.visualization import plot_contours, view_patches_bar
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 from caiman.components_evaluation import estimate_components_quality
 from caiman.cluster import setup_cluster
 #%%
@@ -366,8 +366,8 @@ for params_movie in np.array(params_movies)[:]:
             else:
                 check_nan = True
                 
-            cnm = cnmf.CNMF(check_nan = check_nan, n_processes=1, k=A_in.shape[-1], gSig=[radius,radius], merge_thresh=params_movie['merge_thresh'], p=global_params['p'], Ain = A_in.astype(np.bool),
-                            dview=dview, rf=None, stride=None, gnb=global_params['gnb'], method_deconvolution='oasis',border_pix = params_movie['crop_pix'], low_rank_background = global_params['low_rank_background'], n_pixels_per_process = 1000) 
+            cnm = cnmf.CNMF(check_nan = check_nan, n_processes=1, k=A_in.shape[-1], gSig=[radius, radius], merge_thresh=params_movie['merge_thresh'], p=global_params['p'], Ain = A_in.astype(np.bool),
+                            dview=dview, rf=None, stride=None, gnb=global_params['gnb'], method_deconvolution='oasis', border_pix = params_movie['crop_pix'], low_rank_background = global_params['low_rank_background'], n_pixels_per_process = 1000)
             cnm = cnm.fit(images)
             
             A = cnm.A
@@ -415,7 +415,7 @@ for params_movie in np.array(params_movies)[:]:
             cnm = cnmf.CNMF(n_processes=1, nb_patch = 1, k=K, gSig=gSig, merge_thresh=params_movie['merge_thresh'], p=global_params['p'],
                             dview=dview, rf=rf, stride=stride_cnmf, memory_fact=1,
                             method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=global_params['only_init_patch'],
-                            gnb=global_params['gnb'], method_deconvolution='oasis',border_pix =  params_movie['crop_pix'], 
+                            gnb=global_params['gnb'], method_deconvolution='oasis', border_pix =  params_movie['crop_pix'],
                             low_rank_background = global_params['low_rank_background'], rolling_sum = True, check_nan=check_nan) 
             cnm = cnm.fit(images)
             
@@ -467,8 +467,8 @@ for params_movie in np.array(params_movies)[:]:
             t1 = time.time()
             cnm = cnmf.CNMF(n_processes=1, k=A_tot.shape, gSig=gSig, merge_thresh=merge_thresh, p=p, dview=dview, Ain=A_tot,
                             Cin=C_tot, b_in = b_tot,
-                            f_in=f_tot, rf=None, stride=None, method_deconvolution='oasis',gnb = global_params['gnb'],
-                            low_rank_background = global_params['low_rank_background'], 
+                            f_in=f_tot, rf=None, stride=None, method_deconvolution='oasis', gnb = global_params['gnb'],
+                            low_rank_background = global_params['low_rank_background'],
                             update_background_components = global_params['update_background_components'], check_nan=check_nan)
             
             cnm = cnm.fit(images)

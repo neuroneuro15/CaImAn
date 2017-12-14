@@ -22,7 +22,7 @@ import scipy
 from past.utils import old_div
 
 from caiman.io.mmapping import load_memmap
-from ...cluster import extract_patch_coordinates
+from caiman.cluster import extract_patch_coordinates
 
 
 #%%

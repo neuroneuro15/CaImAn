@@ -8,8 +8,10 @@ For explanation consult at https://github.com/agiovann/Constrained_NMF/releases/
 and https://github.com/agiovann/Constrained_NMF
 """
 from __future__ import print_function
-from builtins import str
+
 from builtins import range
+from builtins import str
+
 try:
     if __IPYTHON__:
         print('Debugging!')
@@ -24,15 +26,14 @@ import numpy as np
 import glob
 import os
 import scipy
-from ipyparallel import Client
 # mpl.use('Qt5Agg')
 import pylab as pl
 pl.ion()
 #%%
 
 import caiman as cm
-from caiman.source_extraction.cnmf import cnmf as cnmf
-from caiman.source_extraction.cnmf.utilities import extract_DF_F
+from caiman.cnmf import cnmf as cnmf
+from caiman.cnmf.utilities import extract_DF_F
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
 from caiman.utils.utils import download_demo
@@ -103,7 +104,7 @@ if not is_patches:
     merge_thresh = 0.8  # merging threshold, max correlation allowed
     p = 2  # order of the autoregressive system
     cnm = cnmf.CNMF(n_processes, method_init=init_method, k=K, gSig=gSig, merge_thresh=merge_thresh,
-                    p=p, dview=dview, Ain=None,method_deconvolution='oasis',skip_refinement = False)
+                    p=p, dview=dview, Ain=None, method_deconvolution='oasis', skip_refinement = False)
     cnm = cnm.fit(images)
     crd = plot_contours(cnm.A, Cn, thr=0.9)
     C_dff = extract_DF_F(Yr, cnm.A, cnm.C, cnm.bl, quantileMin = 8, frames_window = 200, dview = dview)
@@ -122,7 +123,7 @@ else:
     #%% RUN ALGORITHM ON PATCHES
 
     cnm = cnmf.CNMF(n_processes, k=K, gSig=gSig, merge_thresh=0.8, p=0, dview=dview, Ain=None, rf=rf, stride=stride, memory_fact=1,
-                    method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=2,method_deconvolution='oasis', low_rank_background = True)
+                    method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=2, method_deconvolution='oasis', low_rank_background = True)
     cnm = cnm.fit(images)
 
     A_tot = cnm.A
@@ -169,7 +170,7 @@ else:
 
     #%%
     cnm = cnmf.CNMF(n_processes, k=A_tot.shape, gSig=gSig, merge_thresh=merge_thresh, p=p, dview=dview, Ain=A_tot, Cin=C_tot, b_in = b_tot,
-                    f_in=f_tot, rf=None, stride=None, method_deconvolution='oasis', gnb = 2,  low_rank_background = True)
+                    f_in=f_tot, rf=None, stride=None, method_deconvolution='oasis', gnb = 2, low_rank_background = True)
     cnm = cnm.fit(images)
 
 #%

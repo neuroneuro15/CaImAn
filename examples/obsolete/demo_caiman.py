@@ -108,11 +108,11 @@ K=30 # number of neurons expected per patch
 gSig=[7,7] # expected half size of neurons
 merge_thresh=0.8 # merging threshold, max correlation allowed
 p=2 #order of the autoregressive system
-options = cnmf.utilities.CNMFSetParms(Y,n_processes,p=p,gSig=gSig,K=K,ssub=2,tsub=2,nb=1, normalize_init=True)
+options = caiman.cnmf.utilities.CNMFSetParms(Y, n_processes, p=p, gSig=gSig, K=K, ssub=2, tsub=2, nb=1, normalize_init=True)
 options['preprocess_params']['noise_method']='mean'
 #%% PREPROCESS DATA AND INITIALIZE COMPONENTS
 t1 = time()
-Yr,sn,g,psx = cm.source_extraction.cnmf.pre_processing.preprocess_data(Yr,dview=dview,**options['preprocess_params'])
+Yr,sn,g,psx = caiman.cnmf.pre_processing.preprocess_data(Yr, dview=dview, **options['preprocess_params'])
 print((time() - t1))
 #%%
 t1 = time()
@@ -121,7 +121,7 @@ print((time() - t1))
 #%% Refine manually component by clicking on neurons 
 refine_components=False
 if refine_components:
-    Ain,Cin = cm.source_extraction.cnmf.utilities.manually_refine_components(Y,options['init_params']['gSig'],coo_matrix(Atmp),Ctmp,Cn,thr=0.9)
+    Ain,Cin = caiman.cnmf.utilities.manually_refine_components(Y, options['init_params']['gSig'], coo_matrix(Atmp), Ctmp, Cn, thr=0.9)
 else:
     Ain,Cin = Atmp, Ctmp
 #%% plot estimated component
@@ -145,7 +145,7 @@ t_elTEMPORAL = time() - t1
 print(t_elTEMPORAL) 
 #%% merge components corresponding to the same neuron
 t1 = time()
-A_m,C_m,nr_m,merged_ROIs,S_m,bl_m,c1_m,sn_m,g_m=cm.source_extraction.cnmf.merging.merge_components(Yr,A,b,C,f,S,sn,options['temporal_params'], options['spatial_params'],dview=dview, bl=bl, c1=c1, sn=neurons_sn, g=g, thr=merge_thresh, mx=50, fast_merge = True)
+A_m,C_m,nr_m,merged_ROIs,S_m,bl_m,c1_m,sn_m,g_m= caiman.cnmf.merging.merge_components(Yr, A, b, C, f, S, sn, options['temporal_params'], options['spatial_params'], dview=dview, bl=bl, c1=c1, sn=neurons_sn, g=g, thr=merge_thresh, mx=50, fast_merge = True)
 t_elMERGE = time() - t1
 print(t_elMERGE)  
 

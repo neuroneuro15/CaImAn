@@ -14,9 +14,11 @@ authors: @agiovann and @epnev
 """
 from __future__ import division
 from __future__ import print_function
-from builtins import range
-import cv2
+
 import glob
+from builtins import range
+
+import cv2
 
 try:
     cv2.setNumThreads(1)
@@ -41,9 +43,9 @@ import matplotlib.pyplot as plt
 
 from caiman.utils.utils import download_demo
 from caiman.utils.visualization import plot_contours, view_patches_bar
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 from caiman.motion_correction import MotionCorrect
-from caiman.source_extraction.cnmf.utilities import detrend_df_f
+from caiman.cnmf.utilities import detrend_df_f
 from caiman.components_evaluation import estimate_components_quality_auto
 
 #%% First setup some parameters
@@ -149,9 +151,9 @@ c, dview, n_processes = cm.cluster.setup_cluster(
 # for this step deconvolution is turned off (p=0)
 t1 = time.time()
 
-cnm = cnmf.CNMF(n_processes=1, k=K, gSig=gSig, merge_thresh= merge_thresh, 
-                p = 0,  dview=dview, rf=rf, stride=stride_cnmf, memory_fact=1,
-                method_init=init_method, alpha_snmf=alpha_snmf, 
+cnm = cnmf.CNMF(n_processes=1, k=K, gSig=gSig, merge_thresh= merge_thresh,
+                p = 0, dview=dview, rf=rf, stride=stride_cnmf, memory_fact=1,
+                method_init=init_method, alpha_snmf=alpha_snmf,
                 only_init_patch = False, gnb = gnb, border_pix = bord_px_els) 
 cnm = cnm.fit(images)
 
@@ -196,9 +198,9 @@ view_patches_bar(Yr, cnm.A.tocsc()[:, idx_components_bad], cnm.C[idx_components_
 #%% RE-RUN seeded CNMF on accepted patches to refine and perform deconvolution 
 A_in, C_in, b_in, f_in = cnm.A[:,idx_components], cnm.C[idx_components], cnm.b, cnm.f
 cnm2 = cnmf.CNMF(n_processes=1, k=A_in.shape[-1], gSig=gSig, p=p, dview=dview,
-                merge_thresh=merge_thresh,  Ain=A_in, Cin=C_in, b_in = b_in,
-                f_in=f_in, rf = None, stride = None, gnb = gnb, 
-                method_deconvolution='oasis', check_nan = True)
+                 merge_thresh=merge_thresh, Ain=A_in, Cin=C_in, b_in = b_in,
+                 f_in=f_in, rf = None, stride = None, gnb = gnb,
+                 method_deconvolution='oasis', check_nan = True)
 
 cnm2 = cnm2.fit(images)
 

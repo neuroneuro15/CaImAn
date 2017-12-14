@@ -43,7 +43,7 @@ import psutil
 
 from caiman.utils.utils import download_demo
 from caiman.rois import extract_binary_masks_blob
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 
 import keras
 from keras.models import Sequential

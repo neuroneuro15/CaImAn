@@ -25,15 +25,17 @@ except NameError:
     print('Not IPYTHON')
     pass
 
-import numpy as np
 import glob
-import pylab as pl
-import caiman as cm
-from caiman.components_evaluation import evaluate_components
-from caiman.source_extraction.cnmf import cnmf as cnmf
-from caiman.source_extraction.cnmf.online_cnmf import seeded_initialization
 import os
 from copy import deepcopy
+
+import numpy as np
+import pylab as pl
+from caiman.source_extraction.cnmf import cnmf as cnmf
+
+import caiman as cm
+from caiman.cnmf.online_cnmf import seeded_initialization
+from caiman.components_evaluation import evaluate_components
 from caiman.summary_images import max_correlation_image
 
 #%% construct the seeding matrix using the structural channel (note that some components are missed - thresholding can be improved)
@@ -156,7 +158,7 @@ else:  # run offline CNMF algorithm
     #%% run  seeded CNMF 
 
     cnm = cnmf.CNMF(n_processes, method_init='greedy_roi', k=Ain.shape[1], gSig=gSig, merge_thresh=merge_thresh,
-                    p=p, dview=dview, Ain=Ain,method_deconvolution='oasis',rolling_sum = False, rf=None)
+                    p=p, dview=dview, Ain=Ain, method_deconvolution='oasis', rolling_sum = False, rf=None)
     cnm = cnm.fit(images)
     A, C, b, f, YrA, sn = cnm.A, cnm.C, cnm.b, cnm.f, cnm.YrA, cnm.sn
     

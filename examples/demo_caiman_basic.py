@@ -21,7 +21,7 @@ import glob
 import matplotlib.pyplot as plt
 import caiman as cm
 from caiman.components_evaluation import estimate_components_quality_auto
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 import os
 
 #%% start a cluster
@@ -78,7 +78,7 @@ gnb = 2                 # global background order
 
 
 #%% Now RUN CNMF
-cnm = cnmf.CNMF(n_processes, method_init='greedy_roi', k=K, gSig=gSig, 
+cnm = cnmf.CNMF(n_processes, method_init='greedy_roi', k=K, gSig=gSig,
                 merge_thresh=merge_thresh, p=p, dview=dview, gnb = gnb,
                 rf = rf, stride = stride, rolling_sum = False)
 cnm = cnm.fit(images)

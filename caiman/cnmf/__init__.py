@@ -9,4 +9,5 @@ from . import spatial
 from . import temporal
 from . import oasis
 from . import parallel
-from .cnmf import CNMF as CNMF
+from . import patches
+from .cnmf import CNMF

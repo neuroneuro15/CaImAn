@@ -45,7 +45,7 @@ import numpy as np
 import os
 import time
 import copy
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 from caiman.motion_correction import MotionCorrect
 from caiman.components_evaluation import estimate_components_quality
 from tests.comparison import comparison

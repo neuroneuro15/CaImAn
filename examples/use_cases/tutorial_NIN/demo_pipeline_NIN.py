@@ -35,7 +35,7 @@ import pylab as pl
 import scipy
 #%%
 from caiman.motion_correction import tile_and_correct
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
 
@@ -389,7 +389,7 @@ if params_movie['is_dendrites'] == True:
         raise Exception('need to set a value for alpha_snmf')
 #%%
 cnm = cnmf.CNMF(n_processes, k=K, gSig=gSig, merge_thresh=0.8, p=0, dview=dview, Ain=None, rf=rf, stride=stride, memory_fact=1,
-                    method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=1,method_deconvolution='oasis')
+                method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=1, method_deconvolution='oasis')
 cnm = cnm.fit(images)
 
 A_tot = cnm.A
@@ -422,7 +422,7 @@ A_tot = A_tot.tocsc()[:, idx_components]
 C_tot = C_tot[idx_components]
 #%% rerun updating the components
 cnm = cnmf.CNMF(n_processes, k=A_tot.shape, gSig=gSig, merge_thresh=merge_thresh, p=p, dview=dview, Ain=A_tot, Cin=C_tot,
-                    f_in=f_tot, rf=None, stride=None,method_deconvolution='oasis')
+                f_in=f_tot, rf=None, stride=None, method_deconvolution='oasis')
 cnm = cnm.fit(images)
 #%%
 A, C, b, f, YrA, sn = cnm.A, cnm.C, cnm.b, cnm.f, cnm.YrA, cnm.sn

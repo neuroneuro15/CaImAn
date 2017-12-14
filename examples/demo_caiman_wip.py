@@ -6,9 +6,10 @@ For explanation consult at https://github.com/agiovann/Constrained_NMF/releases/
 and https://github.com/agiovann/Constrained_NMF
 """
 from __future__ import print_function
-#%%
-from builtins import str
+
 from builtins import range
+from builtins import str
+
 try:
     if __IPYTHON__:
         # this is used for debugging purposes only. allows to reload classes when changed
@@ -20,14 +21,11 @@ except NameError:
 
 import sys
 import numpy as np
-from time import time
-from scipy.sparse import coo_matrix
 import psutil
 import glob
 import os
 import scipy
 from ipyparallel import Client
-import matplotlib as mpl
 #mpl.use('Qt5Agg')
 import pylab as pl
 pl.ion()
@@ -59,7 +57,7 @@ distanceMatrix=np.logical_and(distanceMatrix<2,distanceMatrix>0)*distanceMatrix
 img=np.corrcoef(mh.to_2d(order='C').T)
 img=img*distanceMatrix
 img=scipy.sparse.coo_matrix(img)
-from sklearn.cluster import DBSCAN,KMeans,SpectralClustering
+from sklearn.cluster import SpectralClustering
 cl=SpectralClustering(n_clusters=3).fit(img)
 
 #%%
@@ -186,7 +184,7 @@ images=np.reshape(Yr.T,[T]+list(dims),order='F')
 Y=np.reshape(Yr,dims+(T,),order='F')
 
 #%%
-Cn = cnmf.utilities.local_correlations(Y[:,:,:3000])
+Cn = caiman.cnmf.utilities.local_correlations(Y[:, :, :3000])
 pl.imshow(Cn,cmap='gray')  
 
 #%%
@@ -320,9 +318,9 @@ crd = plot_contours(A.tocsc()[:,idx_blobs],Cn,thr=0.9)
 pl.subplot(1,3,3)
 crd = plot_contours(A.tocsc()[:,idx_components_bad],Cn,thr=0.9)
 #%%
-cnmf.utilities.view_patches_bar(Yr,scipy.sparse.coo_matrix(A.tocsc()[:,idx_components]),C[idx_components,:],b,f, dims[0],dims[1], YrA=YrA[idx_components,:],img=Cn)  
+caiman.cnmf.utilities.view_patches_bar(Yr, scipy.sparse.coo_matrix(A.tocsc()[:, idx_components]), C[idx_components, :], b, f, dims[0], dims[1], YrA=YrA[idx_components, :], img=Cn)
 #%%
-cnmf.utilities.view_patches_bar(Yr,scipy.sparse.coo_matrix(A.tocsc()[:,idx_components_bad]),C[idx_components_bad,:],b,f, dims[0],dims[1], YrA=YrA[idx_components_bad,:],img=Cn)  
+caiman.cnmf.utilities.view_patches_bar(Yr, scipy.sparse.coo_matrix(A.tocsc()[:, idx_components_bad]), C[idx_components_bad, :], b, f, dims[0], dims[1], YrA=YrA[idx_components_bad, :], img=Cn)
 
 #%% STOP CLUSTER
 pl.close()

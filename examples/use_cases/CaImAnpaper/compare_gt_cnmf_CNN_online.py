@@ -9,7 +9,9 @@ for sharing their data used in this demo.
 """
 from __future__ import division
 from __future__ import print_function
+
 import numpy as np
+
 try:
     if __IPYTHON__:
         print('Debugging!')
@@ -24,14 +26,12 @@ from time import time
 import caiman as cm
 from caiman.source_extraction import cnmf as cnmf
 from caiman.utils.visualization import view_patches_bar
-from caiman.utils.utils import download_demo
 import pylab as pl
 import scipy
 from caiman.motion_correction import motion_correct_iteration_fast
 import cv2
-from caiman.utils.visualization import plot_contours
 import glob
-from caiman.source_extraction.cnmf.online_cnmf import bare_initialization, initialize_movie_online, RingBuffer
+from caiman.cnmf.online_cnmf import bare_initialization
 #from caiman.source_extraction.cnmf.online_cnmf import load_object, save_object
 from copy import deepcopy
 import os

@@ -14,25 +14,25 @@ different set of methods like ICA PCA, greedy roi
 
 from __future__ import division, print_function
 
-from past.utils import old_div
-import numpy as np
-from sklearn.decomposition import NMF, FastICA
-from skimage.morphology import disk
-import scipy.ndimage as nd
-from scipy.ndimage.measurements import center_of_mass
-from scipy.ndimage.filters import correlate
-from skimage.transform import downscale_local_mean
-from skimage.transform import resize as resize_sk
-import scipy.sparse as spr
-import scipy
-import caiman
-from caiman.source_extraction.cnmf.deconvolution import deconvolve_ca
-from caiman.source_extraction.cnmf.pre_processing import get_noise_fft
-from caiman.source_extraction.cnmf.spatial import circular_constraint
-import cv2
 import sys
-import matplotlib.pyplot as plt
+
+import cv2
 import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy
+import scipy.ndimage as nd
+import scipy.sparse as spr
+from caiman.source_extraction.cnmf.deconvolution import deconvolve_ca
+from caiman.source_extraction.cnmf.spatial import circular_constraint
+from past.utils import old_div
+from scipy.ndimage.filters import correlate
+from scipy.ndimage.measurements import center_of_mass
+from skimage.morphology import disk
+from sklearn.decomposition import NMF, FastICA
+
+import caiman
+from caiman.cnmf.pre_processing import get_noise_fft
 #%%
 def resize(Y, size, interpolation=cv2.INTER_LINEAR):
     """faster and 3D compatible version of skimage.transform.resize"""

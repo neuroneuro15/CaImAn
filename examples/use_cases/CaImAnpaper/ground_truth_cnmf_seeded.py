@@ -41,7 +41,7 @@ import pylab as pl
 import scipy
 
 from caiman.utils.visualization import plot_contours, view_patches_bar
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 
 #%% neurofinder.03.00.test
 params_movie = {'fname': ['/mnt/ceph/neuro/labeling/neurofinder.03.00.test/images/final_map/Yr_d1_498_d2_467_d3_1_order_C_frames_2250_.mmap'],
@@ -352,8 +352,8 @@ if images.shape[0]>10000:
 else:
     check_nan = True
     
-cnm = cnmf.CNMF(check_nan = check_nan, n_processes=1, k=A_in.shape[-1], gSig=[radius,radius], merge_thresh=params_movie['merge_thresh'], p=params_movie['p'], Ain = A_in.astype(np.bool),
-                dview=dview, rf=None, stride=None, gnb=params_movie['gnb'], method_deconvolution='oasis',border_pix = 0, low_rank_background = params_movie['low_rank_background'], n_pixels_per_process = 1000) 
+cnm = cnmf.CNMF(check_nan = check_nan, n_processes=1, k=A_in.shape[-1], gSig=[radius, radius], merge_thresh=params_movie['merge_thresh'], p=params_movie['p'], Ain = A_in.astype(np.bool),
+                dview=dview, rf=None, stride=None, gnb=params_movie['gnb'], method_deconvolution='oasis', border_pix = 0, low_rank_background = params_movie['low_rank_background'], n_pixels_per_process = 1000)
 cnm = cnm.fit(images)
 
 A = cnm.A

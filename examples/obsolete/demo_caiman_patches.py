@@ -127,7 +127,7 @@ p=2 #order of the autoregressive system
 memory_fact=1; #unitless number accounting how much memory should be used. You will need to try different values to see which one would work the default is OK for a 16 GB system
 save_results=True
 #%% RUN ALGORITHM ON PATCHES
-options_patch = cnmf.utilities.CNMFSetParms(Y,n_processes,p=0,gSig=gSig,K=K,ssub=1,tsub=4,thr=merge_thresh)
+options_patch = caiman.cnmf.utilities.CNMFSetParms(Y, n_processes, p=0, gSig=gSig, K=K, ssub=1, tsub=4, thr=merge_thresh)
 A_tot,C_tot,YrA_tot,b,f,sn_tot, optional_outputs = cnmf.map_reduce.run_CNMF_patches(fname_new, (d1, d2, T), options_patch,rf=rf,stride = stride,
                                                                         dview=dview,memory_fact=memory_fact,gnb=1)
 print(('Number of components:' + str(A_tot.shape[-1])))      
@@ -138,12 +138,12 @@ if save_results:
 pl.figure()
 crd = plot_contours(A_tot,Cn,thr=0.9)
 3#%% set parameters for full field of view analysis
-options = cnmf.utilities.CNMFSetParms(Y,n_processes,p=0,gSig=gSig,K=A_tot.shape[-1],thr=merge_thresh)
+options = caiman.cnmf.utilities.CNMFSetParms(Y, n_processes, p=0, gSig=gSig, K=A_tot.shape[-1], thr=merge_thresh)
 pix_proc=np.minimum(np.int((d1*d2)/n_processes/(old_div(T,2000.))),np.int(old_div((d1*d2),n_processes))) # regulates the amount of memory used
 options['spatial_params']['n_pixels_per_process']=pix_proc
 options['temporal_params']['n_pixels_per_process']=pix_proc
 #%% merge spatially overlaping and temporally correlated components      
-A_m,C_m,nr_m,merged_ROIs,S_m,bl_m,c1_m,sn_m,g_m=cnmf.merging.merge_components(Yr,A_tot,[],np.array(C_tot),[],np.array(C_tot),[],options['temporal_params'],options['spatial_params'],dview=dview,thr=options['merging']['thr'],mx=np.Inf)     
+A_m,C_m,nr_m,merged_ROIs,S_m,bl_m,c1_m,sn_m,g_m= caiman.cnmf.merging.merge_components(Yr, A_tot, [], np.array(C_tot), [], np.array(C_tot), [], options['temporal_params'], options['spatial_params'], dview=dview, thr=options['merging']['thr'], mx=np.Inf)
 #%% update temporal to get Y_r
 options['temporal_params']['p']=0
 options['temporal_params']['fudge_factor']=0.96 #change ifdenoised traces time constant is wrong

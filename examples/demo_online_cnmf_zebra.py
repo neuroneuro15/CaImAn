@@ -27,11 +27,9 @@ except NameError:
 from time import time
 import caiman as cm
 from caiman.source_extraction import cnmf as cnmf
-from caiman.utils.visualization import view_patches_bar
 import pylab as pl
 import scipy
 from caiman.motion_correction import motion_correct_iteration_fast
-from caiman.source_extraction.cnmf.online_cnmf import RingBuffer
 from caiman.components_evaluation import evaluate_components
 import cv2
 from caiman.utils.visualization import plot_contours

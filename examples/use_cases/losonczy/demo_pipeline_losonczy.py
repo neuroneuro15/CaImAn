@@ -36,7 +36,7 @@ import time
 import pylab as pl
 import scipy
 #%%
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.cnmf import cnmf as cnmf
 from caiman.motion_correction import MotionCorrect
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours, view_patches_bar

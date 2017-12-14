@@ -6,12 +6,11 @@ Created on Mon Nov 21 15:53:15 2016
 """
 from __future__ import division
 from __future__ import print_function
-from builtins import zip
+
 from builtins import str
-from builtins import map
-from builtins import range
-from past.utils import old_div
+
 import cv2
+
 try:
     cv2.setNumThreads(1)
 except:
@@ -33,17 +32,12 @@ import os
 import glob
 import time
 import pylab as pl
-import psutil
-import sys
-from ipyparallel import Client
-from skimage.external.tifffile import TiffFile
 import scipy
 #%%
-from caiman.motion_correction import tile_and_correct, motion_correction_piecewise
-from caiman.source_extraction.cnmf import cnmf as cnmf
+from caiman.motion_correction import tile_and_correct
+from caiman.cnmf import cnmf as cnmf
 from caiman.components_evaluation import evaluate_components
 from caiman.utils.visualization import plot_contours,view_patches_bar
-from caiman.rois import extract_binary_masks_blob
 
 #%%
 m = cm.load('example_movies/demoMovie.tif')
@@ -453,7 +447,7 @@ if params_movie['is_dendrites'] == True:
 #%%
 t1 = time.time()
 cnm = cnmf.CNMF(n_processes, k=K, gSig=gSig, merge_thresh=0.8, p=0, dview=dview, Ain=None, rf=rf, stride=stride, memory_fact=1,
-                    method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=1,method_deconvolution='oasis')
+                method_init=init_method, alpha_snmf=alpha_snmf, only_init_patch=True, gnb=1, method_deconvolution='oasis')
 cnm = cnm.fit(images)
 
 A_tot = cnm.A
@@ -487,7 +481,7 @@ A_tot = A_tot.tocsc()[:, idx_components]
 C_tot = C_tot[idx_components]
 #%% rerun updating the components
 cnm = cnmf.CNMF(n_processes, k=A_tot.shape, gSig=gSig, merge_thresh=merge_thresh, p=p, dview=dview, Ain=A_tot, Cin=C_tot,
-                    f_in=f_tot, rf=None, stride=None,method_deconvolution='oasis')
+                f_in=f_tot, rf=None, stride=None, method_deconvolution='oasis')
 cnm = cnm.fit(images)
 #%%
 A, C, b, f, YrA, sn = cnm.A, cnm.C, cnm.b, cnm.f, cnm.YrA, cnm.sn
