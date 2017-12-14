@@ -87,20 +87,18 @@ def bin_median(movie, window=10):
     return np.median(np.mean(np.array_split(movie, window // movie.shape[0] + 1, axis=1), axis=0))
 
 
-def motion_correct_online(movie, add_to_movie, n_iter=1, max_shift_w=25, max_shift_h=25, save_base_name=None, order='C',
-                          init_frames_template=100, bilateral_blur=False, diameter=10, sigmaColor=10000, sigmaSpace=0,
-                          template=None, border_to_0=0, remove_blanks=False, return_mov=False):
+def motion_correct_online(movie, n_iter=1, max_shift_w=25, max_shift_h=25, save_base_name=None, order='C',
+                          init_frames_template=100, template=None, border_to_0=0, remove_blanks=False, return_mov=False):
     # todo todocument
     if remove_blanks and n_iter == 1:
         raise ValueError('In order to remove blanks you need at least two iterations n_iter=2')
 
-    init_mov = movie[:init_frames_template, :, :]
+    if movie.min() < 0:
+        raise ValueError('Movie too negative, You need to add a larger value to the Movie (add_to_movie)')
 
     if template is None:        
-        template = (bin_median(init_mov) + add_to_movie).astype(np.float32)
+        template = bin_median(movie).astype(np.float32)
 
-    if np.percentile(template, 1) < - 10:
-        raise ValueError('Movie too negative, You need to add a larger value to the Movie (add_to_movie)')
 
     shifts, xcorrs = [], []  # store the amount of shift in each frame
     buffer_frames, buffer_templates = collections.deque(maxlen=100), collections.deque(maxlen=100)
@@ -108,7 +106,7 @@ def motion_correct_online(movie, add_to_movie, n_iter=1, max_shift_w=25, max_shi
     big_mov, mov = None, []
     for n in range(n_iter):
 
-        if (save_base_name is not None) and not return_mov and (n_iter == (n+1)):
+        if (save_base_name is not None) and not return_mov and (n_iter == (n + 1)):
             dims = movie.shape if not remove_blanks else (dims[0], (dims[1] + min_h - max_h), (dims[2] + min_w - max_w))
             fname_tot = io.gen_memmap_fname(base_filename=save_base_name, shape=movie.shape, order=order)
             big_mov = io.load_memmap(fname_tot, mode='w+')
@@ -121,10 +119,6 @@ def motion_correct_online(movie, add_to_movie, n_iter=1, max_shift_w=25, max_shi
             count += 1
 
             img = np.array(frame, dtype=np.float32)
-            img += add_to_movie
-
-            if bilateral_blur:
-                img = compute_bilateral_blur(img, diameter, sigmaColor, sigmaSpace)
 
             new_img, shift, avg_corr = motion_correct_iteration_fast(img, template=template, max_shift_w=max_shift_w, max_shift_h=max_shift_h)
             template_tmp = template * count / (count + 1) + 1. / (count + 1) * new_img
@@ -164,7 +158,7 @@ def motion_correct_online(movie, add_to_movie, n_iter=1, max_shift_w=25, max_shi
     if save_base_name is not None:
         print('Flushing memory')
         big_mov.flush()
-        del big_mov     
+        del big_mov
         gc.collect()
 
     if mov is not None:
