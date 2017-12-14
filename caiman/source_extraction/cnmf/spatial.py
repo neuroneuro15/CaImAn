@@ -25,7 +25,8 @@ from scipy.ndimage.morphology import generate_binary_structure, iterate_structur
 from scipy.sparse import coo_matrix, csc_matrix, csr_matrix
 from scipy.sparse import spdiags
 
-from caiman.io.mmapping import load_memmap, parallel_dot_product
+from caiman.io.mmapping import load_memmap
+from .parallel import parallel_dot_product
 
 
 

@@ -14,7 +14,7 @@ import scipy
 from past.utils import old_div
 from scipy.sparse import spdiags, coo_matrix  # ,csgraph
 
-from caiman.io.mmapping import parallel_dot_product
+from .parallel import parallel_dot_product
 from .deconvolution import constrained_foopsi
 from .utilities import update_order_greedy
 #%%

@@ -1,6 +1,6 @@
 from os import path
 import numpy as np
-from . import loadmat
+from .matlab import loadmat
 
 
 def sbxinfo(filename):

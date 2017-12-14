@@ -41,6 +41,7 @@ from .oasis import OASIS
 from .online_cnmf import RingBuffer, HALS4activity, demix_and_deconvolve
 from .online_cnmf import init_shapes_and_sufficient_stats, update_shapes, update_num_components
 from .pre_processing import preprocess_data
+from .parallel import parallel_dot_product
 from .spatial import update_spatial_components
 from .temporal import update_temporal_components
 from .utilities import CNMFSetParms, update_order, normalize_AC, compute_residuals
@@ -1033,7 +1034,7 @@ class CNMF(object):
         nA2 = np.ravel(Ab.power(2).sum(axis=0))
         nA2_inv_mat = scipy.sparse.spdiags(1./nA2, 0, nA2.shape[0], nA2.shape[0])
         Cf = np.vstack((self.C, self.f))
-        YA = mmapping.parallel_dot_product(Yr, Ab, dview=self.dview, block_size=2000,
+        YA = parallel_dot_product(Yr, Ab, dview=self.dview, block_size=2000,
                                            transpose=True, num_blocks_per_run=5) * nA2_inv_mat
 
         AA = Ab.T.dot(Ab)*nA2_inv_mat

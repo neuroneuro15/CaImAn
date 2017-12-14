@@ -3,7 +3,7 @@ from __future__ import division, print_function, absolute_import
 import pickle
 import numpy as np
 from tqdm import tqdm
-from .io import load_memmap
+from caiman.io import load_memmap
 
 
 def parallel_dot_product(A, b, block_size=5000, dview=None, transpose=False, num_blocks_per_run=20):
