@@ -43,6 +43,7 @@ from __future__ import division, print_function, absolute_import
 import numpy as np
 from scipy import stats
 import cv2
+from tqdm import tqdm
 
 
 def compute_bilateral_blur(img, diameter=10, sigmaColor=10000, sigmaSpace=0):
@@ -94,9 +95,23 @@ def compute_motion_shift_between_frames(img, template, max_shift_w=10, max_shift
     return sh_x_n, sh_y_n
 
 
-def apply_shift(img, dx, dy):
+def apply_shift(img, dx, dy, border_nan=False, border_type=cv2.BORDER_REFLECT):
     """Shifts an image by dx, dy.  This value is usually calculated from compute_motion_shift_between_frames()."""
     M = np.float32([[1, 0, dy], [0, 1, dx]])
-    new_img = cv2.warpAffine(img, M, img.shape, flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
-    new_img[:] = np.clip(new_img, img.min(), img.max())
-    return new_img
+    warped_img = cv2.warpAffine(img, M, img.shape, flags=cv2.INTER_CUBIC, borderMode=border_type)
+    warped_img[:] = np.clip(warped_img, img.min(), img.max())
+
+    if border_nan:
+        max_h, max_w = np.ceil(np.maximum((0, 0), (dx, dy))).astype(np.int)
+        min_h, min_w = np.floor(np.minimum((0, 0), (dx, dy))).astype(np.int)
+
+        # todo: check logic here--it looks like some circumstances can result in all-nan images.
+        warped_img[:max_h, :] = np.nan
+        if min_h < 0:
+            warped_img[min_h:, :] = np.nan
+
+        warped_img[:, :max_w] = np.nan
+        if min_w < 0:
+            warped_img[:, min_w:] = np.nan
+
+    return warped_img

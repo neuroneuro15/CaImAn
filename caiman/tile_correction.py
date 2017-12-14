@@ -5,7 +5,7 @@ import itertools
 import numpy as np
 import cv2
 from .utils.stats import compute_phasediff
-
+from .motion_correction import apply_shift
 
 opencv = True
 
@@ -192,31 +192,6 @@ def _upsampled_dft(data, upsampled_region_size,
 
 
     return row_kernel.dot(data).dot(col_kernel)
-
-
-
-def apply_shift_iteration(img, shift, border_nan=False, border_type=cv2.BORDER_REFLECT):
-    # todo todocument
-
-    sh_x_n, sh_y_n = shift
-    M = np.float32([[1, 0, sh_y_n], [0, 1, sh_x_n]])
-    warped_img = cv2.warpAffine(img, M, img.shape[::-1], flags=cv2.INTER_CUBIC, borderMode=border_type)
-    warped_img = np.clip(warped_img, np.min(img), np.max(img))
-
-    if border_nan:
-        max_h, max_w = np.ceil(np.maximum((0, 0), shift)).astype(np.int)
-        min_h, min_w = np.floor(np.minimum((0, 0), shift)).astype(np.int)
-
-        # todo: check logic here--it looks like some circumstances can result in all-nan images.
-        warped_img[:max_h, :] = np.nan
-        if min_h < 0:
-            warped_img[min_h:, :] = np.nan
-
-        warped_img[:, :max_w] = np.nan
-        if min_w < 0:
-            warped_img[:, min_w:] = np.nan
-
-    return warped_img
 
 
 def apply_shifts_dft(src_freq, shifts, diffphase, is_freq = True, border_nan = False):
@@ -572,7 +547,7 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
 
     if shifts_opencv:
         imgs = [it[-1] for it in sliding_window(img, overlaps=overlaps, strides = strides)]
-        imgs = [apply_shift_iteration(im,sh,border_nan=True) for im, sh in zip(imgs, total_shifts)]
+        imgs = [apply_shift(im, *sh, border_nan=True) for im, sh in zip(imgs, total_shifts)]
     else:
         imgs = [apply_shifts_dft(im, sh, dffphs, is_freq=False, border_nan=True) for im, sh, dffphs in zip(imgs, total_shifts,total_diffs_phase)]
 
