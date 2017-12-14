@@ -40,11 +40,10 @@ Copyright (C) 2011, the scikit-image team
 """
 from __future__ import division, print_function, absolute_import
 
-from tqdm import tqdm
-
 import numpy as np
 from scipy import stats
 import cv2
+
 
 def compute_bilateral_blur(img, diameter=10, sigmaColor=10000, sigmaSpace=0):
     return cv2.bilateralFilter(img, diameter, sigmaColor, sigmaSpace)
@@ -75,28 +74,29 @@ def compute_subpixel_shift(img, x, y):
     return dx, dy
 
 
-
 def bin_median(movie, window=10):
     """Returns median image of the frames of a movie after finding the mean bins of window lenght 'window'."""
     return np.median(np.mean(np.array_split(movie, window // movie.shape[0] + 1, axis=1), axis=0))
 
 
-def motion_correct(img, template, max_shift_w=10, max_shift_h=10):
-    """ For using in online realtime scenarios """
+def compute_motion_shift_between_frames(img, template, max_shift_w=10, max_shift_h=10):
+    """Returns (x, y) distance between an image and a template, in pixels."""
     h_i, w_i = template.shape
-    templ_crop = template[max_shift_h:(h_i-max_shift_h), max_shift_w:(w_i-max_shift_w)].astype(np.float32)
+    templ_crop = template[max_shift_h:(h_i - max_shift_h), max_shift_w:(w_i - max_shift_w)].astype(np.float32)
 
-    res = cv2.matchTemplate(img, templ_crop, cv2.TM_CCORR_NORMED)
+    res = cv2.matchTemplate(img, templ_crop, cv2.TM_CCORR_NORMED)  # note: may want to also provide shift quality metric (ex: res.max())
     sh_y, sh_x = cv2.minMaxLoc(res)[3]
     sh_x_n, sh_y_n = max_shift_h - sh_x, max_shift_w - sh_y
     if (0 < sh_x < 2 * max_shift_h - 1) & (0 < sh_y < 2 * max_shift_w - 1):
         # if max is internal, check for subpixel shift using gaussian peak registration
         dx, dy = compute_subpixel_shift(res, sh_x_n, sh_y_n)
         sh_x_n, sh_y_n = sh_x_n + dx, sh_y_n + dy
+    return sh_x_n, sh_y_n
 
-    M = np.float32([[1, 0, sh_y_n], [0, 1, sh_x_n]])
-    new_img = cv2.warpAffine(img, M, (w_i, h_i), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
+
+def apply_shift(img, dx, dy):
+    """Shifts an image by dx, dy.  This value is usually calculated from compute_motion_shift_between_frames()."""
+    M = np.float32([[1, 0, dy], [0, 1, dx]])
+    new_img = cv2.warpAffine(img, M, img.shape, flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
     new_img[:] = np.clip(new_img, img.min(), img.max())
-    shift = (sh_x_n, sh_y_n)  # used to be returned.
-    avg_corr = np.max(res)  # used to be returned.
     return new_img
