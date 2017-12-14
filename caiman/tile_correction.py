@@ -5,19 +5,9 @@ import itertools
 import numpy as np
 import cv2
 from .utils.stats import compute_phasediff
-from .motion_correction import apply_shift, make_border_nan
+from .motion_correction import apply_shift, apply_shift_dft, make_border_nan
 
 opencv = True
-
-
-def low_pass_filter(img, gSig_filt):
-    filt = gSig_filt[0]
-    ker = cv2.getGaussianKernel((3 * filt) // 2 * 2 + 1, filt)
-    ker2D = np.dot(ker, ker.T)
-    ker2D[ker2D < np.max(ker2D[:,0])] = 0
-    ker2D[ker2D != 0] -= np.mean(ker2D[ker2D != 0])
-    return cv2.filter2D(np.array(img, dtype=np.float32), -1, ker2D, borderType=cv2.BORDER_REFLECT)
-
 
 
 def sliding_window(image, overlaps, strides):
@@ -193,74 +183,6 @@ def _upsampled_dft(data, upsampled_region_size,
 
     return row_kernel.dot(data).dot(col_kernel)
 
-
-def dft(img):
-    """Returns a frequency-space-transformed image using the discrete fourier transform."""
-    freq_img = np.dstack([np.real(img), np.imag(img)])
-    freq_img = cv2.dft(freq_img, flags=cv2.DFT_COMPLEX_OUTPUT + cv2.DFT_SCALE)
-    freq_img = np.array(freq_img[:, :, 0] + 1j * freq_img[:, :, 1], dtype=np.complex128, copy=False)
-    return freq_img
-
-
-def idft(freq_img):
-    """Returns an image from a frequency-space-transformed image using the inverse discrete fourier transform."""
-    img = cv2.idft(np.dstack([np.real(freq_img), np.imag(freq_img)]))[:, :, 0]
-    return img
-
-
-def apply_shift_dft(img, dx, dy, diffphase):
-    """
-    apply shifts using inverse dft
-
-    src_freq: ndarray
-        if is_freq it is fourier transform image else original image
-    shifts: shifts to apply
-    diffphase: comes from the register_translation output
-
-
-    adapted from SIMA (https://github.com/losonczylab) and the
-    scikit-image (http://scikit-image.org/) package.
-
-
-    Unless otherwise specified by LICENSE.txt files in individual
-    directories, all code is
-
-    Copyright (C) 2011, the scikit-image team
-    All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are
-    met:
-
-     1. Redistributions of source code must retain the above copyright
-        notice, this list of conditions and the following disclaimer.
-     2. Redistributions in binary form must reproduce the above copyright
-        notice, this list of conditions and the following disclaimer in
-        the documentation and/or other materials provided with the
-        distribution.
-     3. Neither the name of skimage nor the names of its contributors may be
-        used to endorse or promote products derived from this software without
-        specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-    IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-    DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
-    INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-    STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-    IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-    POSSIBILITY OF SUCH DAMAGE.
-    """
-    freq_img = dft(img)
-    nc, nr = np.shape(freq_img)
-    Nr, Nc = np.meshgrid(np.fft.ifftshift(np.arange(-np.fix(nr / 2.), np.ceil(nr / 2.))),
-                         np.fft.ifftshift(np.arange(-np.fix(nc / 2.), np.ceil(nc / 2.))))
-    Greg = np.dot(freq_img * np.exp(1j * 2 * np.pi * (-dy * 1. * Nr / nr - dx * 1. * Nc / nc)), np.exp(1j * diffphase))
-    shifted_img = idft(Greg)
-    return shifted_img
 
 
 def register_translation(src_image, target_image, upsample_factor=1,
