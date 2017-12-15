@@ -23,16 +23,16 @@ import numpy as np
 import scipy
 import scipy.ndimage as nd
 import scipy.sparse as spr
-from caiman.source_extraction.cnmf.deconvolution import deconvolve_ca
-from caiman.source_extraction.cnmf.spatial import circular_constraint
 from past.utils import old_div
 from scipy.ndimage.filters import correlate
 from scipy.ndimage.measurements import center_of_mass
 from skimage.morphology import disk
 from sklearn.decomposition import NMF, FastICA
 
-import caiman
-from caiman.cnmf.pre_processing import get_noise_fft
+from .pre_processing import get_noise_fft
+from .deconvolution import deconvolve_ca
+from .spatial import circular_constraint
+
 #%%
 def resize(Y, size, interpolation=cv2.INTER_LINEAR):
     """faster and 3D compatible version of skimage.transform.resize"""

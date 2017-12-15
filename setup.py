@@ -15,8 +15,8 @@ with open('README.md', 'r') as rmf:
 
 # compile with:     python setup.py build_ext -i
 # clean up with:    python setup.py clean --all
-ext_modules = [Extension("caiman.source_extraction.cnmf.oasis",
-                         sources=["caiman/source_extraction/cnmf/oasis.pyx"],
+ext_modules = [Extension("caiman.cnmf.oasis",
+                         sources=["caiman/cnmf/oasis.pyx"],
                          include_dirs=[np.get_include()],
                          language="c++")]
 

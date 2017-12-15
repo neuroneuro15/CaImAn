@@ -26,7 +26,7 @@ from past.utils import old_div
 from scipy.sparse import spdiags, issparse, csc_matrix
 
 from .parallel import parallel_dot_product
-from caiman.utils.math import center_of_mass
+from ..utils.math import center_of_mass
 from .initialization import greedyROI
 
 

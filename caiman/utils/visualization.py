@@ -29,7 +29,7 @@ try:
 except:
     print("Bokeh could not be loaded. Either it is not installed or you are not running within a notebook")
 
-from ..summary_images import local_correlations
+
 from .math import center_of_mass
 
 #%%
@@ -71,6 +71,7 @@ def view_patches(Yr, A, C, b, f, d1, d2, YrA=None, secs=1):
     ..image:: doc/img/
 
     """
+    from ..summary_images import local_correlations
     plt.ion()
     nr, T = C.shape
     nb = f.shape[0]
@@ -353,7 +354,7 @@ def nb_view_patches3d(Y_r, A, C, dims, image_type='mean', Yr=None,
     ValueError("image_type must be 'mean', 'max' or 'corr'")
 
     """
-
+    from ..summary_images import local_correlations
     bokeh.io.curdoc().clear()  # prune old orphaned models, otherwise filesize blows up
     d = A.shape[0]
     order = list(range(4))

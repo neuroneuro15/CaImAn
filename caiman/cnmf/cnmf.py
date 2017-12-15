@@ -31,9 +31,8 @@ import numpy as np
 import psutil
 import scipy
 
-import caiman
-from caiman import components_evaluation
-from caiman.io import mmapping
+from .. import utils
+from ..components_evaluation import estimate_components_quality
 from .initialization import initialize_components, imblur
 from .map_reduce import run_CNMF_patches
 from .merging import merge_components
@@ -438,7 +437,7 @@ class CNMF(object):
                     traces = np.array(self.C)
                     print('estimating the quality...')
                     idx_components, idx_components_bad, fitness_raw,\
-                    fitness_delta, r_values = components_evaluation.estimate_components_quality(
+                    fitness_delta, r_values = estimate_components_quality(
                     	traces, Y, self.A, self.C, self.b_in, self.f_in,
                         final_frate=final_frate, Npeaks=Npeaks, r_values_min=r_values_min,
                         fitness_min=fitness_min, fitness_delta_min=fitness_delta_min, return_all=True, N=5)
@@ -1104,7 +1103,7 @@ class CNMF(object):
         if img is None:
             img = np.reshape(np.array(self.A.mean(axis=1)), dims, order='F')
 
-        caiman.utils.visualization.view_patches_bar(Yr, self.A, self.C, self.b, self.f, dims[
+        utils.visualization.view_patches_bar(Yr, self.A, self.C, self.b, self.f, dims[
                                                     0], dims[1], YrA=self.YrA, img=img)
 
 def scale(y):

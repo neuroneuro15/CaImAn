@@ -10,9 +10,10 @@ from scipy.sparse import coo_matrix, csc_matrix
 from sklearn.decomposition import NMF
 from sklearn.preprocessing import normalize
 
-import caiman as cm
-from caiman.cnmf import oasis
-from caiman.components_evaluation import compute_event_exceptionality
+
+from . import oasis
+from ..io import load_memmap
+from ..components_evaluation import compute_event_exceptionality
 from .initialization import imblur, initialize_components, hals
 from .utilities import update_order
 
@@ -679,7 +680,7 @@ def initialize_movie_online(Y, K, gSig, rf, stride, base_name,
     base_name = base_name + '.mmap'
     fname_new = Y.save(base_name, order= 'C')
     #%
-    Yr, dims, T = cm.load_memmap(fname_new)
+    Yr, dims, T = load_memmap(fname_new)
     d1, d2 = dims
     images = np.reshape(Yr.T, [T] + list(dims), order='F')
     Y = np.reshape(Yr, dims + (T,), order='F')

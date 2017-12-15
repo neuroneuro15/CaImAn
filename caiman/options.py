@@ -20,7 +20,7 @@ See Also:
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-import caiman as cm
+from .cluster import Cluster
 import psutil
 
 #%%
@@ -197,7 +197,7 @@ def Params(Y, K=30, gSig=[5, 5], ssub=2, tsub=2, p=1, p_ssub=2, p_tsub=2,
         dims, T = Y.shape[:-1], Y.shape[-1]
 
     if cluster:
-        c, dview, n_processes = cm.cluster.setup_cluster(
+        c, dview, n_processes = setup_cluster(
             backend='local', n_processes=None, single_thread=False)
     else :
         c, dview, n_processes = None,None, 1

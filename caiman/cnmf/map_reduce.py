@@ -21,8 +21,8 @@ import numpy as np
 import scipy
 from past.utils import old_div
 
-from caiman.io.mmapping import load_memmap
-from caiman.cluster import extract_patch_coordinates
+from ..io.mmapping import load_memmap
+from .patches import extract_patch_coordinates
 
 
 #%%

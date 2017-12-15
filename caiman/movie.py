@@ -28,7 +28,6 @@ from matplotlib import animation
 import matplotlib.pyplot as plt
 from sklearn import decomposition, cluster, metrics
 from scipy import io, optimize
-from skimage import feature, transform
 from tqdm import tqdm
 
 from .io import sbxreadskip, tifffile, load_memmap, save_memmap

@@ -9,7 +9,6 @@ Created on Wed Mar 16 16:31:55 2016
 from __future__ import division, print_function
 
 from past.utils import old_div
-import caiman as cm
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.io import loadmat
@@ -18,7 +17,8 @@ from sklearn.decomposition import NMF,PCA,DictionaryLearning
 import time
 import scipy
 from scipy.sparse import coo_matrix
-
+from .movie import Movie
+from .components_evaluation import mode_robust
 
 #%% dense flow
 def select_roi(img,n_rois=1):
@@ -71,13 +71,13 @@ def extract_motor_components_OF(m, n_components, mask = None,  resize_fact= .5, 
         mask = coo_matrix(np.array(mask).squeeze())
         ms = [get_nonzero_subarray(mask.multiply(fr),mask) for fr in m]
         ms = np.dstack(ms)
-        ms = cm.Movie(ms.transpose([2, 0, 1]))
+        ms = Movie(ms.transpose([2, 0, 1]))
 
     else:
         ms = m
     of_or = compute_optical_flow(ms,do_show=False,polar_coord=False) 
-    of_or = np.concatenate([cm.Movie(of_or[0]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :],
-                            cm.Movie(of_or[1]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :]], axis = 0)
+    of_or = np.concatenate([Movie(of_or[0]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :],
+                            Movie(of_or[1]).resize(resize_fact, resize_fact, 1)[np.newaxis, :, :, :]], axis = 0)
 
     if only_magnitude:
         of = np.sqrt(of[0]**2+of[1]**2)
@@ -117,7 +117,7 @@ def extract_magnitude_and_angle_from_OF(spatial_filter_, time_trace_, of_or,
             x,y = scipy.signal.medfilt(time_trace,kernel_size=[1,1]).T
             x =  scipy.signal.savgol_filter(x.squeeze(),sav_filter_size,1)                
             y =  scipy.signal.savgol_filter(y.squeeze(),sav_filter_size,1)
-            mag,dirct = to_polar(x-cm.components_evaluation.mode_robust(x),y-cm.components_evaluation.mode_robust(y))
+            mag,dirct = to_polar(x-mode_robust(x),y-mode_robust(y))
             dirct = scipy.signal.medfilt(dirct.squeeze(),kernel_size=1).T        
             
         # normalize to pixel units
@@ -372,7 +372,7 @@ def normalize_components(t_trace,sp_filt,num_std=2):
 
 def main():
     mmat=loadmat('mov_AG051514-01-060914 C.mat')['mov']
-    m=cm.Movie(mmat.transpose((2, 0, 1)), fr=120)
+    m=Movie(mmat.transpose((2, 0, 1)), fr=120)
     mask=select_roi(m[0])
     if 1:
         mov_tot=compute_optical_flow(m[:3000],mask)

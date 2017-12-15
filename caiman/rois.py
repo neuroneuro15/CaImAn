@@ -9,7 +9,8 @@ from __future__ import division, print_function, absolute_import
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-from scipy import optimize, filters, ndimage, sparse
+from scipy import optimize, ndimage, sparse
+from skimage import filters
 from skimage.morphology import remove_small_objects, opening, remove_small_holes, closing, dilation, watershed
 from tqdm import tqdm
 
