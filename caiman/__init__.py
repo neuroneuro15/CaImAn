@@ -11,6 +11,5 @@ from . import motion_correction
 from . import options
 from . import rois
 
-from . import tile_correction
 from . import utils
 from . import io
