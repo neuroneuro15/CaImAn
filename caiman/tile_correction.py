@@ -129,8 +129,7 @@ def _upsampled_dft(data, upsampled_region_size,
 
 
 
-def register_translation(src_image, target_image, upsample_factor=1,
-                         space="real", shifts_lb = None, shifts_ub = None, max_shifts = (10,10)):
+def register_translation(src_image, target_image, upsample_factor=1, shifts_lb = None, shifts_ub = None, max_shifts = (10,10)):
     """
     Efficient subpixel image translation registration by cross-correlation.
 
@@ -194,19 +193,10 @@ def register_translation(src_image, target_image, upsample_factor=1,
     if src_image.shape != target_image.shape:
         raise ValueError("src_image and target_image must be the same size.")
 
-    if space.lower() not in ['fourier', 'real']:
-        raise ValueError("register_translation() only knows the 'real' and 'fourier' values for the 'space' argument.")
-
-    # only 2D data makes sense right now
-    if src_image.ndim != 2 and upsample_factor > 1:
-        raise NotImplementedError("Error: register_translation only supports subpixel registration for 2D images")
-
-    src_freq = src_image if space.lower() == 'fourier' else dft(src_image)
-    target_freq = target_image if space.lower() == 'fourier' else dft(target_image)
-
     # Whole-pixel shift - Compute cross-correlation by an IFFT
-    image_product = src_freq * target_freq.conj()
-    cross_correlation = dft(image_product) if opencv else cv2.idft(image_product)  # note: possible bug: these two transformations seem very different from one another.
+    src_freq, target_freq = dft(src_image), dft(target_image)
+    image_product = idft(src_freq * target_freq.conj())
+    cross_correlation = idft(image_product)
 
     # Locate maximum
     new_cross_corr  = np.abs(cross_correlation)
