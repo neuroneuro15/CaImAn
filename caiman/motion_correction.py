@@ -69,7 +69,7 @@ def compute_smoothness(movie):
 
 def compute_subpixel_shift(img, x, y):
     """takes a 2D array 'img' about index [x, y]', to check for subpixel shift using gaussian peak registration."""
-    log_xm_y, log_xp_y, log_x_ym, log_x_yp, log_xy = np.log(img[(x-1, x+1, x, x, x), (y, y, y-1, y+1, y)])
+    log_xm_y, log_xp_y, log_x_ym, log_x_yp, log_xy = np.log(img[(y, y, y-1, y+1, y), (x-1, x+1, x, x, x)])
     dx = .5 * (log_xp_y - log_xm_y) / (log_xm_y + log_xp_y - 2 * log_xy)
     dy = .5 * (log_x_yp - log_x_ym) / (log_x_ym + log_x_yp - 2 * log_xy)
     return dx, dy
@@ -105,17 +105,12 @@ def idft(freq_img):
 
 def compute_motion_shift_between_frames(img, template, max_shift_w=10, max_shift_h=10):
     """Returns (x, y) distance between an image and a template, in pixels."""
-    h_i, w_i = template.shape
-    templ_crop = template[max_shift_h:(h_i - max_shift_h), max_shift_w:(w_i - max_shift_w)].astype(np.float32)
+    templ_crop = template[max_shift_h:-max_shift_h, max_shift_w:-max_shift_w]
 
     res = cv2.matchTemplate(img, templ_crop, cv2.TM_CCORR_NORMED)  # note: may want to also provide shift quality metric (ex: res.max())
-    sh_y, sh_x = cv2.minMaxLoc(res)[3]
-    sh_x_n, sh_y_n = max_shift_h - sh_x, max_shift_w - sh_y
-    if (0 < sh_x < 2 * max_shift_h - 1) & (0 < sh_y < 2 * max_shift_w - 1):
-        # if max is internal, check for subpixel shift using gaussian peak registration
-        dx, dy = compute_subpixel_shift(res, sh_x_n, sh_y_n)
-        sh_x_n, sh_y_n = sh_x_n + dx, sh_y_n + dy
-    return sh_x_n, sh_y_n
+    sh_y, sh_x = np.unravel_index(res.argmax(), res.shape)
+    dx, dy = compute_subpixel_shift(res, sh_x, sh_y)
+    return sh_x + dx, sh_y + dy
 
 
 def make_border_nan(img, y, x):
