@@ -103,7 +103,7 @@ def idft(freq_img):
     return img
 
 
-def compute_motion_shift_between_frames(img, template, max_shift_w=10, max_shift_h=10):
+def calculate_offset(img, template, max_shift_w=10, max_shift_h=10):
     """Returns (x, y) distance between an image and a template, in pixels."""
     templ_crop = template[max_shift_h:-max_shift_h, max_shift_w:-max_shift_w]
 
@@ -128,7 +128,7 @@ def make_border_nan(img, y, x):
 
 
 def apply_shift(img, dx, dy, border_type=cv2.BORDER_REFLECT):
-    """Shifts an image by dx, dy.  This value is usually calculated from compute_motion_shift_between_frames()."""
+    """Shifts an image by dx, dy.  This value is usually calculated from calculate_offset()."""
     M = np.float32([[1, 0, dy], [0, 1, dx]])
     warped_img = cv2.warpAffine(img, M, img.shape, flags=cv2.INTER_CUBIC, borderMode=border_type)
     warped_img[:] = np.clip(warped_img, img.min(), img.max())
