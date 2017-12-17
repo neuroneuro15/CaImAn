@@ -1,13 +1,10 @@
 from __future__ import division, print_function, absolute_import
 
-from past.utils import old_div
 import itertools
 import numpy as np
 import cv2
 from .utils.stats import compute_phasediff
 from .motion_correction import apply_shift, apply_shift_dft, make_border_nan, dft, idft
-
-opencv = True
 
 
 def sliding_window(image, overlaps, strides):
@@ -129,7 +126,7 @@ def _upsampled_dft(data, upsampled_region_size,
 
 
 
-def register_translation(src_image, target_image, upsample_factor=1, shifts_lb = None, shifts_ub = None, max_shifts = (10,10)):
+def register_translation(src_image, target_image, upsample_factor=1, shifts_lb=None, shifts_ub=None, max_shifts=(10,10)):
     """
     Efficient subpixel image translation registration by cross-correlation.
 
@@ -217,13 +214,13 @@ def register_translation(src_image, target_image, upsample_factor=1, shifts_lb =
 
     if upsample_factor > 1:  # If upsampling > 1, then refine estimate with matrix multiply DFT
         # Initial shift estimate in upsampled grid
-        shifts = old_div(np.round(maxima * upsample_factor), upsample_factor)
+        shifts = np.round(maxima * upsample_factor) / upsample_factor
         upsampled_region_size = np.ceil(upsample_factor * 1.5)
 
         # Center of output array at dftshift + 1
-        dftshift = np.fix(old_div(upsampled_region_size, 2.0))
+        dftshift = np.fix(upsampled_region_size / 2.0)
         upsample_factor = np.array(upsample_factor, dtype=np.float64)
-        normalization = (src_freq.size * upsample_factor ** 2)
+        normalization = src_freq.size * upsample_factor ** 2
 
         # Matrix multiply DFT around the current shift estimate
         sample_region_offset = dftshift - shifts * upsample_factor
@@ -234,11 +231,6 @@ def register_translation(src_image, target_image, upsample_factor=1, shifts_lb =
         maxima -= dftshift
         shifts += maxima / upsample_factor
 
-    # If its only one row or column the shift along that dimension has no effect. We set to zero.
-    for dim in range(src_freq.ndim):
-        if src_freq.shape[dim] == 1:
-            shifts[dim] = 0
-
     phase_diff = compute_phasediff(cross_correlation.max())
 
     return shifts, src_freq, phase_diff
@@ -246,7 +238,6 @@ def register_translation(src_image, target_image, upsample_factor=1, shifts_lb =
 
 def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_factor_grid=4, upsample_factor_fft=10,
                      max_deviation_rigid=2, shifts_opencv=False, border_nan=True):
-
     """ perform piecewise rigid motion correction iteration, by
         1) dividing the FOV in patches
         2) motion correcting each patch separately
