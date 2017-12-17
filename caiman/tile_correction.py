@@ -11,37 +11,35 @@ opencv = True
 
 
 def sliding_window(image, overlaps, strides):
-    """ efficiently and lazily slides a window across the image
+    """
+    efficiently and lazily slides a window across the image
 
-     Parameters
-     ----------
+    Parameters
+    ----------
 
-     img:ndarray 2D
-         image that needs to be slices
+    img:ndarray 2D
+     image that needs to be slices
 
-     windowSize: tuple
-         dimension of the patch
+    windowSize: tuple
+     dimension of the patch
 
-     strides: tuple
-         stride in wach dimension
+    strides: tuple
+     stride in wach dimension
 
-     Returns:
-     -------
-     iterator containing five items
+    Returns:
+    -------
+    iterator containing five items
 
-     dim_1, dim_2 coordinates in the patch grid
+    dim_1, dim_2 coordinates in the patch grid
 
-     x, y: bottom border of the patch in the original matrix
+    x, y: bottom border of the patch in the original matrix
 
-     patch: the patch
-     """
+    patch: the patch
+    """
     windowSize = np.add(overlaps,strides)
-    range_1 = list(range(0, image.shape[0]-windowSize[0], strides[0])) + [image.shape[0]-windowSize[0]]
-    range_2 = list(range(0, image.shape[1]-windowSize[1], strides[1])) + [image.shape[1]-windowSize[1]]
-    for dim_1, x in enumerate(range_1):
-        for dim_2,y in enumerate(range_2):
-            # yield the current window
-            yield (dim_1, dim_2 , x, y, image[ x:x + windowSize[0],y:y + windowSize[1]])
+    for dim_1, x in enumerate(range(0, image.shape[0] - windowSize[0] + 1, strides[0])):
+        for dim_2,y in enumerate(range(0, image.shape[1] - windowSize[1] + 1, strides[1])):
+            yield (dim_1, dim_2 , x, y, image[ x:x + windowSize[0],y:y + windowSize[1]])  # yield the current window
 
 
 def create_weight_matrix_for_blending(img, overlaps, strides):
@@ -79,42 +77,8 @@ def create_weight_matrix_for_blending(img, overlaps, strides):
 
 
 def _upsampled_dft(data, upsampled_region_size,
-                   upsample_factor=1, axis_offsets=None):
+                   upsample_factor=1, axis_offsets=(0, 0)):
     """
-    adapted from SIMA (https://github.com/losonczylab) and the scikit-image (http://scikit-image.org/) package.
-
-    Unless otherwise specified by LICENSE.txt files in individual
-    directories, all code is
-
-    Copyright (C) 2011, the scikit-image team
-    All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are
-    met:
-
-     1. Redistributions of source code must retain the above copyright
-        notice, this list of conditions and the following disclaimer.
-     2. Redistributions in binary form must reproduce the above copyright
-        notice, this list of conditions and the following disclaimer in
-        the documentation and/or other materials provided with the
-        distribution.
-     3. Neither the name of skimage nor the names of its contributors may be
-        used to endorse or promote products derived from this software without
-        specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-    IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-    DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
-    INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-    STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-    IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-    POSSIBILITY OF SUCH DAMAGE.
-
     Upsampled DFT by matrix multiplication.
 
     This code is intended to provide the same result as if the following
@@ -153,77 +117,21 @@ def _upsampled_dft(data, upsampled_region_size,
             The upsampled DFT of the specified region.
     """
     # if people pass in an integer, expand it to a list of equal-sized sections
-    if not hasattr(upsampled_region_size, "__iter__"):
-        upsampled_region_size = [upsampled_region_size, ] * data.ndim
-    else:
-        if len(upsampled_region_size) != data.ndim:
-            raise ValueError("shape of upsampled region sizes must be equal "
-                             "to input data's number of dimensions.")
 
-    if axis_offsets is None:
-        axis_offsets = [0, ] * data.ndim
-    else:
-        if len(axis_offsets) != data.ndim:
-            raise ValueError("number of axis offsets must be equal to input "
-                             "data's number of dimensions.")
+    def make_kernel(shape, reg, off):
+        factor = (-1j * 2 * np.pi / (shape * upsample_factor))
+        kernel = np.dot(np.arange(reg)[:, None] - off, np.fft.ifftshift(np.arange(shape))[None, :] - np.floor(shape // 2.))
+        return np.exp(factor * kernel)
 
-    col_kernel = np.exp(
-        (-1j * 2 * np.pi / (data.shape[1] * upsample_factor)) *
-        (np.fft.ifftshift(np.arange(data.shape[1]))[:, None] -
-         np.floor(old_div(data.shape[1], 2))).dot(
-             np.arange(upsampled_region_size[1])[None, :] - axis_offsets[1])
-    )
-    row_kernel = np.exp(
-        (-1j * 2 * np.pi / (data.shape[0] * upsample_factor)) *
-        (np.arange(upsampled_region_size[0])[:, None] - axis_offsets[0]).dot(
-            np.fft.ifftshift(np.arange(data.shape[0]))[None, :] -
-            np.floor(old_div(data.shape[0], 2)))
-    )
+    row_kernel, col_kernel = [make_kernel(shape, reg, off) for shape, reg, off in zip(data.shape, upsampled_region_size, axis_offsets)]
 
-
-    return row_kernel.dot(data).dot(col_kernel)
+    return row_kernel.dot(data).dot(col_kernel.T)
 
 
 
 def register_translation(src_image, target_image, upsample_factor=1,
                          space="real", shifts_lb = None, shifts_ub = None, max_shifts = (10,10)):
     """
-
-    adapted from SIMA (https://github.com/losonczylab) and the
-    scikit-image (http://scikit-image.org/) package.
-
-
-    Unless otherwise specified by LICENSE.txt files in individual
-    directories, all code is
-
-    Copyright (C) 2011, the scikit-image team
-    All rights reserved.
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are
-    met:
-
-     1. Redistributions of source code must retain the above copyright
-        notice, this list of conditions and the following disclaimer.
-     2. Redistributions in binary form must reproduce the above copyright
-        notice, this list of conditions and the following disclaimer in
-        the documentation and/or other materials provided with the
-        distribution.
-     3. Neither the name of skimage nor the names of its contributors may be
-        used to endorse or promote products derived from this software without
-        specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
-    IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-    DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
-    INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-    STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-    IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-    POSSIBILITY OF SUCH DAMAGE.
     Efficient subpixel image translation registration by cross-correlation.
 
     This code gives the same precision as the FFT upsampled cross-correlation
