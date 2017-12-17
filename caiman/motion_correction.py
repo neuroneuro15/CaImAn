@@ -75,9 +75,9 @@ def compute_subpixel_shift(img, x, y):
     return dx, dy
 
 
-def bin_median(movie, window=10):
-    """Returns median image of the frames of a movie after finding the mean bins of window lenght 'window'."""
-    return np.median(np.mean(np.array_split(movie, window // movie.shape[0] + 1, axis=1), axis=0))
+def bin_median(movie, bins=10):
+    """Returns median image of the binned meaned frames of a movie."""
+    return np.median(np.mean(np.array_split(movie, bins, axis=0), axis=1), axis=0)
 
 
 def low_pass_filter(img, gSig_filt):
