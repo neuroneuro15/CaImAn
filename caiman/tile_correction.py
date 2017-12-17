@@ -233,7 +233,7 @@ def register_translation(src_image, target_image, upsample_factor=1, shifts_lb=N
 
     phase_diff = compute_phasediff(cross_correlation.max())
 
-    return shifts, src_freq, phase_diff
+    return shifts, phase_diff
 
 
 def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_factor_grid=4, upsample_factor_fft=10,
@@ -287,7 +287,7 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
     """
 
     # compute rigid shifts
-    rigid_shifts, sfr_freq, diffphase = register_translation(img, template, upsample_factor=upsample_factor_fft, max_shifts=max_shifts)
+    rigid_shifts, diffphase = register_translation(img, template, upsample_factor=upsample_factor_fft, max_shifts=max_shifts)
 
     # extract patches
     strides = tuple(np.round(np.divide(strides, upsample_factor_grid)).astype(np.int))
@@ -304,7 +304,7 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
     #extract shifts for each patch
     lb_shifts = np.ceil(np.subtract(rigid_shifts, max_deviation_rigid)).astype(int) if max_deviation_rigid is not None else None
     ub_shifts = np.floor(np.add(rigid_shifts, max_deviation_rigid)).astype(int) if max_deviation_rigid is not None else None
-    shfts_et_all = [register_translation(im, template, upfactor, shifts_lb=lb_shifts, shifts_ub=ub_shifts, max_shifts=max_shifts)[0, 2] for im, template, upfactor in zip(imgs, [el[-1] for el in sliding_template], [upsample_factor_fft] * num_tiles)]
+    shfts_et_all = [register_translation(im, template, upfactor, shifts_lb=lb_shifts, shifts_ub=ub_shifts, max_shifts=max_shifts) for im, template, upfactor in zip(imgs, [el[-1] for el in sliding_template], [upsample_factor_fft] * num_tiles)]
     shfts = np.array([sshh[0] for sshh in shfts_et_all])
 
     # create a vector field
