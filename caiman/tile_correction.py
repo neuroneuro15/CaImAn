@@ -36,7 +36,7 @@ def sliding_window(image, overlaps, strides):
     windowSize = np.add(overlaps,strides)
     for dim_1, x in enumerate(range(0, image.shape[0] - windowSize[0] + 1, strides[0])):
         for dim_2,y in enumerate(range(0, image.shape[1] - windowSize[1] + 1, strides[1])):
-            yield (dim_1, dim_2 , x, y, image[ x:x + windowSize[0],y:y + windowSize[1]])  # yield the current window
+            yield (dim_1, dim_2 , image[ x:x + windowSize[0],y:y + windowSize[1]])  # yield the current window
 
 
 def create_weight_matrix_for_blending(img, overlaps, strides):
@@ -56,7 +56,7 @@ def create_weight_matrix_for_blending(img, overlaps, strides):
     shapes = np.add(strides, overlaps)
     y_overlap, x_overlap = overlaps
     max_grid_1, max_grid_2 = np.max([it[:2] for it in sliding_window(img, overlaps, strides)], axis=0)
-    for grid_1, grid_2 , x, y, _ in sliding_window(img, overlaps, strides):
+    for grid_1, grid_2 , _ in sliding_window(img, overlaps, strides):
 
         weight_mat = np.ones(shapes)
 
@@ -293,25 +293,24 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
     strides = tuple(np.round(np.divide(strides, upsample_factor_grid)).astype(np.int))
 
     sliding_img = list(sliding_window(img, overlaps=overlaps, strides=strides))
-    imgs       = [it[-1]         for it in sliding_img]
-    xy_grid    = [(it[0], it[1]) for it in sliding_img]
-    start_step = [(it[2], it[3]) for it in sliding_img]
+    imgs       = [it[-1] for it in sliding_img]
+    start_step = [it[:2] for it in sliding_img]
 
     sliding_template = list(sliding_window(template, overlaps=overlaps, strides=strides))
-    dim_grid = tuple(np.add(sliding_template[-1][:2], 1))
-    num_tiles = np.prod(dim_grid)
+    templates = [it[-1] for it in sliding_template]
 
     #extract shifts for each patch
     lb_shifts = np.ceil(np.subtract(rigid_shifts, max_deviation_rigid)).astype(int) if max_deviation_rigid is not None else None
     ub_shifts = np.floor(np.add(rigid_shifts, max_deviation_rigid)).astype(int) if max_deviation_rigid is not None else None
-    shfts_et_all = [register_translation(im, template, upfactor, shifts_lb=lb_shifts, shifts_ub=ub_shifts, max_shifts=max_shifts) for im, template, upfactor in zip(imgs, [el[-1] for el in sliding_template], [upsample_factor_fft] * num_tiles)]
+    shfts_et_all = [register_translation(im, template, upsample_factor_fft, shifts_lb=lb_shifts, shifts_ub=ub_shifts, max_shifts=max_shifts) for im, template in zip(imgs, templates)]
     shfts = np.array([sshh[0] for sshh in shfts_et_all])
 
     # create a vector field
+    dim_grid = np.subtract(template.shape, np.add(overlaps, strides))
     shift_img_x, shift_img_y = np.reshape(shfts[:, 0], dim_grid), np.reshape(shfts[:, 1], dim_grid)
     diffs_phase_grid = np.reshape(np.array([sshh[1] for sshh in shfts_et_all]), dim_grid)
 
-    dim_new_grid = tuple(np.add(xy_grid[-1], 1))[::-1]
+    dim_new_grid = np.subtract(img.shape, np.add(overlaps, strides))[::-1]
     for array in (shift_img_x, shift_img_y, diffs_phase_grid):
         array[:] = cv2.resize(array, dim_new_grid, interpolation=cv2.INTER_CUBIC)
 
