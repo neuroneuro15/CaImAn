@@ -313,7 +313,7 @@ def _upsampled_dft(data, upsampled_region_size,
 
 
 
-def register_translation(src_image, target_image, upsample_factor=1, shifts_lb=None, shifts_ub=None, max_shifts=(10,10)):
+def register_translation(src_image, target_image, shifts_lb=None, shifts_ub=None, max_shifts=(10,10)):
     """
     Efficient subpixel image translation registration by cross-correlation.
 
@@ -398,33 +398,12 @@ def register_translation(src_image, target_image, upsample_factor=1, shifts_lb=N
     maxima = np.array(np.unravel_index(np.argmax(np.abs(new_cross_corr)), cross_correlation.shape))
     midpoints = np.floor_divide(src_freq.shape, 2)
     maxima[maxima > midpoints] -= np.array(src_freq.shape)[maxima > midpoints]
+    shifts = maxima
 
-    if upsample_factor > 1:  # If upsampling > 1, then refine estimate with matrix multiply DFT
-        # Initial shift estimate in upsampled grid
-        shifts = np.round(maxima * upsample_factor) / upsample_factor
-        upsampled_region_size = np.ceil(upsample_factor * 1.5)
-
-        # Center of output array at dftshift + 1
-        dftshift = np.fix(upsampled_region_size / 2.0)
-        upsample_factor = np.array(upsample_factor, dtype=np.float64)
-        normalization = src_freq.size * upsample_factor ** 2
-
-        # Matrix multiply DFT around the current shift estimate
-        sample_region_offset = dftshift - shifts * upsample_factor
-        cross_correlation = _upsampled_dft(image_product.conj(), upsampled_region_size, upsample_factor, sample_region_offset).conj() / normalization
-
-        # Locate maximum and map back to original pixel grid
-        maxima = np.array(np.unravel_index(np.argmax(np.abs(cross_correlation)), cross_correlation.shape), dtype=np.float64)
-        maxima -= dftshift
-        shifts += maxima / upsample_factor
-
-    phase_diff = compute_phasediff(cross_correlation.max())
-
-    return shifts, phase_diff
+    return shifts
 
 
-def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_factor_grid=4, upsample_factor_fft=10,
-                     max_deviation_rigid=2, shifts_opencv=False, border_nan=True):
+def tile_and_correct(img, template, strides, overlaps, max_shifts, max_deviation_rigid=2, shifts_opencv=False, border_nan=True):
     """ perform piecewise rigid motion correction iteration, by
         1) dividing the FOV in patches
         2) motion correcting each patch separately
@@ -474,11 +453,9 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
     """
 
     # compute rigid shifts
-    rigid_shifts, diffphase = register_translation(img, template, upsample_factor=upsample_factor_fft, max_shifts=max_shifts)
+    rigid_shifts = register_translation(img, template, max_shifts=max_shifts)
 
     # extract patches
-    strides = tuple(np.round(np.divide(strides, upsample_factor_grid)).astype(np.int))
-
     sliding_img = list(sliding_window(img, overlaps=overlaps, strides=strides))
     imgs       = [it[-1] for it in sliding_img]
     start_step = [it[:2] for it in sliding_img]
@@ -489,27 +466,24 @@ def tile_and_correct(img, template, strides, overlaps, max_shifts, upsample_fact
     #extract shifts for each patch
     lb_shifts = np.ceil(np.subtract(rigid_shifts, max_deviation_rigid)).astype(int) if max_deviation_rigid is not None else None
     ub_shifts = np.floor(np.add(rigid_shifts, max_deviation_rigid)).astype(int) if max_deviation_rigid is not None else None
-    shfts_et_all = [register_translation(im, template, upsample_factor_fft, shifts_lb=lb_shifts, shifts_ub=ub_shifts, max_shifts=max_shifts) for im, template in zip(imgs, templates)]
-    shfts = np.array([sshh[0] for sshh in shfts_et_all])
+    shfts = [register_translation(im, template, shifts_lb=lb_shifts, shifts_ub=ub_shifts, max_shifts=max_shifts) for im, template in zip(imgs, templates)]
 
     # create a vector field
     dim_grid = np.subtract(template.shape, np.add(overlaps, strides))
     shift_img_x, shift_img_y = np.reshape(shfts[:, 0], dim_grid), np.reshape(shfts[:, 1], dim_grid)
-    diffs_phase_grid = np.reshape(np.array([sshh[1] for sshh in shfts_et_all]), dim_grid)
 
     dim_new_grid = np.subtract(img.shape, np.add(overlaps, strides))[::-1]
-    for array in (shift_img_x, shift_img_y, diffs_phase_grid):
+    for array in (shift_img_x, shift_img_y):
         array[:] = cv2.resize(array, dim_new_grid, interpolation=cv2.INTER_CUBIC)
 
     num_tiles = np.prod(dim_new_grid)
     total_shifts = [(-x, -y) for x, y in zip(shift_img_x.reshape(num_tiles),shift_img_y.reshape(num_tiles))]
-    total_diffs_phase = list(diffs_phase_grid.reshape(num_tiles))
 
     if shifts_opencv:
         imgs = [it[-1] for it in sliding_window(img, overlaps=overlaps, strides = strides)]
         imgs = [apply_shift(im, *sh) for im, sh in zip(imgs, total_shifts)]
     else:
-        imgs = [apply_shift_dft(im, *sh, diffphase=dffphs) for im, sh, dffphs in zip(imgs, total_shifts, total_diffs_phase)]
+        imgs = [apply_shift_dft(im, *sh) for im, sh in zip(imgs, total_shifts)]
 
     if border_nan:
         imgs = [make_border_nan(img, *sh) for im, sh in zip(imgs, total_shifts)]
