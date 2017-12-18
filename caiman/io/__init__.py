@@ -7,3 +7,4 @@ from .matlab import loadmat
 from .pickle import save_object, load_object
 from .demo_data import download_demo, demo_files
 from .avi import read_avi, write_avi
+from .sima import read_sima

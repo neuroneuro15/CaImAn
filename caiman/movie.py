@@ -702,20 +702,8 @@ class Movie(object):
 
     @classmethod
     def from_sima(cls, file_name, fr=30, subindices=None, frame_step=1000, start_time=None, meta_data=None):
-        import sima
-        dset = sima.ImagingDataset.load(file_name)
-        if subindices is None:
-            dset_shape = dset.sequences[0].shape
-            input_arr = np.empty((dset_shape[0], dset_shape[2], dset_shape[3]), dtype=np.float32)
-            for nframe in range(0, dset.sequences[0].shape[0], frame_step):
-                input_arr[nframe:nframe + frame_step] = np.array(dset.sequences[0][nframe:nframe + frame_step, 0, :, :, 0],
-                                                                 dtype=np.float32).squeeze()
-        else:
-            input_arr = np.array(dset.sequences[0])[subindices, :, :, :, :].squeeze()
-
-
-        return cls(input_arr, fr=fr, start_time=start_time, file_name=path.split(file_name)[-1],
-                     meta_data=meta_data)
+        array = read_sima(file_name, subindices=subindices, frame_step=frame_step)
+        return cls(array, fr=fr, start_time=start_time, file_name=file_name, meta_data=meta_data)
 
     @classmethod
     def from_memmap(cls, file_name, mode='r', in_memory=True, fr=30, start_time=0, meta_data=None):
