@@ -80,9 +80,8 @@ def bin_median(movie, bins=10):
     return np.median(np.mean(np.array_split(movie, bins, axis=0), axis=1), axis=0)
 
 
-def low_pass_filter(img, gSig_filt):
-    filt = gSig_filt[0]
-    ker = cv2.getGaussianKernel((3 * filt) // 2 * 2 + 1, filt)
+def low_pass_filter(img, sigma=5.):
+    ker = cv2.getGaussianKernel((3 * sigma) // 2 * 2 + 1, sigma)
     ker2D = np.dot(ker, ker.T)
     ker2D[ker2D < np.max(ker2D[:,0])] = 0
     ker2D[ker2D != 0] -= np.mean(ker2D[ker2D != 0])
@@ -103,14 +102,20 @@ def idft(freq_img):
     return img
 
 
-def calculate_offset(img, template, max_shift_w=10, max_shift_h=10):
+def calculate_offset(img, template, max_shift_w=10, max_shift_h=10, check_subpixel_shift=True, method=cv2.TM_CCORR_NORMED):
     """Returns (x, y) distance between an image and a template, in pixels."""
     templ_crop = template[max_shift_h:-max_shift_h, max_shift_w:-max_shift_w]
 
-    res = cv2.matchTemplate(img, templ_crop, cv2.TM_CCORR_NORMED)  # note: may want to also provide shift quality metric (ex: res.max())
+    res = cv2.matchTemplate(img, templ_crop, method=method)  # note: may want to also provide shift quality metric (ex: res.max())
     sh_y, sh_x = np.unravel_index(res.argmax(), res.shape)
-    dx, dy = compute_subpixel_shift(res, sh_x, sh_y)
-    return sh_x + dx, sh_y + dy
+    # return sh_y, sh_x
+    if check_subpixel_shift:
+        try:
+            dx, dy = compute_subpixel_shift(res, sh_x, sh_y)
+            sh_x, sh_y = sh_x + dx, sh_y + dy
+        except IndexError:
+            pass
+    return sh_y - max_shift_h, sh_x - max_shift_w
 
 
 def make_border_nan(img, y, x):
