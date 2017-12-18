@@ -478,35 +478,6 @@ class Movie(object):
 
         return self.__class__(masks, **self.__dict__)
 
-    def guided_filter_blur_2D(self, guide_filter, radius=5, eps=0):
-        """Returns a guided-filtered version of the Movie using OpenCV's ximgproc.guidedFilter()."""
-        mov = self.copy()
-        for frame in tqdm(mov):
-            frame[:] = cv2.ximgproc.guidedFilter(guide_filter, frame, radius=radius, eps=eps)
-        return self.__class__(mov, **self.__dict__)
-
-    def bilateral_blur_2D(self,diameter=5, sigmaColor=10000, sigmaSpace=0):
-        """Returns a bilaterally-filtered version of the Movie using openCV's bilateralFilter() function."""
-        mov = self.astype(np.float32)
-        for frame in tqdm(mov):
-            frame[:] = cv2.bilateralFilter(frame, diameter, sigmaColor, sigmaSpace)
-        return self.__class__(mov, **self.__dict__)
-
-    def gaussian_blur_2D(self, kernel_size_x=5, kernel_size_y=5, kernel_std_x=1, kernel_std_y=1, borderType=cv2.BORDER_REPLICATE):
-        """Returns a gaussian-blurred version of the Movie using openCV's GaussianBlur() function."""
-        mov = self.copy()
-        for frame in tqdm(mov):
-            frame[:] = cv2.GaussianBlur(frame, ksize=(kernel_size_x, kernel_size_y), sigmaX=kernel_std_x,
-                                         sigmaY=kernel_std_y, borderType=borderType)
-        return self.__class__(mov, **self.__dict__)
-
-    def median_blur_2D(self, kernel_size=3):
-        """Returns a meduian-blurred version of the Movie using openCV's medianBlur() function."""
-        mov = self.copy()
-        for frame in tqdm(mov):
-            frame[:] = cv2.medianBlur(frame, ksize=kernel_size)
-        return self.__class__(mov, **self.__dict__)
-
     def plot_aggregation(self, method='mean', **plot_kwargs):
         """
         Compute and plot projection across time:

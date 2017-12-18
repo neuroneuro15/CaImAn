@@ -46,6 +46,40 @@ import cv2
 from tqdm import tqdm
 
 
+def guided_filter_blur_2D(movie, guide_filter, radius=5, eps=0):
+    """Returns a guided-filtered version of a 3D movie array using OpenCV's ximgproc.guidedFilter()."""
+    mov = movie.copy()
+    for frame in tqdm(mov):
+        frame[:] = cv2.ximgproc.guidedFilter(guide_filter, frame, radius=radius, eps=eps)
+    return mov
+
+
+def bilateral_blur_2D(movie, diameter=5, sigmaColor=10000, sigmaSpace=0):
+    """Returns a bilaterally-filtered version of a 3D movie array  using openCV's bilateralFilter() function."""
+    mov = movie.astype(np.float32)
+    for frame in tqdm(mov):
+        frame[:] = cv2.bilateralFilter(frame, diameter, sigmaColor, sigmaSpace)
+    return mov
+
+
+def gaussian_blur_2D(movie, kernel_size_x=5, kernel_size_y=5, kernel_std_x=1, kernel_std_y=1,
+                     borderType=cv2.BORDER_REPLICATE):
+    """Returns a gaussian-blurred version of a 3D movie array  using openCV's GaussianBlur() function."""
+    mov = movie.copy()
+    for frame in tqdm(mov):
+        frame[:] = cv2.GaussianBlur(frame, ksize=(kernel_size_x, kernel_size_y), sigmaX=kernel_std_x,
+                                    sigmaY=kernel_std_y, borderType=borderType)
+    return mov
+
+
+def median_blur_2D(movie, kernel_size=3):
+    """Returns a meduian-blurred version of a 3D movie array using openCV's medianBlur() function."""
+    mov = movie.copy()
+    for frame in tqdm(mov):
+        frame[:] = cv2.medianBlur(frame, ksize=kernel_size)
+    return mov
+
+
 def compute_bilateral_blur(img, diameter=10, sigmaColor=10000, sigmaSpace=0):
     return cv2.bilateralFilter(img, diameter, sigmaColor, sigmaSpace)
 
