@@ -18,20 +18,12 @@ See Also:
 from __future__ import division, print_function, absolute_import
 
 import cv2
-from os import path
-import pickle
-import warnings
-import h5py
 import numpy as np
 from numpy.lib.stride_tricks import as_strided
 from matplotlib import animation
 import matplotlib.pyplot as plt
 from sklearn import decomposition, cluster, metrics
 from scipy import io, optimize
-from tqdm import tqdm
-
-from .io import sbxreadskip, tifffile, load_memmap, save_memmap, read_avi, write_avi, read_hdf, write_hdf
-from .summary_images import local_correlations
 
 
 class Movie(object):
@@ -100,10 +92,6 @@ class Movie(object):
         d = d1 * d2
         return np.reshape(self, (T, d), order=order)
 
-    def to_3d(self, *args, order='F', **kwargs):
-        """Synonym for array.reshape()"""
-        return self.reshape(*args, order=order, **kwargs)
-
     def resize(self, fx=1, fy=1, fz=1, interpolation=cv2.INTER_AREA):
         # todo: todocument
 
@@ -128,11 +116,6 @@ class Movie(object):
         mov = Movie(mov, **self.__dict__)
         mov.fr = self.fr * fz
         return mov
-
-    def bin_median(self):
-        """ Return the median image as an array."""
-        warnings.warn("Movie.bin_median() deprecated. Use numpy.median(movie) instead.", DeprecationWarning)
-        return np.nanmedian(self, axis=0)
 
     def debleach(self, model='exponential'):
         """
@@ -373,54 +356,6 @@ class Movie(object):
         ind_frames = np.reshape(ind_frames.T, (componentsICA, h, w))
 
         return ind_frames
-
-    def IPCA_io(self, n_components=50, fun='logcosh', max_iter=1000, tol=1e-20):
-        """ DO NOT USE STILL UNDER DEVELOPMENT"""
-        raise NotImplementedError()
-
-#         pca_comp=n_components;
-#         [T,d1,d2]=self.shape
-#         M=np.reshape(self,(T,d1*d2))
-#         [U,S,V] = scipy.sparse.linalg.svds(M,pca_comp)
-#         S=np.diag(S);
-# #        whiteningMatrix = np.dot(scipy.linalg.inv(np.sqrt(S)),U.T)
-# #        dewhiteningMatrix = np.dot(U,np.sqrt(S))
-#         whiteningMatrix = np.dot(scipy.linalg.inv(S),U.T)
-#         dewhiteningMatrix = np.dot(U,S)
-#         whitesig =  np.dot(whiteningMatrix,M)
-#         wsigmask=np.reshape(whitesig.T,(d1,d2,pca_comp));
-#         f_ica=sklearn.decomposition.FastICA(whiten=False, fun=fun, max_iter=max_iter, tol=tol)
-#         S_ = f_ica.fit_transform(whitesig.T)
-#         A_ = f_ica.mixing_
-#         A=np.dot(A_,whitesig)
-#         mask=np.reshape(A.T,(d1,d2,pca_comp)).transpose([2,0,1])
-#
-#         return mask
-
-    def local_correlations(self, eight_neighbours=False, swap_dim=True, frames_per_chunk=1500):
-        """Computes the correlation image for the input dataset Y
-
-            Parameters:
-            -----------
-
-            Y:  np.ndarray (3D or 4D)
-                Input Movie data in 3D or 4D format
-
-            eight_neighbours: Boolean
-                Use 8 neighbors if true, and 4 if false for 3D data (default = True)
-                Use 6 neighbors for 4D data, irrespectively
-
-            swap_dim: Boolean
-                True indicates that time is listed in the last axis of Y (matlab format)
-                and moves it in the front
-
-            Returns:
-            --------
-
-            rho: d1 x d2 [x d3] matrix, cross-correlation with adjacent pixels
-
-        """
-        return local_correlations(self, eight_neighbours=eight_neighbours, swap_dim=swap_dim)
 
     def partition_FOV_KMeans(self, tradeoff_weight=.5, n_clusters=4, max_iter=500):
         """
