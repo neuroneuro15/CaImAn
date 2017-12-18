@@ -40,10 +40,12 @@ Copyright (C) 2011, the scikit-image team
 """
 from __future__ import division, print_function, absolute_import
 
+import itertools
 import numpy as np
 from scipy import stats
-import cv2
 from tqdm import tqdm
+import cv2
+from .utils.stats import compute_phasediff
 
 
 def guided_filter_blur_2D(movie, guide_filter, radius=5, eps=0):
@@ -190,15 +192,6 @@ def apply_shift_dft(img, dx, dy, diffphase):
     Greg = np.dot(freq_img * np.exp(1j * 2 * np.pi * (-dy * 1. * Nr / nr - dx * 1. * Nc / nc)), np.exp(1j * diffphase))
     shifted_img = idft(Greg)
     return shifted_img
-
-
-from __future__ import division, print_function, absolute_import
-
-import itertools
-import numpy as np
-import cv2
-from .utils.stats import compute_phasediff
-from .motion_correction import apply_shift, apply_shift_dft, make_border_nan, dft, idft
 
 
 def sliding_window(image, overlaps, strides):
