@@ -30,7 +30,7 @@ from sklearn import decomposition, cluster, metrics
 from scipy import io, optimize
 from tqdm import tqdm
 
-from .io import sbxreadskip, tifffile, load_memmap, save_memmap, read_avi, write_avi
+from .io import sbxreadskip, tifffile, load_memmap, save_memmap, read_avi, write_avi, read_hdf, write_hdf
 from .summary_images import local_correlations
 
 
@@ -649,48 +649,20 @@ class Movie(object):
             return cls(input_arr, file_name=file_name)
 
     @classmethod
-    def from_hdf(cls, file_name, meta_data=None, subindices=None, var_name='mov'):
-        with h5py.File(file_name, "r") as f:
-            input_arr = f[var_name]
-            input_arr = input_arr[subindices] if subindices is not None else input_arr
-
-            attrs = dict(f[var_name].attrs)
-            if meta_data in attrs:
-                attrs['meta_data'] = pickle.loads(attrs['meta_data'])
-            return cls(input_arr, **attrs)
+    def from_hdf(cls, file_name, subindices=None, var_name='mov'):
+        array = read_hdf(file_name=file_name, var_name=var_name, subindices=subindices)
+        return cls(array, file_name=file_name)
 
     @classmethod
-    def from_hdf_at(cls, file_name, fr=30, subindices=None):
-        with h5py.File(file_name, "r") as f:
-            input_arr = f['quietBlock']
-            input_arr = input_arr[subindices] if subindices is not None else input_arr
-            return cls(input_arr, fr=fr)
+    def from_hdf_at(cls, file_name, subindices=None):
+        array = read_hdf(file_name=file_name, var_name='quietBlock', subindices=subindices)
+        return cls(array, file_name=file_name)
 
     @classmethod
-    def from_h5(cls, file_name, fr=30, subindices=None, is_behavior=False, start_time=None, meta_data=None):
+    def from_h5(cls, file_name, subindices=None):
+        array = read_hdf(file_name=file_name, var_name='quietBlock', subindices=subindices)
+        return cls(array, file_name=file_name)
 
-        with h5py.File(file_name, "r") as f:
-            if is_behavior:
-                kk = f.keys()
-                kk.sort(key=lambda x: np.int(x.split('_')[-1]))
-                input_arr = [np.array(f[trial]['mov']) for trial in kk]
-                input_arr = np.vstack(input_arr)
-                return cls(input_arr, fr=fr, start_time=start_time, file_name=path.split(file_name)[-1],
-                             meta_data=meta_data)
-            else:
-                if 'imaging' in f.keys():
-                    if subindices is None:
-                        input_arr = np.array(f['imaging']).squeeze()
-                        if input_arr.ndim > 3:
-                            input_arr = input_arr[:, 0]
-                    else:
-                        input_arr = np.array(f['imaging'][subindices]).squeeze()
-                        if input_arr.ndim > 3:
-                            input_arr = input_arr[:, 0]
-                    input_arr = input_arr.astype(np.float32)
-
-
-            return cls(input_arr, fr=fr, file_name=file_name)  # TODO: Finish this function!
 
     @classmethod
     def from_sbx(cls, file_name, fr=30, subindices=None):
@@ -846,17 +818,7 @@ class Movie(object):
 
     def to_hdf(self, file_name):
         """Save the Timeseries to an HDF5 (.h5, .hdf, .hdf5) file."""
-        with h5py.File(file_name, "w") as f:
-            dset = f.create_dataset("mov", data=np.asarray(self))
-            dset.attrs["fr"] = self.fr
-            dset.attrs["start_time"] = self.start_time
-            try:
-                dset.attrs["file_name"] = [a.encode('utf8') for a in self.file_name]
-            except:
-                print('No file name saved')
-            if self.meta_data[0] is not None:
-                print(self.meta_data)
-                dset.attrs["meta_data"] = pickle.dumps(self.meta_data)
+        write_hdf(self, file_name)
 
     def to_memmap(self, base_filename, order='F', n_chunks=1):
         """Saves efficiently a caiman Movie file into a Numpy memory mappable file by calling caiman.io.save_memmap()
