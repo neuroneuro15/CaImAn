@@ -176,20 +176,20 @@ def apply_shift(img, dx, dy, border_type=cv2.BORDER_REFLECT):
     return warped_img
 
 
-def apply_shift_dft(img, dx, dy, diffphase):
+def apply_shift_dft(img, dx, dy):
     """
     apply shifts using inverse dft
 
     src_freq: ndarray
         if is_freq it is fourier transform image else original image
-    shifts: shifts to apply
-    diffphase: comes from the register_translation output
+
+    (dx, dy): shifts to apply
     """
     freq_img = dft(img)
     nc, nr = np.shape(freq_img)
     Nr, Nc = np.meshgrid(np.fft.ifftshift(np.arange(-np.fix(nr / 2.), np.ceil(nr / 2.))),
                          np.fft.ifftshift(np.arange(-np.fix(nc / 2.), np.ceil(nc / 2.))))
-    Greg = np.dot(freq_img * np.exp(1j * 2 * np.pi * (-dy * 1. * Nr / nr - dx * 1. * Nc / nc)), np.exp(1j * diffphase))
+    Greg = np.dot(freq_img * np.exp(1j * 2 * np.pi * (-dy * 1. * Nr / nr - dx * 1. * Nc / nc)), np.exp(1j))
     shifted_img = idft(Greg)
     return shifted_img
 
