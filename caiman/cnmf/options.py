@@ -20,10 +20,9 @@ See Also:
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-from .cluster import Cluster
 import psutil
 
-#%%
+
 def Params(Y, K=30, gSig=[5, 5], ssub=2, tsub=2, p=1, p_ssub=2, p_tsub=2,
                  thr=0.8, method_init='greedy_roi',name = 'demoMovieJ', nb=1, n_pixels_per_process=None, block_size=None,
                  check_nan=True, normalize_init=True, options_local_NMF=None, remove_very_bad_comps=False,

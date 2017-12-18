@@ -8,8 +8,7 @@ from .movie import Movie
 from . import cnmf
 from . import components_evaluation
 from . import motion_correction
-from . import options
+from caiman.cnmf import options
 from . import rois
-
 from . import utils
 from . import io
