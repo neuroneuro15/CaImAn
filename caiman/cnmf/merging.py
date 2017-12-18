@@ -10,12 +10,9 @@ Created on Tue Sep  8 16:23:57 2015
 
 from __future__ import division, print_function
 
-from past.utils import old_div
 from scipy.sparse import coo_matrix,csgraph,csc_matrix, lil_matrix
 import scipy
 import numpy as np
-from .spatial import update_spatial_components, threshold_components
-from .temporal import update_temporal_components
 from .deconvolution import constrained_foopsi
 #%%
 
