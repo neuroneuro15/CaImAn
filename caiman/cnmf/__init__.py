@@ -11,3 +11,4 @@ from . import oasis
 from . import parallel
 from . import patches
 from .cnmf import CNMF
+from . import mmapping

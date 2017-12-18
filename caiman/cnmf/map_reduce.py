@@ -21,7 +21,7 @@ import numpy as np
 import scipy
 from past.utils import old_div
 
-from ..io.mmapping import load_memmap
+from .mmapping import load_memmap
 from .patches import extract_patch_coordinates
 
 

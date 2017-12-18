@@ -12,7 +12,7 @@ from sklearn.preprocessing import normalize
 
 
 from . import oasis
-from ..io import load_memmap
+from .mmapping import load_memmap
 from ..components_evaluation import compute_event_exceptionality
 from .initialization import imblur, initialize_components, hals
 from .utilities import update_order
