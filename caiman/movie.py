@@ -30,7 +30,7 @@ from sklearn import decomposition, cluster, metrics
 from scipy import io, optimize
 from tqdm import tqdm
 
-from .io import sbxreadskip, tifffile, load_memmap, save_memmap
+from .io import sbxreadskip, tifffile, load_memmap, save_memmap, read_avi, write_avi
 from .summary_images import local_correlations
 
 
@@ -616,22 +616,7 @@ class Movie(object):
     @classmethod
     def from_avi(cls, file_name, fr=30, start_time=0, meta_data=None):
         """Loads Movie from a .avi video file."""
-        cap = cv2.VideoCapture(file_name)
-        use_cv2 = hasattr(cap, 'CAP_PROP_FRAME_COUNT')
-
-        length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) if use_cv2 else cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH) if use_cv2 else cap.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT) if use_cv2 else cap.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
-
-        input_arr = np.zeros((length, height, width), dtype=np.uint8)
-        for arr in input_arr:
-            _, frame = cap.read()
-            arr[:] = frame[:, :, 0]
-
-        # When everything done, release the capture
-        cap.release()
-        cv2.destroyAllWindows()
-
+        input_arr = io.read_avi(file_name)
         return cls(input_arr, fr=fr, start_time=start_time, file_name=path.split(file_name)[-1], meta_data=meta_data)
 
     @classmethod
@@ -858,16 +843,7 @@ class Movie(object):
 
     def to_avi(self, file_name):
         """Save the Timeseries in a .avi movie file using OpenCV."""
-        codec = cv2.FOURCC('I', 'Y', 'U', 'V') if hasattr(cv2, 'FOURCC') else cv2.VideoWriter_fourcc(*'IYUV')
-        np.clip(self, np.percentile(self, 1), np.percentile(self, 99), self)
-        minn, maxx = np.min(self), np.max(self)
-        data = 255 * (self - minn) / (maxx - minn)
-        data = data.astype(np.uint8)
-        y, x = data[0].shape
-        vw = cv2.VideoWriter(file_name, codec, self.fr, (x, y), isColor=True)
-        for d in data:
-            vw.write(cv2.cvtColor(d, cv2.COLOR_GRAY2BGR))
-        vw.release()
+        write_avi(self, file_name, frame_rate=self.fr)
 
     def to_matlab(self, file_name):
         """Save the Timeseries to a .mat file."""
