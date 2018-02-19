@@ -30,4 +30,5 @@ def test_axcov():
     C = caiman.cnmf.pre_processing.axcov(data, maxlag)
     print(C)
 
-    npt.assert_allclose(C, np.concatenate((np.zeros(maxlag), np.array([1]), np.zeros(maxlag))), atol=1)
+    npt.assert_allclose(C, np.concatenate(
+        (np.zeros(maxlag), np.array([1]), np.zeros(maxlag))), atol=1)

@@ -1,12 +1,12 @@
 """ test the principal functions of CaImAn
- 
-use for the nose test and continuous integration devellopment. 
- 
+
+use for the nose test and continuous integration devellopment.
+
 See Also
 ------------
-caiman/tests/comparison/comparison.py 
+caiman/tests/comparison/comparison.py
 
- 
+
 """
 #\package None
 #\version   1.0
@@ -121,7 +121,7 @@ params_display = {
 
 def test_general():
     """  General Test of pipeline with comparison against ground truth
-    A shorter version than the demo pipeline that calls comparison for the real test work 
+    A shorter version than the demo pipeline that calls comparison for the real test work
 
 
 
@@ -183,7 +183,7 @@ def test_general():
         fnames = params_movie['fname']
         border_to_0 = 0
     else:  # elif not params_movie.has_key('overlaps'):
-        fnames = [mc.fname_tot_rig]
+        fnames = mc.fname_tot_rig
         border_to_0 = bord_px_rig
         m_els = m_rig
 
@@ -213,7 +213,8 @@ def test_general():
         raise Exception('Movie too negative, add_to_movie should be larger')
     if np.sum(np.isnan(images)) > 0:
         # TODO: same here
-        raise Exception('Movie contains nan! You did not remove enough borders')
+        raise Exception(
+            'Movie contains nan! You did not remove enough borders')
 
     Cn = cm.local_correlations(Y)
     Cn[np.isnan(Cn)] = 0
@@ -250,8 +251,10 @@ def test_general():
     # DISCARDING
     print(('Number of components:' + str(A_tot.shape[-1])))
     final_frate = params_movie['final_frate']
-    r_values_min = params_movie['r_values_min_patch']  # threshold on space consistency
-    fitness_min = params_movie['fitness_delta_min_patch']  # threshold on time variability
+    # threshold on space consistency
+    r_values_min = params_movie['r_values_min_patch']
+    # threshold on time variability
+    fitness_min = params_movie['fitness_delta_min_patch']
     fitness_delta_min = params_movie['fitness_delta_min_patch']
     Npeaks = params_movie['Npeaks']
     traces = C_tot + YrA_tot
@@ -275,8 +278,10 @@ def test_general():
     # DISCARDING
     A, C, b, f, YrA, sn = cnm.A, cnm.C, cnm.b, cnm.f, cnm.YrA, cnm.sn
     final_frate = params_movie['final_frate']
-    r_values_min = params_movie['r_values_min_full']  # threshold on space consistency
-    fitness_min = params_movie['fitness_delta_min_full']  # threshold on time variability
+    # threshold on space consistency
+    r_values_min = params_movie['r_values_min_full']
+    # threshold on time variability
+    fitness_min = params_movie['fitness_delta_min_full']
     fitness_delta_min = params_movie['fitness_delta_min_full']
     Npeaks = params_movie['Npeaks']
     traces = C + YrA
@@ -288,7 +293,8 @@ def test_general():
     A_tot_full = A_tot.tocsc()[:, idx_components]
     C_tot_full = C_tot[idx_components]
     comp.comparison['cnmf_full_frame']['timer'] = time.time() - t1
-    comp.comparison['cnmf_full_frame']['ourdata'] = [A_tot_full.copy(), C_tot_full.copy()]
+    comp.comparison['cnmf_full_frame']['ourdata'] = [
+        A_tot_full.copy(), C_tot_full.copy()]
 #################### ########################
     comp.save_with_compare(istruth=False, params=params_movie, Cn=Cn)
     log_files = glob.glob('*_LOG_*')
@@ -314,5 +320,5 @@ def test_general():
     if (comp.information['diff']['cnmfull']['isdifferent']):
         print("the cnmf full frame produces different  results than the groundtruth ")
         pb = True
-        
+
     assert (not pb)
