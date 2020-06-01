@@ -17,6 +17,7 @@ Documentation for CaImAn (including install instructions) can be found online [h
 ## Companion paper and related references
 A paper explaining most of the implementation details and benchmarking can be found [here](https://elifesciences.org/articles/38173).
 
+.
 ```
 @article{giovannucci2019caiman,
   title={CaImAn: An open source tool for scalable Calcium Imaging data Analysis},
