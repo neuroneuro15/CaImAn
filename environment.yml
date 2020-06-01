@@ -1,26 +1,33 @@
 channels:
-- defaults
-- menpo
+- conda-forge
 dependencies:
+- python=3.7
+- bokeh
+- coverage
+- cython
 - future
-- numpy
-- scipy
+- h5py
+- holoviews
+- ipykernel=4.10
 - ipython
 - ipyparallel
 - jupyter
 - matplotlib
+- mypy
+- nose
+- numpy
+- numpydoc
+- opencv
+- peakutils
+- pims
+- psutil
+- pynwb
+- pyqtgraph
 - scikit-image
 - scikit-learn
-- h5py
-- cython
-- spyder
-- nose
-- bokeh
+- scipy
 - tensorflow
-- keras
+- tifffile=0.15.1
+- tk=8.6.8
 - tqdm
-- opencv3 
-- pip:
-  - tifffile
-  - peakutils
-
+- yapf

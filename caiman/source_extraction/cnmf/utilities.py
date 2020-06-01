@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """ A set of utilities, mostly for post-processing and visualization
 
 We put arrays on disk as raw bytes, extending along the first dimension.
@@ -12,376 +14,246 @@ See Also:
 .. image::
 @author  epnev
 """
-#\package caiman/dource_ectraction/cnmf
-#\version   1.0
-#\copyright GNU General Public License v2.0
-#\date Created on Sat Sep 12 15:52:53 2015
-
-from __future__ import division
-from __future__ import print_function
+# \package caiman/dource_ectraction/cnmf
+# \version   1.0
+# \copyright GNU General Public License v2.0
+# \date Created on Sat Sep 12 15:52:53 2015
 
 from builtins import str
 from builtins import range
 from past.utils import old_div
+
+import cv2
+import h5py
+import logging
 import numpy as np
-from scipy.sparse import spdiags, issparse, csc_matrix
-from .initialization import greedyROI
-from ...base.rois import com
+import os
 import pylab as pl
 import scipy
-from ...mmapping import parallel_dot_product
+from scipy.sparse import spdiags, issparse, csc_matrix, csr_matrix
+import scipy.ndimage.morphology as morph
+from skimage.feature.peak import _get_high_intensity_peaks
+import tifffile
+from typing import List
+
+from .initialization import greedyROI
+from ...base.rois import com
+from ...mmapping import parallel_dot_product, load_memmap
+from ...cluster import extract_patch_coordinates
+from ...utils.stats import df_percentile
 
 
-#%%
-def CNMFSetParms(Y, n_processes, K=30, gSig=[5, 5], gSiz = None, ssub=2, tsub=2, p=2, p_ssub=2, p_tsub=2,
-                 thr=0.8, method_init='greedy_roi', nb=1, nb_patch=1, n_pixels_per_process=None, block_size=None,
-                 check_nan=True, normalize_init=True, options_local_NMF=None, remove_very_bad_comps=False,
-                 alpha_snmf=10e2, update_background_components=True, low_rank_background= True, rolling_sum = False,
-                 min_corr = .85, min_pnr = 20, deconvolve_options_init = None,
-                 ring_size_factor = 1.5, center_psf = True):
-    """Dictionary for setting the CNMF parameters.
-
-    Any parameter that is not set get a default value specified
-    by the dictionary default options
-
-    PRE-PROCESS PARAMS#############
-    sn: None,
-        noise level for each pixel
-
-    noise_range: [0.25, 0.5]
-             range of normalized frequencies over which to average
-
-    noise_method': 'mean'
-             averaging method ('mean','median','logmexp')
-
-    max_num_samples_fft': 3*1024
-
-    n_pixels_per_process: 1000
-
-    compute_g': False
-        flag for estimating global time constant
-
-    p : 2
-         order of AR indicator dynamics
-
-    lags: 5
-        number of autocovariance lags to be considered for time constant estimation
-
-    include_noise: False
-            flag for using noise values when estimating g
-
-    pixels: None
-         pixels to be excluded due to saturation
-
-    check_nan: True
-
-    INIT PARAMS###############
-
-    K:     30
-        number of components
-
-    gSig: [5, 5]
-          size of bounding box
-
-    gSiz: [int(round((x * 2) + 1)) for x in gSig],
-
-    ssub:   2
-        spatial downsampling factor
-
-    tsub:   2
-        temporal downsampling factor
-
-    nIter: 5
-        number of refinement iterations
-
-    kernel: None
-        user specified template for greedyROI
-
-    maxIter: 5
-        number of HALS iterations
-
-    method: method_init
-        can be greedy_roi or sparse_nmf, local_NMF
-
-    max_iter_snmf : 500
-
-    alpha_snmf: 10e2
-
-    sigma_smooth_snmf : (.5,.5,.5)
-
-    perc_baseline_snmf: 20
-
-    nb:  1
-        number of background components
-
-    normalize_init:
-        whether to pixelwise equalize the movies during initialization
-
-    options_local_NMF:
-        dictionary with parameters to pass to local_NMF initializer
-
-    SPATIAL PARAMS##########
-
-        dims: dims
-            number of rows, columns [and depths]
-
-        method: 'dilate','ellipse', 'dilate'
-            method for determining footprint of spatial components ('ellipse' or 'dilate')
-
-        dist: 3
-            expansion factor of ellipse
-        n_pixels_per_process: n_pixels_per_process
-            number of pixels to be processed by eacg worker
-
-        medw: (3,)*len(dims)
-            window of median filter
-        thr_method: 'nrg'
-           Method of thresholding ('max' or 'nrg')
-
-        maxthr: 0.1
-            Max threshold
-
-        nrgthr: 0.9999
-            Energy threshold
-
-
-        extract_cc: True
-            Flag to extract connected components (might want to turn to False for dendritic imaging)
-
-        se: np.ones((3,)*len(dims), dtype=np.uint8)
-             Morphological closing structuring element
-
-        ss: np.ones((3,)*len(dims), dtype=np.uint8)
-            Binary element for determining connectivity
-
-
-        update_background_components:bool
-            whether to update the background components in the spatial phase
-
-        low_rank_background:bool
-            whether to update the using a low rank approximation. In the False case all the nonzero elements of the background components are updated using hals    
-            (to be used with one background per patch) 
-
-        method_ls:'lasso_lars'
-            'nnls_L0'. Nonnegative least square with L0 penalty
-            'lasso_lars' lasso lars function from scikit learn
-            'lasso_lars_old' lasso lars from old implementation, will be deprecated
-
-        TEMPORAL PARAMS###########
-
-        ITER: 2
-            block coordinate descent iterations
-
-        method:'oasis', 'cvxpy',  'oasis'
-            method for solving the constrained deconvolution problem ('oasis','cvx' or 'cvxpy')
-            if method cvxpy, primary and secondary (if problem unfeasible for approx solution)
-
-        solvers: ['ECOS', 'SCS']
-             solvers to be used with cvxpy, can be 'ECOS','SCS' or 'CVXOPT'
-
-        p:
-            order of AR indicator dynamics
-
-        memory_efficient: False
-
-        bas_nonneg: True
-            flag for setting non-negative baseline (otherwise b >= min(y))
-
-        noise_range: [.25, .5]
-            range of normalized frequencies over which to average
-
-        noise_method: 'mean'
-            averaging method ('mean','median','logmexp')
-
-        lags: 5,
-            number of autocovariance lags to be considered for time constant estimation
-
-        fudge_factor: .96
-            bias correction factor (between 0 and 1, close to 1)
-
-        nb
-
-        verbosity: False
-
-        block_size : block_size
-            number of pixels to process at the same time for dot product. Make it smaller if memory problems
-    """
-
-    if type(Y) is tuple:
-        dims, T = Y[:-1], Y[-1]
+def decimation_matrix(dims, sub):
+    D = np.prod(dims)
+    if sub == 2 and D <= 10000:  # faster for small matrices
+        ind = np.arange(D) // 2 - \
+            np.arange(dims[0], dims[0] + D) // (dims[0] * 2) * (dims[0] // 2) - \
+            (dims[0] % 2) * (np.arange(D) % (2 * dims[0]) > dims[0]) * (np.arange(1, 1 + D) % 2)
     else:
-        dims, T = Y.shape[:-1], Y.shape[-1]
-
-    # print(('using ' + str(n_processes) + ' processes'))
-    # if n_pixels_per_process is None:
-    #     avail_memory_per_process = np.array(psutil.virtual_memory()[1])/2.**30/n_processes
-    #     mem_per_pix = 3.6977678498329843e-09
-    #     n_pixels_per_process = np.int(avail_memory_per_process/8./mem_per_pix/T)
-    #     n_pixels_per_process = np.int(np.minimum(n_pixels_per_process,np.prod(dims) // n_processes))
-
-    # if block_size is None:
-    #     block_size = n_pixels_per_process
-
-    # print(('using ' + str(n_pixels_per_process) + ' pixels per process'))
-    # print(('using ' + str(block_size) + ' block_size'))
-
-    options = dict()
-    options['patch_params'] = {
-        'ssub': p_ssub,             # spatial downsampling factor
-        'tsub': p_tsub,              # temporal downsampling factor
-        'only_init': True,
-        'skip_refinement': False,
-        'remove_very_bad_comps': remove_very_bad_comps,
-        'nb': nb_patch
-    }
-
-    options['preprocess_params'] = {'sn': None,                  # noise level for each pixel
-                                    # range of normalized frequencies over which to average
-                                    'noise_range': [0.25, 0.5],
-                                    # averaging method ('mean','median','logmexp')
-                                    'noise_method': 'mean',
-                                    'max_num_samples_fft': 3 * 1024,
-                                    'n_pixels_per_process': n_pixels_per_process,
-                                    'compute_g': False,            # flag for estimating global time constant
-                                    'p': p,                        # order of AR indicator dynamics
-                                    # number of autocovariance lags to be considered for time
-                                    # constant estimation
-                                    'lags': 5,
-                                    'include_noise': False,        # flag for using noise values when estimating g
-                                    'pixels': None,
-                                    # pixels to be excluded due to saturation
-                                    'check_nan': check_nan
-
-                                    }
-    
-    gSig = gSig if gSig is not None else [-1, -1]
-    
-
-    options['init_params'] = {'K': K,                  # number of components
-                              'gSig': gSig,                               # size of bounding box
-                              'gSiz': [np.int(np.round((x * 2) + 1)) for x in gSig] if gSiz is  None else gSiz,
-                              'ssub': ssub,             # spatial downsampling factor
-                              'tsub': tsub,             # temporal downsampling factor
-                              'nIter': 5,               # number of refinement iterations
-                              'kernel': None,           # user specified template for greedyROI
-                              'maxIter': 5,              # number of HALS iterations
-                              'method': method_init,     # can be greedy_roi or sparse_nmf, local_NMF
-                              'max_iter_snmf': 500,
-                              'alpha_snmf': alpha_snmf,
-                              'sigma_smooth_snmf': (.5, .5, .5),
-                              'perc_baseline_snmf': 20,
-                              'nb': nb,                 # number of background components
-                              # whether to pixelwise equalize the movies during initialization
-                              'normalize_init': normalize_init,
-                              # dictionary with parameters to pass to local_NMF initializaer
-                              'options_local_NMF': options_local_NMF,
-                              'rolling_sum': rolling_sum,
-                              'rolling_length': 100,
-							  'min_corr': min_corr,
-                              'min_pnr' : min_pnr,
-                              'deconvolve_options_init' : deconvolve_options_init,
-                              'ring_size_factor': ring_size_factor,
-                              'center_psf' : center_psf,                              
-                              }
-
-    options['spatial_params'] = {
-        'dims': dims,                   # number of rows, columns [and depths]
-        # method for determining footprint of spatial components ('ellipse' or 'dilate')
-        'method': 'dilate',  # 'ellipse', 'dilate',
-        'dist': 3,                       # expansion factor of ellipse
-        'n_pixels_per_process': n_pixels_per_process,   # number of pixels to be processed by eacg worker
-        'medw': (3,) * len(dims),                                # window of median filter
-        'thr_method': 'nrg',  # Method of thresholding ('max' or 'nrg')
-        'maxthr': 0.1,                                 # Max threshold
-        'nrgthr': 0.9999,                              # Energy threshold
-        # Flag to extract connected components (might want to turn to False for dendritic imaging)
-        'extract_cc': True,
-        # Morphological closing structuring element
-        'se': np.ones((3,) * len(dims), dtype=np.uint8),
-        # Binary element for determining connectivity
-        'ss': np.ones((3,) * len(dims), dtype=np.uint8),
-        'nb': nb,                                      # number of background components
-        'method_ls': 'lasso_lars',               # 'nnls_L0'. Nonnegative least square with L0 penalty
-        #'lasso_lars' lasso lars function from scikit learn
-        #'lasso_lars_old' lasso lars from old implementation, will be deprecated
-        # whether to update the background components in the spatial phase
-        'update_background_components': update_background_components,
-        # whether to update the using a low rank approximation. In the False case
-        # all the nonzero elements of the background components are updated using
-        # hals
-        'low_rank_background': low_rank_background
-        #(to be used with one background per patch)
-    }
-    options['temporal_params'] = {
-        'ITER': 2,                   # block coordinate descent iterations
-        # method for solving the constrained deconvolution problem ('oasis','cvx' or 'cvxpy')
-        'method': 'oasis',  # 'cvxpy', # 'oasis'
-        # if method cvxpy, primary and secondary (if problem unfeasible for approx
-        # solution) solvers to be used with cvxpy, can be 'ECOS','SCS' or 'CVXOPT'
-        'solvers': ['ECOS', 'SCS'],
-        'p': p,                      # order of AR indicator dynamics
-        'memory_efficient': False,
-        # flag for setting non-negative baseline (otherwise b >= min(y))
-        'bas_nonneg': False,
-        # range of normalized frequencies over which to average
-        'noise_range': [.25, .5],
-        'noise_method': 'mean',   # averaging method ('mean','median','logmexp')
-        'lags': 5,                   # number of autocovariance lags to be considered for time constant estimation
-        'fudge_factor': .96,         # bias correction factor (between 0 and 1, close to 1)
-        'nb': nb,                   # number of background components
-        'verbosity': False,
-        # number of pixels to process at the same time for dot product. Make it
-        # smaller if memory problems
-        'block_size': block_size
-    }
-    options['merging'] = {
-        'thr': thr,
-    }
-    return options
+        def create_decimation_matrix_bruteforce(dims, sub):
+            dims_ds = tuple(1 + (np.array(dims) - 1) // sub)
+            d_ds = np.prod(dims_ds)
+            ds_matrix = np.eye(d_ds)
+            ds_matrix = np.repeat(np.repeat(
+                ds_matrix.reshape((d_ds,) + dims_ds, order='F'), sub, 1),
+                sub, 2)[:, :dims[0], :dims[1]].reshape((d_ds, -1), order='F')
+            ds_matrix /= ds_matrix.sum(1)[:, None]
+            ds_matrix = csc_matrix(ds_matrix, dtype=np.float32)
+            return ds_matrix
+        tmp = create_decimation_matrix_bruteforce((dims[0], sub), sub).indices
+        ind = np.concatenate([tmp] * (dims[1] // sub + 1))[:D] + \
+            np.arange(D) // (dims[0] * sub) * ((dims[0] - 1) // sub + 1)
+    data = 1. / np.unique(ind, return_counts=True)[1][ind]
+    return csc_matrix((data, ind, np.arange(1 + D)), dtype=np.float32)
 
 
-#%%
+def peak_local_max(image, min_distance=1, threshold_abs=None,
+                   threshold_rel=None, exclude_border=True, indices=True,
+                   num_peaks=np.inf, footprint=None):
+    """Find peaks in an image as coordinate list or boolean mask.
+
+    Adapted from skimage to use opencv for speed.
+    Replaced scipy.ndimage.maximum_filter by cv2.dilate.
+
+    Peaks are the local maxima in a region of `2 * min_distance + 1`
+    (i.e. peaks are separated by at least `min_distance`).
+
+    If peaks are flat (i.e. multiple adjacent pixels have identical
+    intensities), the coordinates of all such pixels are returned.
+
+    If both `threshold_abs` and `threshold_rel` are provided, the maximum
+    of the two is chosen as the minimum intensity threshold of peaks.
+
+    Parameters
+    ----------
+    image : ndarray
+        Input image.
+    min_distance : int, optional
+        Minimum number of pixels separating peaks in a region of `2 *
+        min_distance + 1` (i.e. peaks are separated by at least
+        `min_distance`).
+        To find the maximum number of peaks, use `min_distance=1`.
+    threshold_abs : float, optional
+        Minimum intensity of peaks. By default, the absolute threshold is
+        the minimum intensity of the image.
+    threshold_rel : float, optional
+        Minimum intensity of peaks, calculated as `max(image) * threshold_rel`.
+    exclude_border : int, optional
+        If nonzero, `exclude_border` excludes peaks from
+        within `exclude_border`-pixels of the border of the image.
+    indices : bool, optional
+        If True, the output will be an array representing peak
+        coordinates.  If False, the output will be a boolean array shaped as
+        `image.shape` with peaks present at True elements.
+    num_peaks : int, optional
+        Maximum number of peaks. When the number of peaks exceeds `num_peaks`,
+        return `num_peaks` peaks based on highest peak intensity.
+    footprint : ndarray of bools, optional
+        If provided, `footprint == 1` represents the local region within which
+        to search for peaks at every point in `image`.  Overrides
+        `min_distance` (also for `exclude_border`).
+
+    Returns
+    -------
+    output : ndarray or ndarray of bools
+
+        * If `indices = True`  : (row, column, ...) coordinates of peaks.
+        * If `indices = False` : Boolean array shaped like `image`, with peaks
+          represented by True values.
+
+    Notes
+    -----
+    The peak local maximum function returns the coordinates of local peaks
+    (maxima) in an image. A maximum filter is used for finding local maxima.
+    This operation dilates the original image. After comparison of the dilated
+    and original image, this function returns the coordinates or a mask of the
+    peaks where the dilated image equals the original image.
+
+    Examples
+    --------
+    >>> img1 = np.zeros((7, 7))
+    >>> img1[3, 4] = 1
+    >>> img1[3, 2] = 1.5
+    >>> img1
+    array([[ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+           [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+           [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+           [ 0. ,  0. ,  1.5,  0. ,  1. ,  0. ,  0. ],
+           [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+           [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ],
+           [ 0. ,  0. ,  0. ,  0. ,  0. ,  0. ,  0. ]])
+
+    >>> peak_local_max(img1, min_distance=1)
+    array([[3, 4],
+           [3, 2]])
+
+    >>> peak_local_max(img1, min_distance=2)
+    array([[3, 2]])
+
+    >>> img2 = np.zeros((20, 20, 20))
+    >>> img2[10, 10, 10] = 1
+    >>> peak_local_max(img2, exclude_border=0)
+    array([[10, 10, 10]])
+
+    """
+    if type(exclude_border) == bool:
+        exclude_border = min_distance if exclude_border else 0
+
+    out = np.zeros_like(image, dtype=np.bool)
+
+    if np.all(image == image.flat[0]):
+        if indices is True:
+            return np.empty((0, 2), np.int)
+        else:
+            return out
+
+    # Non maximum filter
+    if footprint is not None:
+        # image_max = ndi.maximum_filter(image, footprint=footprint,
+        #                                mode='constant')
+        image_max = cv2.dilate(image, footprint=footprint, iterations=1)
+    else:
+        size = 2 * min_distance + 1
+        # image_max = ndi.maximum_filter(image, size=size, mode='constant')
+        image_max = cv2.dilate(image, cv2.getStructuringElement(
+            cv2.MORPH_RECT, (size, size)), iterations=1)
+    mask = image == image_max
+
+    if exclude_border:
+        # zero out the image borders
+        for i in range(mask.ndim):
+            mask = mask.swapaxes(0, i)
+            remove = (footprint.shape[i] if footprint is not None
+                      else 2 * exclude_border)
+            mask[:remove // 2] = mask[-remove // 2:] = False
+            mask = mask.swapaxes(0, i)
+
+    # find top peak candidates above a threshold
+    thresholds = []
+    if threshold_abs is None:
+        threshold_abs = image.min()
+    thresholds.append(threshold_abs)
+    if threshold_rel is not None:
+        thresholds.append(threshold_rel * image.max())
+    if thresholds:
+        mask &= image > max(thresholds)
+
+    # Select highest intensities (num_peaks)
+    coordinates = _get_high_intensity_peaks(image, mask, num_peaks)
+
+    if indices is True:
+        return coordinates
+    else:
+        nd_indices = tuple(coordinates.T)
+        out[nd_indices] = True
+        return out
+
+
+def dict_compare(d1, d2):
+    d1_keys = set(d1.keys())
+    d2_keys = set(d2.keys())
+    intersect_keys = d1_keys.intersection(d2_keys)
+    added = d1_keys - d2_keys
+    removed = d2_keys - d1_keys
+    modified = {o : (d1[o], d2[o]) for o in intersect_keys if np.any(d1[o] != d2[o])}
+    same = set(o for o in intersect_keys if np.all(d1[o] == d2[o]))
+    return added, removed, modified, same
+
+
 def computeDFF_traces(Yr, A, C, bl, quantileMin=8, frames_window=200):
-    extract_DF_F(Yr, A, C,  bl, quantileMin, frames_window)
+    extract_DF_F(Yr, A, C, bl, quantileMin, frames_window)
 
 
-#%%
-def extract_DF_F(Yr, A, C,  bl, quantileMin=8, frames_window=200, block_size=400, dview=None):
+def extract_DF_F(Yr, A, C, bl, quantileMin=8, frames_window=200, block_size=400, dview=None):
     """ Compute DFF function from cnmf output.
 
      Disclaimer: it might be memory inefficient
 
-    Parameters:
-    -----------
-    Yr: ndarray (2D)
-        movie pixels X time
+    Args:
+        Yr: ndarray (2D)
+            movie pixels X time
 
-    A: scipy.sparse.coo_matrix
-        spatial components (from cnmf cnm.A)
+        A: scipy.sparse.coo_matrix
+            spatial components (from cnmf cnm.A)
 
-    C: ndarray
-        temporal components (from cnmf cnm.C)
+        C: ndarray
+            temporal components (from cnmf cnm.C)
 
-    bl: ndarray
-        baseline for each component (from cnmf cnm.bl)
+        bl: ndarray
+            baseline for each component (from cnmf cnm.bl)
 
-    quantile_min: float
-        quantile minimum of the
+        quantile_min: float
+            quantile minimum of the
 
-    frammes_window: int
-        number of frames for running quantile
+        frames_window: int
+            number of frames for running quantile
 
     Returns:
-    -------
-
-    Cdf:
-        the computed Calcium acitivty to the derivative of f
+        Cdf:
+            the computed Calcium acitivty to the derivative of f
 
     See Also:
-    -------
-
-    ..image::docs/img/onlycnmf.png
-
+        ..image::docs/img/onlycnmf.png
     """
     nA = np.array(np.sqrt(A.power(2).sum(0)).T)
     A = scipy.sparse.coo_matrix(A / nA.T)
@@ -415,55 +287,310 @@ def extract_DF_F(Yr, A, C,  bl, quantileMin=8, frames_window=200, block_size=400
         C_df = Cf / Df[:, None]
 
     else:
-        Df = scipy.ndimage.percentile_filter(C2, quantileMin, (frames_window, 1))
+        Df = scipy.ndimage.percentile_filter(
+            C2, quantileMin, (frames_window, 1))
         C_df = Cf / Df
 
     return C_df
 
+def detrend_df_f(A, b, C, f, YrA=None, quantileMin=8, frames_window=500, 
+                 flag_auto=True, use_fast=False, detrend_only=False):
+    """ Compute DF/F signal without using the original data.
+    In general much faster than extract_DF_F
+
+    Args:
+        A: scipy.sparse.csc_matrix
+            spatial components (from cnmf cnm.A)
+
+        b: ndarray
+            spatial background components
+
+        C: ndarray
+            temporal components (from cnmf cnm.C)
+
+        f: ndarray
+            temporal background components
+
+        YrA: ndarray
+            residual signals
+
+        quantile_min: float
+            quantile used to estimate the baseline (values in [0,100])
+
+        frames_window: int
+            number of frames for computing running quantile
+
+        flag_auto: bool
+            flag for determining quantile automatically
+
+        use_fast: bool
+            flag for u´sing approximate fast percentile filtering
+
+        detrend_only: bool (False)
+            flag for only subtracting baseline and not normalizing by it.
+            Used in 1p data processing where baseline fluorescence cannot be
+            determined.
+
+    Returns:
+        F_df:
+            the computed Calcium acitivty to the derivative of f
+    """
+
+    if C is None:
+        logging.warning("There are no components for DF/F extraction!")
+        return None
+    
+    if b is None or f is None:
+        b = np.zeros((A.shape[0], 1))
+        f = np.zeros((1, C.shape[1]))
+        logging.warning("Background components not present. Results should" +
+                        " not be interpreted as DF/F normalized but only" +
+                        " as detrended.")
+        detrend_only = True
+    if 'csc_matrix' not in str(type(A)):
+        A = scipy.sparse.csc_matrix(A)
+    if 'array' not in str(type(b)):
+        b = b.toarray()
+    if 'array' not in str(type(C)):
+        C = C.toarray()
+    if 'array' not in str(type(f)):
+        f = f.toarray()
+
+    nA = np.sqrt(np.ravel(A.power(2).sum(axis=0)))
+    nA_mat = scipy.sparse.spdiags(nA, 0, nA.shape[0], nA.shape[0])
+    nA_inv_mat = scipy.sparse.spdiags(1. / nA, 0, nA.shape[0], nA.shape[0])
+    A = A * nA_inv_mat
+    C = nA_mat * C
+    if YrA is not None:
+        YrA = nA_mat * YrA
+
+    F = C + YrA if YrA is not None else C
+    B = A.T.dot(b).dot(f)
+    T = C.shape[-1]
+
+    if flag_auto:
+        data_prct, val = df_percentile(F[:, :frames_window], axis=1)
+        if frames_window is None or frames_window > T:
+            Fd = np.stack([np.percentile(f, prctileMin) for f, prctileMin in
+                           zip(F, data_prct)])
+            Df = np.stack([np.percentile(f, prctileMin) for f, prctileMin in
+                           zip(B, data_prct)])
+            if not detrend_only:
+                F_df = (F - Fd[:, None]) / (Df[:, None] + Fd[:, None])
+            else:
+                F_df = F - Fd[:, None]
+        else:
+            if use_fast:
+                Fd = np.stack([fast_prct_filt(f, level=prctileMin,
+                                              frames_window=frames_window) for
+                               f, prctileMin in zip(F, data_prct)])
+                Df = np.stack([fast_prct_filt(f, level=prctileMin,
+                                              frames_window=frames_window) for
+                               f, prctileMin in zip(B, data_prct)])
+            else:
+                Fd = np.stack([scipy.ndimage.percentile_filter(
+                    f, prctileMin, (frames_window)) for f, prctileMin in
+                    zip(F, data_prct)])
+                Df = np.stack([scipy.ndimage.percentile_filter(
+                    f, prctileMin, (frames_window)) for f, prctileMin in
+                    zip(B, data_prct)])
+            if not detrend_only:
+                F_df = (F - Fd) / (Df + Fd)
+            else:
+                F_df = F - Fd
+    else:
+        if frames_window is None or frames_window > T:
+            Fd = np.percentile(F, quantileMin, axis=1)
+            Df = np.percentile(B, quantileMin, axis=1)
+            if not detrend_only:
+                F_df = (F - Fd[:, None]) / (Df[:, None] + Fd[:, None])
+            else:
+                F_df = F - Fd[:, None]
+        else:
+            Fd = scipy.ndimage.percentile_filter(
+                F, quantileMin, (frames_window, 1))
+            Df = scipy.ndimage.percentile_filter(
+                B, quantileMin, (frames_window, 1))
+            if not detrend_only:
+                F_df = (F - Fd) / (Df + Fd)
+            else:
+                F_df = F - Fd
+
+    return F_df
+
+def fast_prct_filt(input_data, level=8, frames_window=1000):
+    """
+    Fast approximate percentage filtering
+    """
+
+    data = np.atleast_2d(input_data).copy()
+    T = np.shape(data)[-1]
+    downsampfact = frames_window
+
+    elm_missing = int(np.ceil(T * 1.0 / downsampfact)
+                      * downsampfact - T)
+    padbefore = int(np.floor(elm_missing / 2.))
+    padafter = int(np.ceil(elm_missing / 2.))
+    tr_tmp = np.pad(data.T, ((padbefore, padafter), (0, 0)), mode='reflect')
+    numFramesNew, num_traces = np.shape(tr_tmp)
+    #% compute baseline quickly
+
+    tr_BL = np.reshape(tr_tmp, (downsampfact, int(numFramesNew / downsampfact),
+                                num_traces), order='F')
+
+    tr_BL = np.percentile(tr_BL, level, axis=0)
+    tr_BL = scipy.ndimage.zoom(np.array(tr_BL, dtype=np.float32),
+                               [downsampfact, 1], order=3, mode='nearest',
+                               cval=0.0, prefilter=True)
+
+    if padafter == 0:
+        data -= tr_BL.T
+    else:
+        data -= tr_BL[padbefore:-padafter].T
+
+    return data.squeeze()
+#%%
+def detrend_df_f_auto(A, b, C, f, dims=None, YrA=None, use_annulus = True, 
+                      dist1 = 7, dist2 = 5, frames_window=1000, 
+                      use_fast = False):
+    """
+    Compute DF/F using an automated level of percentile filtering based on
+    kernel density estimation.
+
+    Args:
+        A: scipy.sparse.csc_matrix
+            spatial components (from cnmf cnm.A)
+
+        b: ndarray
+            spatial backgrounds
+
+        C: ndarray
+            temporal components (from cnmf cnm.C)
+
+        f: ndarray
+            temporal background components
+
+        YrA: ndarray
+            residual signals
+
+        frames_window: int
+            number of frames for running quantile
+
+        use_fast: bool
+            flag for using fast approximate percentile filtering
+
+    Returns:
+        F_df:
+            the computed Calcium acitivty to the derivative of f
+    """
+
+    if 'csc_matrix' not in str(type(A)):
+        A = scipy.sparse.csc_matrix(A)
+    if 'array' not in str(type(b)):
+        b = b.toarray()
+    if 'array' not in str(type(C)):
+        C = C.toarray()
+    if 'array' not in str(type(f)):
+        f = f.toarray()
+
+    nA = np.sqrt(np.ravel(A.power(2).sum(axis=0)))
+    nA_mat = scipy.sparse.spdiags(nA, 0, nA.shape[0], nA.shape[0])
+    nA_inv_mat = scipy.sparse.spdiags(1. / nA, 0, nA.shape[0], nA.shape[0])
+    A = A * nA_inv_mat
+    C = nA_mat * C
+    if YrA is not None:
+        YrA = nA_mat * YrA
+
+    F = C + YrA if YrA is not None else C
+    K = A.shape[-1]
+    A_ann = A.copy()
+
+    if use_annulus:
+        dist1 = 7
+        dist2 = 5
+        X, Y = np.meshgrid(np.arange(-dist1, dist1), np.arange(-dist1, dist1))
+        R = np.sqrt(X**2+Y**2)
+        R[R > dist1] = 0
+        R[R < dist2] = 0
+        R = R.astype('bool')
+
+        for k in range(K):
+            a = A[:, k].toarray().reshape(dims, order='F') > 0
+            a2 = np.bitwise_xor(morph.binary_dilation(a, R), a)
+            a2 = a2.astype(float).flatten(order='F')
+            a2 /= np.sqrt(a2.sum())
+            a2 = scipy.sparse.csc_matrix(a2)
+            A_ann[:, k] = a2.T
+
+    B = A_ann.T.dot(b).dot(f)
+    T = C.shape[-1]
+
+    data_prct, val = df_percentile(F[:, :frames_window], axis=1)
+
+    if frames_window is None or frames_window > T:
+        Fd = np.stack([np.percentile(f, prctileMin) for f, prctileMin in
+                       zip(F, data_prct)])
+        Df = np.stack([np.percentile(f, prctileMin) for f, prctileMin in
+                       zip(B, data_prct)])
+        F_df = (F - Fd[:, None]) / (Df[:, None] + Fd[:, None])
+    else:
+        if use_fast:
+            Fd = np.stack([fast_prct_filt(f, level=prctileMin,
+                                          frames_window=frames_window) for
+                           f, prctileMin in zip(F, data_prct)])
+            Df = np.stack([fast_prct_filt(f, level=prctileMin,
+                                          frames_window=frames_window) for
+                           f, prctileMin in zip(B, data_prct)])
+        else:
+            Fd = np.stack([scipy.ndimage.percentile_filter(
+                f, prctileMin, (frames_window)) for f, prctileMin in
+                zip(F, data_prct)])
+            Df = np.stack([scipy.ndimage.percentile_filter(
+                f, prctileMin, (frames_window)) for f, prctileMin in
+                zip(B, data_prct)])
+        F_df = (F - Fd) / (Df + Fd)
+
+    return F_df
 
 #%%
+
+
 def manually_refine_components(Y, xxx_todo_changeme, A, C, Cn, thr=0.9, display_numbers=True,
                                max_number=None, cmap=None, **kwargs):
     """Plots contour of spatial components
-
      against a background image and allows to interactively add novel components by clicking with mouse
 
-     Parameters
-     -----------
-     Y: ndarray
-               movie in 2D
+     Args:
+         Y: ndarray
+                   movie in 2D
 
-     (dx,dy): tuple
-               dimensions of the square used to identify neurons (should be set to the galue of gsiz)
+         (dx,dy): tuple
+                   dimensions of the square used to identify neurons (should be set to the galue of gsiz)
 
-     A:   np.ndarray or sparse matrix
-               Matrix of Spatial components (d x K)
+         A:   np.ndarray or sparse matrix
+                   Matrix of Spatial components (d x K)
 
-     Cn:  np.ndarray (2D)
-               Background image (e.g. mean, correlation)
+         Cn:  np.ndarray (2D)
+                   Background image (e.g. mean, correlation)
 
-     thr: scalar between 0 and 1
-               Energy threshold for computing contours (default 0.995)
+         thr: scalar between 0 and 1
+                   Energy threshold for computing contours (default 0.995)
 
-     display_number:     Boolean
-               Display number of ROIs if checked (default True)
+         display_number:     Boolean
+                   Display number of ROIs if checked (default True)
 
-     max_number:    int
-               Display the number for only the first max_number components (default None, display all numbers)
+         max_number:    int
+                   Display the number for only the first max_number components (default None, display all numbers)
 
-     cmap:     string
-               User specifies the colormap (default None, default colormap)
+         cmap:     string
+                   User specifies the colormap (default None, default colormap)
 
+     Returns:
+         A: np.ndarray
+             matrix A os estimated spatial component contributions
 
-
-     Returns
-     --------
-     A: np.ndarray
-         matrix A os estimated  spatial component contributions
-
-     C: np.ndarray
-         array of estimated calcium traces
-
+         C: np.ndarray
+             array of estimated calcium traces
     """
     (dx, dy) = xxx_todo_changeme
     if issparse(A):
@@ -515,21 +642,23 @@ def manually_refine_components(Y, xxx_todo_changeme, A, C, Cn, thr=0.9, display_
             coords_x = np.array(list(range(xx - dx, xx + dx + 1)))
             coords_y = coords_y[(coords_y >= 0) & (coords_y < d1)]
             coords_x = coords_x[(coords_x >= 0) & (coords_x < d2)]
-            a3_tiny = A3[coords_y[0]:coords_y[-1] + 1, coords_x[0]:coords_x[-1] + 1, :]
-            y3_tiny = Y[coords_y[0]:coords_y[-1] + 1, coords_x[0]:coords_x[-1] + 1, :]
+            a3_tiny = A3[coords_y[0]:coords_y[-1] +
+                         1, coords_x[0]:coords_x[-1] + 1, :]
+            y3_tiny = Y[coords_y[0]:coords_y[-1] +
+                        1, coords_x[0]:coords_x[-1] + 1, :]
 
             dy_sz, dx_sz = np.shape(a3_tiny)[:-1]
             y2_tiny = np.reshape(y3_tiny, (dx_sz * dy_sz, T), order='F')
             a2_tiny = np.reshape(a3_tiny, (dx_sz * dy_sz, nr), order='F')
             y2_res = y2_tiny - a2_tiny.dot(C)
-
             y3_res = np.reshape(y2_res, (dy_sz, dx_sz, T), order='F')
             a__, c__, center__, b_in__, f_in__ = greedyROI(
                 y3_res, nr=1, gSig=[np.floor(old_div(dx_sz, 2)), np.floor(old_div(dy_sz, 2))], gSiz=[dx_sz, dy_sz])
 
             a_f = np.zeros((d, 1))
             idxs = np.meshgrid(coords_y, coords_x)
-            a_f[np.ravel_multi_index(idxs, (d1, d2), order='F').flatten()] = a__
+            a_f[np.ravel_multi_index(
+                idxs, (d1, d2), order='F').flatten()] = a__
 
             A = np.concatenate([A, a_f], axis=1)
             C = np.concatenate([C, c__], axis=0)
@@ -550,21 +679,18 @@ def manually_refine_components(Y, xxx_todo_changeme, A, C, Cn, thr=0.9, display_
 
     return A, C
 
-
-#%%
 def app_vertex_cover(A):
     """ Finds an approximate vertex cover for a symmetric graph with adjacency matrix A.
 
-     Parameters:
-     -----------
-     A:    boolean 2d array (K x K)
-          Adjacency matrix. A is boolean with diagonal set to 0
+    Args:
+        A:  boolean 2d array (K x K)
+            Adjacency matrix. A is boolean with diagonal set to 0
 
-     Returns:
-     --------
-     L:   A vertex cover of A
+    Returns:
+        L:   A vertex cover of A
 
-     @authors by Eftychios A. Pnevmatikakis, Simons Foundation, 2015
+    Authors:
+    Eftychios A. Pnevmatikakis, Simons Foundation, 2015
     """
 
     L = []
@@ -578,103 +704,80 @@ def app_vertex_cover(A):
     return np.asarray(L)
 
 
-def update_order(A, new_a = None, prev_list = None):
+def update_order(A, new_a=None, prev_list=None, method='greedy'):
     '''Determines the update order of the temporal components given the spatial
     components by creating a nest of random approximate vertex covers
-     Input:
-     -------
-     A:    np.ndarray
-          matrix of spatial components (d x K)
-     new_a: sparse array
-          spatial component that is added, in order to efficiently update the orders in online scenarios
-     prev_list: list of list
-          orders from previous iteration, you need to pass if new_a is not None 
 
-     Outputs:
-     ---------
-     O:   list of sets
-          list of subsets of components. The components of each subset can be updated in parallel
-     lo:  list
-          length of each subset
+     Args:
+         A:    np.ndarray
+              matrix of spatial components (d x K)
+         new_a: sparse array
+              spatial component that is added, in order to efficiently update the orders in online scenarios
+         prev_list: list of list
+              orders from previous iteration, you need to pass if new_a is not None
+
+     Returns:
+         O:  list of sets
+             list of subsets of components. The components of each subset can be updated in parallel
+         lo: list
+             length of each subset
 
     Written by Eftychios A. Pnevmatikakis, Simons Foundation, 2015
     '''
     K = np.shape(A)[-1]
     if new_a is None and prev_list is None:
-        
-        AA = A.T * A
-        AA.setdiag(0)
-        F = (AA) > 0
-        F = F.toarray()
-        rem_ind = np.arange(K)
-        O = []
-        lo = []
-        while len(rem_ind) > 0:
-            L = np.sort(app_vertex_cover(F[rem_ind, :][:, rem_ind]))
-            if L.size:
-                ord_ind = set(rem_ind) - set(rem_ind[L])
-                rem_ind = rem_ind[L]
-            else:
-                ord_ind = set(rem_ind)
-                rem_ind = []
-    
-            O.append(ord_ind)
-            lo.append(len(ord_ind))
-    
-        return O[::-1], lo[::-1]
-    
+
+        if method is 'greedy':
+            prev_list, count_list = update_order_greedy(A, flag_AA=False)
+        else:
+            prev_list, count_list = update_order_random(A, flag_AA=False)
+        return prev_list, count_list
+
     else:
-        
-        if new_a is  None or prev_list is None:
-            raise Exception('In the online update order you need to provide both new_a and prev_list')
-        
+
+        if new_a is None or prev_list is None:
+            raise Exception(
+                'In the online update order you need to provide both new_a and prev_list')
+
         counter = 0
+
         AA = A.T.dot(new_a)
         for group in prev_list:
-            
-#            AA = A[:,list(group)].T.dot(new_a)
-            if AA[list(group)].sum() == 0:                
+            if AA[list(group)].sum() == 0:
                 group.append(K)
-                counter+=1
+                counter += 1
                 break
-        
+
         if counter == 0:
             if prev_list is not None:
                 prev_list = list(prev_list)
                 prev_list.append([K])
-        
-#        prev_list.sort(key=len)
+
         count_list = [len(gr) for gr in prev_list]
-        
+
         return prev_list, count_list
 
-
-
-
-#%%
 def order_components(A, C):
     """Order components based on their maximum temporal value and size
 
-    Parameters:
-    -----------
-    A:   sparse matrix (d x K)
-         spatial components
+    Args:
+        A:  sparse matrix (d x K)
+            spatial components
 
-    C:   matrix or np.ndarray (K x T)
-         temporal components
+        C:  matrix or np.ndarray (K x T)
+            temporal components
 
     Returns:
-    -------
-    A_or:  np.ndarray
-        ordered spatial components
+        A_or:  np.ndarray
+            ordered spatial components
 
-    C_or:  np.ndarray
-        ordered temporal components
+        C_or:  np.ndarray
+            ordered temporal components
 
-    srt:   np.ndarray
-        sorting mapping
-
+        srt:   np.ndarray
+            sorting mapping
     """
+
     A = np.array(A.todense())
     nA2 = np.sqrt(np.sum(A**2, axis=0))
     K = len(nA2)
@@ -688,33 +791,64 @@ def order_components(A, C):
 
     return A_or, C_or, srt
 
+def update_order_random(A, flag_AA=True):
+    """Determies the update order of temporal components using
+    randomized partitions of non-overlapping components
+    """
+
+    K = np.shape(A)[-1]
+    if flag_AA:
+        AA = A.copy()
+    else:
+        AA = A.T.dot(A)
+
+    AA.setdiag(0)
+    F = (AA) > 0
+    F = F.toarray()
+    rem_ind = np.arange(K)
+    O = []
+    lo = []
+    while len(rem_ind) > 0:
+        L = np.sort(app_vertex_cover(F[rem_ind, :][:, rem_ind]))
+        if L.size:
+            ord_ind = set(rem_ind) - set(rem_ind[L])
+            rem_ind = rem_ind[L]
+        else:
+            ord_ind = set(rem_ind)
+            rem_ind = []
+
+        O.append(ord_ind)
+        lo.append(len(ord_ind))
+
+    return O[::-1], lo[::-1]
+
+
 def update_order_greedy(A, flag_AA=True):
     """Determines the update order of the temporal components
 
     this, given the spatial components using a greedy method
     Basically we can update the components that are not overlapping, in parallel
 
-    Input:
-     -------
-     A:       sparse crc matrix
-              matrix of spatial components (d x K)
-     OR
-              A.T.dot(A) matrix (d x d) if flag_AA = true
+    Args:
+        A:  sparse crc matrix
+            matrix of spatial components (d x K)
+        OR:
+            A.T.dot(A) matrix (d x d) if flag_AA = true
 
-     flag_AA: boolean (default true)
+        flag_AA: boolean (default true)
 
-     Outputs:
-     ---------
-     parllcomp:   list of sets
-          list of subsets of components. The components of each subset can be updated in parallel
+     Returns:
+         parllcomp:   list of sets
+             list of subsets of components. The components of each subset can be updated in parallel
 
-     len_parrllcomp:  list
-          length of each subset
+         len_parrllcomp:  list
+             length of each subset
 
-    @author: Eftychios A. Pnevmatikakis, Simons Foundation, 2017
+    Author:
+        Eftychios A. Pnevmatikakis, Simons Foundation, 2017
     """
     K = np.shape(A)[-1]
-    parllcomp = []
+    parllcomp:List = []
     for i in range(K):
         new_list = True
         for ls in parllcomp:
@@ -734,23 +868,23 @@ def update_order_greedy(A, flag_AA=True):
     len_parrllcomp = [len(ls) for ls in parllcomp]
     return parllcomp, len_parrllcomp
 #%%
-def compute_residuals(Yr_mmap_file, A_,b_,C_,f_, dview=None, block_size=1000, num_blocks_per_run=5):    
+
+
+def compute_residuals(Yr_mmap_file, A_, b_, C_, f_, dview=None, block_size=1000, num_blocks_per_run=5):
     '''compute residuals from memory mapped file and output of CNMF
-        Params:
-        -------            
-        A_,b_,C_,f_: 
+        Args:
+            A_,b_,C_,f_:
                 from CNMF
-        
-        block_size: int
-            number of pixels processed together
-        
-        num_blocks_per_run: int
-            nnumber of parallel blocks processes 
-        
-        Return:
-        -------
-        YrA: ndarray
-            residuals per neuron
+
+            block_size: int
+                number of pixels processed together
+
+            num_blocks_per_run: int
+                nnumber of parallel blocks processes
+
+        Returns:
+            YrA: ndarray
+                residuals per neuron
     '''
     if not ('sparse' in str(type(A_))):
         A_ = scipy.sparse.coo_matrix(A_)
@@ -763,22 +897,21 @@ def compute_residuals(Yr_mmap_file, A_,b_,C_,f_, dview=None, block_size=1000, nu
 
     if 'mmap' in str(type(Yr_mmap_file)):
         YA = parallel_dot_product(Yr_mmap_file, Ab, dview=dview, block_size=block_size,
-                            transpose=True, num_blocks_per_run=num_blocks_per_run) * scipy.sparse.spdiags(old_div(1., nA), 0, Ab.shape[-1], Ab.shape[-1])
+                                  transpose=True, num_blocks_per_run=num_blocks_per_run) * scipy.sparse.spdiags(old_div(1., nA), 0, Ab.shape[-1], Ab.shape[-1])
     else:
-        YA = (Ab.T.dot(Yr_mmap_file)).T * spdiags(old_div(1., nA), 0, Ab.shape[-1], Ab.shape[-1])
+        YA = (Ab.T.dot(Yr_mmap_file)).T * \
+            spdiags(old_div(1., nA), 0, Ab.shape[-1], Ab.shape[-1])
 
-    AA = ((Ab.T.dot(Ab)) * scipy.sparse.spdiags(old_div(1., nA), 0, Ab.shape[-1], Ab.shape[-1])).tocsr()
+    AA = ((Ab.T.dot(Ab)) * scipy.sparse.spdiags(old_div(1., nA),
+                                                0, Ab.shape[-1], Ab.shape[-1])).tocsr()
 
-    return (YA - (AA.T.dot(Cf)).T)[:,:A_.shape[-1]].T  
+    return (YA - (AA.T.dot(Cf)).T)[:, :A_.shape[-1]].T
 
-
-#%%
-def normalize_AC(A, C, YrA, b, f):
+def normalize_AC(A, C, YrA, b, f, neurons_sn):
     """ Normalize to unit norm A and b
-    Parameters:
-    ----------
-    A,C,Yr,b,f: 
-        outputs of CNMF
+    Args:
+        A,C,Yr,b,f:
+            outputs of CNMF
     """
     if 'sparse' in str(type(A)):
         nA = np.ravel(np.sqrt(A.power(2).sum(0)))
@@ -797,15 +930,268 @@ def normalize_AC(A, C, YrA, b, f):
         YrA *= nA[:, None]
 
     if b is not None:
-        b = np.array(b)
-        if 'sparse' in str(type(A)):
+        if issparse(b):
             nB = np.ravel(np.sqrt(b.power(2).sum(0)))
+            b = csc_matrix(b)
+            for k, i in enumerate(b.indptr[:-1]):
+                b.data[i:b.indptr[k + 1]] /= nB[k]
         else:
             nB = np.ravel(np.sqrt((b**2).sum(0)))
+            b = np.atleast_2d(b)
+            b /= nB
+        if issparse(f):
+            f = csr_matrix(f)
+            for k, i in enumerate(f.indptr[:-1]):
+                f.data[i:f.indptr[k + 1]] *= nB[k]
+        else:
+            f = np.atleast_2d(f)
+            f *= nB[:, np.newaxis]
 
-        b = np.atleast_2d(b)
-        f = np.atleast_2d(f)
-        b /= nB[np.newaxis, :]
-        f *= nB[:, np.newaxis]
+    if neurons_sn is not None:
+        neurons_sn *= nA
 
-    return csc_matrix(A), C, YrA, b, f
+    return csc_matrix(A), C, YrA, b, f, neurons_sn
+
+
+def get_file_size(file_name, var_name_hdf5='mov'):
+    """ Computes the dimensions of a file or a list of files without loading
+    it/them in memory. An exception is thrown if the files have FOVs with
+    different sizes
+        Args:
+            file_name: str or list
+                locations of file(s) in memory
+
+            var_name_hdf5: 'str'
+                if loading from hdf5 name of the variable to load
+
+        Returns:
+            dims: list
+                dimensions of FOV
+
+            T: list
+                number of timesteps in each file
+    """
+    if isinstance(file_name, str):
+        if os.path.exists(file_name):
+            _, extension = os.path.splitext(file_name)[:2]
+            extension = extension.lower()
+            if extension == '.mat':
+                byte_stream, file_opened = scipy.io.matlab.mio._open_file(file_name, appendmat=False)
+                mjv, mnv = scipy.io.matlab.mio.get_matfile_version(byte_stream)
+                if mjv == 2:
+                    extension = '.h5'
+            if extension in ['.tif', '.tiff', '.btf']:
+                tffl = tifffile.TiffFile(file_name)
+                siz = tffl.series[0].shape
+                T, dims = siz[0], siz[1:]
+            elif extension == '.avi':
+                cap = cv2.VideoCapture(file_name)
+                dims = [0, 0]
+                try:
+                    T = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                    dims[1] = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    dims[0] = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                except():
+                    print('Roll back to opencv 2')
+                    T = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT))
+                    dims[1] = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH))
+                    dims[0] = int(cap.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT))
+            elif extension == '.mmap':
+                filename = os.path.split(file_name)[-1]
+                Yr, dims, T = load_memmap(os.path.join(
+                        os.path.split(file_name)[0], filename))
+            elif extension in ('.h5', '.hdf5', '.nwb'):
+                with h5py.File(file_name, "r") as f:
+                    kk = list(f.keys())
+                    if len(kk) == 1:
+                        siz = f[kk[0]].shape
+                    elif var_name_hdf5 in f:
+                        if extension == '.nwb':
+                            siz = f[var_name_hdf5]['data'].shape
+                        else:
+                            siz = f[var_name_hdf5].shape
+                    else:
+                        logging.error('The file does not contain a variable' +
+                                      'named {0}'.format(var_name_hdf5))
+                        raise Exception('Variable not found. Use one of the above')
+                T, dims = siz[0], siz[1:]
+            elif extension in ('.sbx'):
+                from ...base.movies import loadmat_sbx
+                info = loadmat_sbx(file_name[:-4]+ '.mat')['info']
+                dims = tuple((info['sz']).astype(int))
+                # Defining number of channels/size factor
+                if info['channels'] == 1:
+                    info['nChan'] = 2
+                    factor = 1
+                elif info['channels'] == 2:
+                    info['nChan'] = 1
+                    factor = 2
+                elif info['channels'] == 3:
+                    info['nChan'] = 1
+                    factor = 2
+            
+                # Determine number of frames in whole file
+                T = int(os.path.getsize(
+                    file_name[:-4] + '.sbx') / info['recordsPerBuffer'] / info['sz'][1] * factor / 4 - 1)
+                
+            else:
+                raise Exception('Unknown file type')
+            dims = tuple(dims)
+        else:
+            raise Exception('File not found!')
+    elif isinstance(file_name, tuple):
+        from ...base.movies import load
+        dims = load(file_name[0], var_name_hdf5=var_name_hdf5).shape
+        T = len(file_name)
+
+    elif isinstance(file_name, list):
+        if len(file_name) == 1:
+            dims, T = get_file_size(file_name[0], var_name_hdf5=var_name_hdf5)
+        else:
+            dims, T = zip(*[get_file_size(fn, var_name_hdf5=var_name_hdf5)
+                for fn in file_name])
+    else:
+        raise Exception('Unknown input type')
+    return dims, T
+
+
+def fast_graph_Laplacian(mmap_file, dims, max_radius=10, kernel='heat',
+                         dview=None, sigma=1, thr=0.05, p=10, normalize=True,
+                         use_NN=False, rf=None, strides=None):
+    """ Computes an approximate affinity maps and its graph Laplacian for all
+    pixels. For each pixel it restricts its attention to a given radius around
+    it.
+        Args:
+            mmap_file: str
+                Memory mapped file in pixel first order
+
+            max_radius: float
+                Maximum radius around each pixel
+
+            kernel: str {'heat', 'binary', 'cos'}
+                type of kernel
+
+            dview: dview object
+                multiprocessing or ipyparallel object for parallelization
+
+            sigma: float
+                standard deviation of Gaussian (heat) kernel
+
+            thr: float
+                threshold for affinity matrix
+
+            p: int
+                number of neighbors
+
+            normalize: bool
+                normalize vectors before computing affinity
+
+            use_NN: bool
+                use only p nearest neighbors
+
+        Returns:
+            W: scipy.sparse.csr_matrix
+                Graph affinity matrix
+
+            D: scipy.sparse.spdiags
+                Diagonal of affinity matrix
+                
+            L: scipy.sparse.csr_matrix
+                Graph Laplacian matrix
+    """
+    Np = np.prod(np.array(dims))
+    if rf is None:
+        pars = []
+        for i in range(Np):
+            pars.append([i, mmap_file, dims, max_radius, kernel, sigma, thr,
+                         p, normalize, use_NN])
+        if dview is None:
+            res = list(map(fast_graph_Laplacian_pixel, pars))
+        else:
+            res = dview.map(fast_graph_Laplacian_pixel, pars, chunksize=128)
+        indptr = np.cumsum(np.array([0] + [len(r[0]) for r in res]))
+        indeces = [item for sublist in res for item in sublist[0]]
+        data = [item for sublist in res for item in sublist[1]]
+        W = scipy.sparse.csr_matrix((data, indeces, indptr), shape=[Np, Np])
+        D = scipy.sparse.spdiags(W.sum(0), 0, Np, Np)
+        L = D - W
+    else:
+        indices, _ = extract_patch_coordinates(dims, rf, strides)
+        pars = []
+        for i in range(len(indices)):
+            pars.append([mmap_file, indices[i], kernel, sigma, thr, p,
+                         normalize, use_NN])
+        if dview is None:
+            res = list(map(fast_graph_Laplacian_patches, pars))
+        else:
+            res = dview.map(fast_graph_Laplacian_patches, pars)
+        W = res
+        D = [scipy.sparse.spdiags(w.sum(0), 0, w.shape[0], w.shape[0]) for w in W]
+        L = [d - w for (d, w) in zip(W, D)]
+    return W, D, L
+
+
+def fast_graph_Laplacian_patches(pars):
+    """ Computes the full graph affinity matrix on a patch. See 
+    fast_graph_Laplacian above for definition of arguments.
+    """
+    mmap_file, indices, kernel, sigma, thr, p, normalize, use_NN = pars
+    if type(mmap_file) not in {'str', 'list'}:
+        Yind = mmap_file
+    else:
+        Y = load_memmap(mmap_file)[0]
+        Yind = np.array(Y[indices])
+    if normalize:
+        Yind -= Yind.mean(1)[:, np.newaxis]
+        Yind /= np.sqrt((Yind**2).sum(1)[:, np.newaxis])
+        yf = np.ones((Yind.shape[0], 1))
+    else:
+        yf = (Yind**2).sum(1)[:, np.newaxis]
+    yyt = Yind.dot(Yind.T)
+    W = np.exp(-(yf + yf.T - 2*yyt)/sigma) if kernel.lower() == 'heat' else yyt
+    W[W<thr] = 0
+    if kernel.lower() == 'binary':
+        W[W>0] = 1
+    if use_NN:
+        ind = np.argpartition(W, -p, axis=1)[:, :-p]
+        for i in range(W.shape[0]):
+            W[i, ind[i]] = 0
+        W = scipy.sparse.csr_matrix(W)
+        W = (W + W.T)/2
+    return W
+    
+def fast_graph_Laplacian_pixel(pars):
+    """ Computes the i-th row of the Graph affinity matrix. See 
+    fast_graph_Laplacian above for definition of arguments.
+    """
+    i, mmap_file, dims, max_radius, kernel, sigma, thr, p, normalize, use_NN = pars 
+    iy, ix = np.unravel_index(i, dims, order='F')
+    xx = np.arange(0, dims[1]) - ix
+    yy = np.arange(0, dims[0]) - iy
+    [XX, YY] = np.meshgrid(xx, yy)
+    R = np.sqrt(XX**2 + YY**2)
+    R = R.flatten('F')
+    indeces = np.where(R < max_radius)[0]
+    Y = load_memmap(mmap_file)[0]
+    Yind = np.array(Y[indeces])
+    y = np.array(Y[i, :])
+    if normalize:
+        Yind -= Yind.mean(1)[:, np.newaxis]
+        Yind /= np.sqrt((Yind**2).sum(1)[:, np.newaxis])
+        y -= y.mean()
+        y /= np.sqrt((y**2).sum())
+    D = Yind - y
+    if kernel.lower() == 'heat':
+        w = np.exp(-np.sum(D**2, axis=1)/sigma)
+    else: # kernel.lower() == 'cos':
+        w = Yind.dot(y.T)
+
+    w[w<thr] = 0
+    if kernel.lower() == 'binary':
+        w[w>0] = 1
+    if use_NN:
+        ind = np.argpartition(w, -p)[-p:]
+    else:
+        ind = np.where(w>0)[0]
+
+    return indeces[ind].tolist(), w[ind].tolist()

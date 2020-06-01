@@ -1,12 +1,13 @@
+#!/usr/bin/env python
 """ compare how the elements behave
- 
+
 We create a folder ground truth that possess the same thing than the other
 in a form of a dictionnary containing nparrays and other info.
 the other files contains every test and the name is the date of the test
- 
+
 See Also
 ------------
- 
+
 Link 
 
 \image dev/kalfon/img/datacomparison.pdf
@@ -22,17 +23,27 @@ Link
 #
 #
 
-
-import platform as plt
+import copy
 import datetime
+import logging
+import matplotlib.pyplot as pl
 import numpy as np
 import os
-######## ONLY IF ON TRAVIS ######
-
-#############################
-import matplotlib.pyplot as pl
-import caiman as cm
+import platform as plt
 import scipy
+from typing import Dict
+
+# Set up the logger; change this if you like.
+# You can log to a file using the filename parameter, or make the output more or less
+# verbose by setting level to logging.DEBUG, logging.INFO, logging.WARNING, or logging.ERROR
+
+logging.basicConfig(
+    format="%(relativeCreated)12d [%(filename)s:%(funcName)20s():%(lineno)s] [%(process)d] %(message)s",
+                                                                                                         # filename="/tmp/caiman.log",
+    level=logging.DEBUG)
+
+import caiman as cm
+from caiman.paths import caiman_datadir
 
 
 class Comparison(object):
@@ -117,33 +128,26 @@ class Comparison(object):
 
     def __init__(self):
 
-        self.comparison = {'rig_shifts': {},
-                           'pwrig_shifts': {},
-                           'cnmf_on_patch': {},
-                           'cnmf_full_frame': {},
-                           }
+        self.comparison:Dict[str, Dict] = {
+            'rig_shifts': {},
+            'pwrig_shifts': {},
+            'cnmf_on_patch': {},
+            'cnmf_full_frame': {},
+        }
 
         self.comparison['rig_shifts'] = {
             'ourdata': None,
             'timer': None,
-            'sensitivity': 0.001  # the sensitivity USER TO CHOOSE
+            'sensitivity': 0.001               # the sensitivity USER TO CHOOSE
         }
-        # apparently pwrig shift are not used any more and the comparison are useless
-        # self.comparison['pwrig_shifts']={
-        #                 'ourdata': None,
-        #                'timer': None,
-        #               'sensitivity': 0.001
-        #           }
-        self.comparison['cnmf_on_patch'] = {
-            'ourdata': None,
-            'timer': None,
-            'sensitivity': 0.01
-        }
-        self.comparison['cnmf_full_frame'] = {
-            'ourdata': None,
-            'timer': None,
-            'sensitivity': 0.01
-        }
+                                               # apparently pwrig shift are not used any more and the comparison are useless
+                                               # self.comparison['pwrig_shifts']={
+                                               #                 'ourdata': None,
+                                               #                'timer': None,
+                                               #               'sensitivity': 0.001
+                                               #           }
+        self.comparison['cnmf_on_patch'] = {'ourdata': None, 'timer': None, 'sensitivity': 0.01}
+        self.comparison['cnmf_full_frame'] = {'ourdata': None, 'timer': None, 'sensitivity': 0.01}
 
         self.cnmpatch = None
         self.information = None
@@ -153,64 +157,57 @@ class Comparison(object):
         """save the comparison as well as the images of the precision recall calculations
 
 
-            depending on if we say this file will be ground truth or not, it wil be saved in either the tests or the groung truth folder
-            if saved in test, a comparison to groundtruth will be add to the object 
+            depending on if we say this file will be ground truth or not, it wil be saved in either the tests or the ground truth folder
+            if saved in test, a comparison to groundtruth will be added to the object 
             this comparison will be on 
                 data : a normized difference of the normalized value of the arrays
                 time : difference
-            in order for this function to work, you need to
-                previously give it the cnm objects after initializing them ( on patch and full frame)
+            in order for this function to work, you must
+                have previously given it the cnm objects after initializing them ( on patch and full frame)
                 give the values of the time and data 
                 have a groundtruth
 
 
-            Parameters:
-            -----------
+            Args:
+                self:  dictionnary
+                   the object of this class tha tcontains every value
 
-            self:  dictionnary
-               the object of this class tha tcontains every value
+                istruth: Boolean
+                    if we want it ot be the ground truth
 
-            istruth: Boolean
-                if we want it ot be the ground truth
+                params:
+                    movie parameters
 
-            params:
-                movie parameters
+                dview :
+                    your dview object
 
-            dview :
-                your dview object
+                n_frames_per_bin:
+                    you need to know those data before
+                    they have been given to the base/rois functions
 
-            n_frames_per_bin:
-                you need to know those data before
-                they have been given to the base/rois functions
+                dims_test:
+                    you need to know those data before
+                    they have been given to the base/rois functions
 
-            dims_test:
-                you need to know those data before
-                they have been given to the base/rois functions
+                Cn:
+                    your correlation image
 
-            Cn:
-                your correlation image
+                Cmap:
+                    a particular colormap for your Cn
 
-            Cmap:
-                a particular colormap for your Cn
-
-                See Also:
-                ---------
-
-            Example of utilisation on Demo Pipeline
+            See Also:
+                Example of utilisation on Demo Pipeline
 \image caiman/tests/comparison/data.pdf
 
+             Raises:
+                 ('we now have ground truth\n')
 
-             Raise:
-             ------
-
-             ('we now have ground truth\n')
-
-             ('we were not able to read the file to compare it\n')
+                 ('we were not able to read the file to compare it\n')
 
                 """
         # getting the DATA FOR COMPARISONS
         assert (params != None and self.cnmpatch != None)
-        print('we need the paramters in order to save anything\n')
+        logging.info('we need the parameters in order to save anything\n')
         # actions on the sparse matrix
         cnm = self.cnmpatch.__dict__
         cnmpatch = deletesparse(cnm)
@@ -218,16 +215,16 @@ class Comparison(object):
         # initialization
         dims_test = [self.dims[0], self.dims[1]]
         dims_gt = dims_test
-        dt = datetime.datetime.today()
-        dt = str(dt)
+        today_dt = datetime.datetime.today()
+        today_str = str(today_dt)
         plat = plt.platform()
         plat = str(plat)
         pro = plt.processor()
         pro = str(pro)
-        # we store a big file which is containing everything ( INFORMATION)
+        # we store a big file which contains everything (INFORMATION)
         information = {
             'platform': plat,
-            'time': dt,
+            'time': today_str,
             'processor': pro,
             'params': params,
             'cnmpatch': cnmpatch,
@@ -236,130 +233,153 @@ class Comparison(object):
                 'cnmf_full_frame': self.comparison['cnmf_full_frame']['timer'],
                 'rig_shifts': self.comparison['rig_shifts']['timer']
             }
-
         }
 
-        rootdir = os.path.abspath(cm.__path__[0])[:-7]
-        file_path = rootdir + "/caiman/tests/comparison/groundtruth.npz"
+        file_path = os.path.join(caiman_datadir(), "testdata", "groundtruth.npz")
 
-        # OPENNINGS
+        # OPENINGS
         # if we want to set this data as truth
         if istruth:
-                # we just save it
-            if os._exists(file_path):
+            # we just save it
+            if os.path.exists(file_path):
                 os.remove(file_path)
-                print("nothing to remove\n")
-            np.savez(file_path, information=information, A_full=self.comparison['cnmf_full_frame']['ourdata'][0],
-                     C_full=self.comparison['cnmf_full_frame']['ourdata'][
-                         1], A_patch=self.comparison['cnmf_on_patch']['ourdata'][0],
-                     C_patch=self.comparison['cnmf_on_patch']['ourdata'][1], rig_shifts=self.comparison['rig_shifts']['ourdata'])
-            #np.savez('comparison/groundtruth/groundtruth.npz', **information)
-            print('we now have ground truth\n')
+            else:
+                logging.debug("nothing to remove\n")
+            np.savez_compressed(file_path,
+                                information=information,
+                                A_full=self.comparison['cnmf_full_frame']['ourdata'][0],
+                                C_full=self.comparison['cnmf_full_frame']['ourdata'][1],
+                                A_patch=self.comparison['cnmf_on_patch']['ourdata'][0],
+                                C_patch=self.comparison['cnmf_on_patch']['ourdata'][1],
+                                rig_shifts=self.comparison['rig_shifts']['ourdata'])
+            logging.info('we now have ground truth\n')
             return
 
-        else:  # if not we create a comparison first
+        else:                                                                                               # if not we create a comparison first
             try:
-                with np.load(file_path, encoding='latin1') as dt:
+                with np.load(file_path, encoding='latin1', allow_pickle=True) as dt:
                     rig_shifts = dt['rig_shifts'][()]
                     A_patch = dt['A_patch'][()]
                     A_full = dt['A_full'][()]
                     C_full = dt['C_full'][()]
                     C_patch = dt['C_patch'][()]
                     data = dt['information'][()]
-            except (IOError, OSError):  # if we cannot manage to open it or it doesnt exist:
-                # we save but we explain why there were a problem
-                print('we were not able to read the file to compare it\n')
-                file_path = "comparison/tests/NC"+dt+".npz"
-                np.savez(file_path, information=information, A_full=self.comparison['cnmf_full_frame']['ourdata'][0],
-                         C_full=self.comparison['cnmf_full_frame']['ourdata'][
-                             1], A_patch=self.comparison['cnmf_on_patch']['ourdata'][0],
-                         C_patch=self.comparison['cnmf_on_patch']['ourdata'][1], rig_shifts=self.comparison['rig_shifts']['ourdata'])
+                                                                                                            # if we cannot manage to open it or it doesnt exist:
+            except (IOError, OSError):
+                                                                                                            # we save but we explain why there were a problem
+                logging.warning('we were not able to read the file ' + str(file_path) + ' to compare it\n')
+                file_path = os.path.join(caiman_datadir(), "testdata", "NC" + dt + ".npz")
+                np.savez_compressed(file_path,
+                                    information=information,
+                                    A_full=self.comparison['cnmf_full_frame']['ourdata'][0],
+                                    C_full=self.comparison['cnmf_full_frame']['ourdata'][1],
+                                    A_patch=self.comparison['cnmf_on_patch']['ourdata'][0],
+                                    C_patch=self.comparison['cnmf_on_patch']['ourdata'][1],
+                                    rig_shifts=self.comparison['rig_shifts']['ourdata'])
                 return
-        # creating the FOLDER to store our data
+                                                                                                            # creating the FOLDER to store our data
+                                                                                                            # XXX Is this still hooked up to anything?
         i = 0
-        dr = rootdir + '/caiman/tests/comparison/tests/'
+        dr = os.path.join(caiman_datadir(), "testdata")
         for name in os.listdir(dr):
             i += 1
-        i = str(i)
-        if not os.path.exists(dr+i):
-            os.makedirs(dr+i)
+        istr = str(i)
+        if not os.path.exists(dr + istr):
+            os.makedirs(dr + istr)
         information.update({'diff': {}})
-        information.update({'differences': {
-            'proc': False,
-            'params_movie': False,
-            'params_cnm': False}})
-        # INFORMATION FOR THE USER
+        information.update({'differences': {'proc': False, 'params_movie': False, 'params_cnm': False}})
+                                                                                                            # INFORMATION FOR THE USER
         if data['processor'] != information['processor']:
-            print("you don't have the same processor than groundtruth.. the time difference can vary"
-                  " because of that\n try recreate your own groundtruth before testing\n")
+            logging.info("you don't have the same processor as groundtruth.. the time difference can vary"
+                         " because of that\n try recreate your own groundtruth before testing. Compare: " +
+                         str(data['processor']) + " to " + str(information['processor']) + "\n")
             information['differences']['proc'] = True
         if data['params'] != information['params']:
-            print("you do not use the same movie parameters... Things can go wrong\n\n")
-            print('you need to use the same paramters to compare your version of the code with '
-                  'the groundtruth one. look for the groundtruth paramters with the see() method\n')
+            logging.warning("you are not using the same movie parameters... Things can go wrong")
+            logging.warning('you must use the same parameters to compare your version of the code with '
+                            'the groundtruth one. look for the groundtruth parameters with the see() method\n')
             information['differences']['params_movie'] = True
-        if data['cnmpatch'] != cnmpatch:
+                                                                                                            # We must cleanup some fields to permit an accurate comparison
+        if not normalised_compare_cnmpatches(data['cnmpatch'], cnmpatch):
             if data['cnmpatch'].keys() != cnmpatch.keys():
-                print('DIFFERENCES IN THE FIELDS OF CNMF')
-                print(set(cnmpatch.keys()) - set(data['cnmpatch'].keys()))
-                print(set(data['cnmpatch'].keys()) - set(cnmpatch.keys()))
+                logging.error(
+                    'DIFFERENCES IN THE FIELDS OF CNMF'
+                )                                                                                           # TODO: Now that we have deeply nested data structures, find a module that gives you tight differences.
             diffkeys = [k for k in data['cnmpatch'] if data['cnmpatch'][k] != cnmpatch[k]]
             for k in diffkeys:
-                print(k, ':', data['cnmpatch'][k], '->', cnmpatch[k])
+                logging.info("{}:{}->{}".format(k, data['cnmpatch'][k], cnmpatch[k]))
 
-            print('you do not use the same paramters in your cnmf on patches initialization\n')
+            logging.warning('you are not using the same parameters in your cnmf on patches initialization\n')
             information['differences']['params_cnm'] = True
 
         # for rigid
         # plotting part
 
         information['diff'].update({
-            'rig': plotrig(init=rig_shifts, curr=self.comparison['rig_shifts']['ourdata'], timer=self.comparison['rig_shifts']['timer']-data['timer']['rig_shifts'], sensitivity=self.comparison['rig_shifts']['sensitivity'])})
-        try:
-            pl.gcf().savefig(dr+str(i)+'/'+'rigidcorrection.pdf')
-            pl.close()
-        except:
-            print("\n")
+            'rig':
+            plotrig(init=rig_shifts,
+                    curr=self.comparison['rig_shifts']['ourdata'],
+                    timer=self.comparison['rig_shifts']['timer'] - data['timer']['rig_shifts'],
+                    sensitivity=self.comparison['rig_shifts']['sensitivity'])
+        })
+        #try:
+        #    pl.gcf().savefig(dr + str(i) + '/' + 'rigidcorrection.pdf')
+        #    pl.close()
+        #except:
+        #    pass
 
-# for cnmf on patch
+        # for cnmf on patch
         information['diff'].update({
-            'cnmpatch': cnmf(Cn=Cn, A_gt=A_patch,
-                             A_test=self.comparison['cnmf_on_patch']['ourdata'][0],
-                             C_gt=C_patch,
-                             C_test=self.comparison['cnmf_on_patch']['ourdata'][1],
-                             dview=dview, sensitivity=self.comparison[
-                                 'cnmf_on_patch']['sensitivity'],
-                             dims_test=dims_test, dims_gt=dims_gt,
-                             timer=self.comparison['cnmf_on_patch']['timer']-data['timer']['cnmf_on_patch'])})
-        try:
-            pl.gcf().savefig(dr+i+'/'+'onpatch.pdf')
-            pl.close()
-        except:
-            print("\n")
+            'cnmpatch':
+            cnmf(Cn=Cn,
+                 A_gt=A_patch,
+                 A_test=self.comparison['cnmf_on_patch']['ourdata'][0],
+                 C_gt=C_patch,
+                 C_test=self.comparison['cnmf_on_patch']['ourdata'][1],
+                 dview=dview,
+                 sensitivity=self.comparison['cnmf_on_patch']['sensitivity'],
+                 dims_test=dims_test,
+                 dims_gt=dims_gt,
+                 timer=self.comparison['cnmf_on_patch']['timer'] - data['timer']['cnmf_on_patch'])
+        })
+        #try:
+        #    pl.gcf().savefig(dr + istr + '/' + 'onpatch.pdf')
+        #    pl.close()
+        #except:
+        #    pass
 
-
-# CNMF FULL FRAME
+        # CNMF FULL FRAME
         information['diff'].update({
-            'cnmfull': cnmf(Cn=Cn, A_gt=A_full,
-                            A_test=self.comparison['cnmf_full_frame']['ourdata'][0],
-                            C_gt=C_full,
-                            C_test=self.comparison['cnmf_full_frame']['ourdata'][1],
-                            dview=dview, sensitivity=self.comparison[
-                                'cnmf_full_frame']['sensitivity'],
-                            dims_test=dims_test, dims_gt=dims_gt,
-                            timer=self.comparison['cnmf_full_frame']['timer']-data['timer']['cnmf_full_frame'])})
-        try:
-            pl.gcf().savefig(dr+i+'/'+'cnmfull.pdf')
-            pl.close()
-        except:
-            print("\n")
+            'cnmfull':
+            cnmf(Cn=Cn,
+                 A_gt=A_full,
+                 A_test=self.comparison['cnmf_full_frame']['ourdata'][0],
+                 C_gt=C_full,
+                 C_test=self.comparison['cnmf_full_frame']['ourdata'][1],
+                 dview=dview,
+                 sensitivity=self.comparison['cnmf_full_frame']['sensitivity'],
+                 dims_test=dims_test,
+                 dims_gt=dims_gt,
+                 timer=self.comparison['cnmf_full_frame']['timer'] - data['timer']['cnmf_full_frame'])
+        })
+        #try:
+        #    pl.gcf().savefig(dr + istr + '/' + 'cnmfull.pdf')
+        #    pl.close()
+        #except:
+        #    pass
 
-# SAving of everything
-        file_path = rootdir + "/caiman/tests/comparison/tests/"+i+"/"+i+".npz"
-        np.savez(file_path, information=information, A_full=self.comparison['cnmf_full_frame']['ourdata'][0],
-                 C_full=self.comparison['cnmf_full_frame']['ourdata'][
-                     1], A_patch=self.comparison['cnmf_on_patch']['ourdata'][0],
-                 C_patch=self.comparison['cnmf_on_patch']['ourdata'][1], rig_shifts=self.comparison['rig_shifts']['ourdata'])
+        # Saving of everything
+        target_dir = os.path.join(caiman_datadir(), "testdata", istr)
+        if not os.path.exists(target_dir):
+            os.makedirs(os.path.join(caiman_datadir(), "testdata", istr)) # TODO Revise to just use the exist_ok flag to os.makedirs
+        file_path = os.path.join(target_dir, istr + ".npz")
+        np.savez_compressed(file_path,
+                            information=information,
+                            A_full=self.comparison['cnmf_full_frame']['ourdata'][0],
+                            C_full=self.comparison['cnmf_full_frame']['ourdata'][1],
+                            A_patch=self.comparison['cnmf_on_patch']['ourdata'][0],
+                            C_patch=self.comparison['cnmf_on_patch']['ourdata'][1],
+                            rig_shifts=self.comparison['rig_shifts']['ourdata'])
 
         self.information = information
 
@@ -369,28 +389,23 @@ def see(filename=None):
 
         if you give nothing it will give you back the groundtruth infos
 
-        Parameters:
-        -----------
-        self:  dictionnary
-           the object of this class tha tcontains every value
-        filename:
-            ( just give the number or name)
+        Args:
+            self:  dictionary
+                the object of this class tha tcontains every value
+            filename:
+                ( just give the number or name)
 
         See Also:
-        ---------
-        @image html caiman/tests/comparison/data.pdf
-
+            @image html caiman/tests/comparison/data.pdf
             """
 
     if filename == None:
-        dr = './caiman/tests/comparison/groundtruth.npz'
+        dr = os.path.join(caiman_datadir(), "testdata", "groundtruth.npz")
     else:
-        dr = os.path.abspath(cm.__path__[0]) + '/tests/comparison/tests/'
-        dr = dr+filename+'/'+filename+'.npz'
-
-        print(dr)
+        dr = os.path.join(caiman_datadir(), "testdata", filename, filename + ".npz")
+        logging.debug("Loading GT file " + str(dr))
     with np.load(dr) as dt:
-        print('here is the info :\n')
+        print('Info :\n')
         see_it(dt)
 
 
@@ -418,7 +433,7 @@ def deletesparse(cnm):
             val = deletesparse(val)
         if not isinstance(val, scipy.sparse.coo.coo_matrix) and not isinstance(val, np.ndarray) \
                 and not isinstance(val, scipy.sparse.csc.csc_matrix) and not keys == 'dview':
-            print(type(val))
+            logging.debug("type of val is " + str(type(val)))
             cnm[keys] = val
         else:
 
@@ -431,78 +446,115 @@ def cnmf(Cn, A_gt, A_test, C_gt, C_test, dims_gt, dims_test, dview=None, sensiti
     A_test = A_test.toarray()  # coo sparse matrix
     A_gt = A_gt.toarray()
 
-   # proceed to a trhreshold
-    A_test_thr = cm.source_extraction.cnmf.spatial.threshold_components(
-        A_test, dims_test, medw=None, thr_method='max', maxthr=0.2, nrgthr=0.99, extract_cc=True,
-        se=None, ss=None, dview=dview)
-    A_gt_thr = cm.source_extraction.cnmf.spatial.threshold_components(
-        A_gt, dims_gt, medw=None, thr_method='max', maxthr=0.2, nrgthr=0.99, extract_cc=True,
-        se=None, ss=None, dview=dview)
+    # proceed to a trhreshold
+    A_test_thr = cm.source_extraction.cnmf.spatial.threshold_components(A_test,
+                                                                        dims_test,
+                                                                        medw=None,
+                                                                        thr_method='max',
+                                                                        maxthr=0.2,
+                                                                        nrgthr=0.99,
+                                                                        extract_cc=True,
+                                                                        se=None,
+                                                                        ss=None,
+                                                                        dview=dview)
+    A_gt_thr = cm.source_extraction.cnmf.spatial.threshold_components(A_gt,
+                                                                      dims_gt,
+                                                                      medw=None,
+                                                                      thr_method='max',
+                                                                      maxthr=0.2,
+                                                                      nrgthr=0.99,
+                                                                      extract_cc=True,
+                                                                      se=None,
+                                                                      ss=None,
+                                                                      dview=dview)
 
     # compute C using this A thr
-    A_test_thr = A_test_thr > 0
-    A_gt_thr = A_gt_thr > 0
+    A_test_thr = A_test_thr.toarray() > 0
+    A_gt_thr = A_gt_thr.toarray() > 0
     # we do not compute a threshold on the size of neurons
     C_test_thr = C_test
     C_gt_thr = C_gt
     # we would also like the difference in the number of neurons
-    diffneur = 0  # A_test_thr.shape[1] - A_gt_thr.shape[1] MANUALLY OVERRIDING BY ANDREA!!
-    print(diffneur+1)
+    diffneur = A_test_thr.shape[1] - A_gt_thr.shape[1]
+    #    print(diffneur+1)
     # computing the values
     C_test_thr = np.array([CC.reshape([-1, n_frames_per_bin]).max(1) for CC in C_test_thr])
     C_gt_thr = np.array([CC.reshape([-1, n_frames_per_bin]).max(1) for CC in C_gt_thr])
-    maskgt = A_gt_thr[:, :].reshape([dims_gt[0], dims_gt[1], -1],
-                                    order='F').transpose([2, 0, 1])*1.
-    masktest = A_test_thr[:, :].reshape(
-        [dims_test[0], dims_test[1], -1], order='F').transpose([2, 0, 1])*1.
+    maskgt = A_gt_thr[:, :].reshape([dims_gt[0], dims_gt[1], -1], order='F').transpose([2, 0, 1]) * 1.
+    masktest = A_test_thr[:, :].reshape([dims_test[0], dims_test[1], -1], order='F').transpose([2, 0, 1]) * 1.
 
     idx_tp_gt, idx_tp_comp, idx_fn_gt, idx_fp_comp, performance_off_on =  \
         cm.base.rois.nf_match_neurons_in_binary_masks(masks_gt=maskgt,
-                                                      masks_comp=masktest, Cn=Cn, plot_results=True)
+                                                      masks_comp=masktest, Cn=Cn, plot_results=False)
 
     # the pearson's correlation coefficient of the two Calcium activities thresholded
     # comparing Calcium activities of all the components that are defined by
-    # the matching algo as the same.
-    corrs = np.array([scipy.stats.pearsonr(
-        C_gt_thr[gt, :], C_test_thr[comp, :])[0] for gt, comp in zip(idx_tp_gt, idx_tp_comp)])
+
+    corrs = np.array(
+        [scipy.stats.pearsonr(C_gt_thr[gt, :], C_test_thr[comp, :])[0] for gt, comp in zip(idx_tp_gt, idx_tp_comp)])
     # todo, change this test when I will have found why I have one additionnal neuron
-    isdiff = True if (diffneur != 0 and (np.linalg.norm(corrs) < sensitivity))else False
-    info = {'isdifferent': int(isdiff),
-            'diff_data': {'performance': performance_off_on,
-                          'corelations': corrs.tolist(),
-                          #performance = dict()
-                          #performance['recall'] = old_div(TP,(TP+FN))
-                          #performance['precision'] = old_div(TP,(TP+FP))
-                          #performance['accuracy'] = old_div((TP+TN),(TP+FP+FN+TN))
-                          #performance['f1_score'] = 2*TP/(2*TP+FP+FN)
-                          'diffneur': diffneur},
-            'diff_timing': timer}
+
+    isdiff = True if ((np.linalg.norm(corrs) < sensitivity) or (performance_off_on['f1_score'] < 0.98)) else False
+    info = {
+        'isdifferent': int(isdiff),
+        'diff_data': {
+            'performance': performance_off_on,
+            'corelations': corrs.tolist(),
+                                                       #performance = dict()
+                                                       #performance['recall'] = old_div(TP,(TP+FN))
+                                                       #performance['precision'] = old_div(TP,(TP+FP))
+                                                       #performance['accuracy'] = old_div((TP+TN),(TP+FP+FN+TN))
+                                                       #performance['f1_score'] = 2*TP/(2*TP+FP+FN)
+            'diffneur': diffneur
+        },
+        'diff_timing': timer
+    }
     return info
 
 
 def plotrig(init, curr, timer, sensitivity):
 
-    diff = np.linalg.norm(np.asarray(init)-np.asarray(curr))/np.linalg.norm(init)
+    diff = np.linalg.norm(np.asarray(init) - np.asarray(curr)) / np.linalg.norm(init)
     isdiff = diff > sensitivity
-    info = {'isdifferent': int(isdiff),
-            'diff_data': diff,
-            'diff_timing': timer}
+    info = {'isdifferent': int(isdiff), 'diff_data': diff, 'diff_timing': timer}
     curr = np.asarray(curr).transpose([1, 0])
     init = init.transpose([1, 0])
     xc = np.arange(curr.shape[1])
     xi = np.arange(init.shape[1])
-    try:
-        pl.figure()
-        pl.subplot(1, 2, 1)
-        pl.plot(xc, curr[0], 'r', xi, init[0], 'b')
-        pl.legend(['x shifts curr', 'x shifts init'])
-        pl.xlabel('frames')
-        pl.ylabel('pixels')
-        pl.subplot(1, 2, 2)
-        pl.plot(xc, curr[1], 'r', xi, init[1], 'b')
-        pl.legend(['yshifts curr', 'y shifts init'])
-        pl.xlabel('frames')
-        pl.ylabel('pixels')
-    except:
-        print("not able to plot")
+    #try:
+    #    pl.figure()
+    #    pl.subplot(1, 2, 1)
+    #    pl.plot(xc, curr[0], 'r', xi, init[0], 'b')
+    #    pl.legend(['x shifts curr', 'x shifts init'])
+    #    pl.xlabel('frames')
+    #    pl.ylabel('pixels')
+    #    pl.subplot(1, 2, 2)
+    #    pl.plot(xc, curr[1], 'r', xi, init[1], 'b')
+    #    pl.legend(['yshifts curr', 'y shifts init'])
+    #    pl.xlabel('frames')
+    #    pl.ylabel('pixels')
+    #except:
+    #    logging.warning("not able to plot")
     return info
+
+
+def normalised_compare_cnmpatches(a, b):
+    # This is designed to copy with fields that make it into these objects that need some normalisation before they
+    # are rightly comparable. To deal with that we do a deepcopy and then inline-normalise. Add any new needed keys
+    # into this code. Right now this is manual, but if we need to do more of this we should turn this into a nice
+    # list of fields to ignore, and another list of fields to perform regular transforms on.
+    mutable_a = copy.deepcopy(a)
+    mutable_b = copy.deepcopy(b)
+
+    if 'params' in mutable_a and 'params' in mutable_b:
+        params_a = mutable_a['params']
+        params_b = mutable_b['params']
+        if hasattr(params_a, 'online') and hasattr(params_b, 'online'):
+            if 'path_to_model' in params_a.online and 'path_to_model' in params_b.online:
+                _, params_a.online['path_to_model'] = os.path.split(
+                    params_a.online['path_to_model'])                  # Remove all but the last part
+                _, params_b.online['path_to_model'] = os.path.split(params_b.online['path_to_model'])
+                                                                       # print("Normalised A: " + str(params_a.online['path_to_model']))
+                                                                       # print("Normalised B: " + str(params_b.online['path_to_model']))
+
+    return mutable_a == mutable_b
